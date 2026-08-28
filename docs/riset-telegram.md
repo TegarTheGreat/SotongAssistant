@@ -45,6 +45,18 @@
 - Bug terbuka yang relevan: **#2094** — `reply_parameters` hilang saat kirim media multipart (reply + foto = reply-nya lenyap); **#2096** — `ctx.telegram` bukan instance yang sama dengan `bot.telegram`; masih pakai node-fetch v2.
 - **grammY 1.46.0** (26 Agu 2026): support Bot API 10.3, rilis bulanan, plugin auto-retry & ratelimit bawaan, API sangat mirip. Untuk proyek baru 2026 yang butuh fitur baru, grammY adalah default yang lebih aman; Telegraf tetap layak untuk fitur inti.
 
+### Alternatif yang benar-benar ter-update (verifikasi live 28 Agu 2026)
+
+| Framework | Versi | Terbit | Bot API | Catatan |
+|---|---|---|---|---|
+| **grammY** | 1.46.0 | 26 Agu 2026 | **10.3** | Framework penuh; tiap rilis Bot API 2026 diikuti dalam hitungan hari (1.43→10.0, 1.44→10.1, 1.45→10.2, 1.46→10.3 dua hari setelah rilis) |
+| **node-telegram-bot-api v2** | 2.1.0 | 24 Agu 2026 | **10.3** | Redesign total dari nol: *client* TypeScript 1:1, types di-generate dari docs live, runtime-agnostic — bukan framework (tanpa session/router) |
+| GramIO | 0.14.0 | 25 Agu 2026 | 9.5 (badge) | Muda (0.x), types code-generated |
+| puregram | 3.9.1 | 25 Agu 2026 | tak terverifikasi | Aktif |
+| telegraf | 4.16.3 | 29 Feb 2024 | 7.1 | Beku |
+
+**grammY adalah pengganti alami Telegraf.** Plugin resminya persis menambal kelemahan Telegraf yang ditemukan riset ini: `auto-retry` (429/`retry_after` otomatis), `ratelimiter`, `runner` (update konkuren), `conversations` (pengganti Scenes), session + storage adapter yang dirawat. Runtime-agnostic (Node/Deno/Bun/Cloudflare Workers). Migrasi mental model murah: `bot.on(message('text'))` → `bot.on('message:text')`, `bot.action` → `bot.callbackQuery`, `Markup.inlineKeyboard` → `new InlineKeyboard()`, Scenes → `@grammyjs/conversations`, `bot.launch()` → `bot.start()`; `bot.command`/`ctx.reply`/`bot.catch` sama persis. Catatan: jebakan platform (§5) tetap berlaku di framework mana pun.
+
 ### Strategi menutup gap di Telegraf
 
 ```js
