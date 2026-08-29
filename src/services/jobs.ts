@@ -1,8 +1,11 @@
 import type { Api } from "grammy";
-import { claimDueJobs, completeJob, scheduleJob, getSettings, updateSettings } from "../db/repo.js";
+import { config } from "../config.js";
+import { claimDueJobs, completeJob, scheduleJob, getSettings, updateSettings, recentMessages } from "../db/repo.js";
 import { UNMUTED_PERMISSIONS } from "../util/permissions.js";
-import { escapeHtml } from "../util/format.js";
+import { escapeHtml, markdownToTelegramHtml } from "../util/format.js";
 import { t } from "../i18n/index.js";
+import { getCatalog } from "./catalog.js";
+import { streamCompletion } from "./ai/index.js";
 
 /**
  * Durable job runner (jobs live in SQLite, so they survive restarts).
@@ -54,6 +57,40 @@ export function startJobRunner(api: Api): () => void {
             updateSettings(chatId, { lockSnapshot: undefined });
             const lang = getSettings(chatId).language ?? "en";
             await api.sendMessage(chatId, t(lang, "raid.off")).catch(() => undefined);
+            break;
+          }
+
+          case "digest": {
+            // Recurring AI summary of the group's recent activity.
+            const chatId = payload.chatId as number;
+            const repeat = payload.repeatSeconds as number | undefined;
+            const settings = getSettings(chatId);
+            const log = recentMessages(chatId, 150);
+            if (settings.ai && settings.ambient && log.length >= 10) {
+              const catalog = await getCatalog();
+              const provider = catalog[settings.aiProvider ?? config.defaultProvider];
+              if (provider) {
+                const transcript = log.map((m) => `${m.name ?? "?"}: ${m.text}`).join("\n").slice(-12_000);
+                const summary = await streamCompletion(
+                  {
+                    provider,
+                    model: settings.aiModel ?? config.defaultModel,
+                    system:
+                      "Write a short periodic digest of this group-chat excerpt: main topics, decisions, " +
+                      "open questions, notable moments. Bullet points, dominant language of the conversation.",
+                    history: [],
+                    userText: transcript,
+                    maxTokens: 1024,
+                  },
+                  () => undefined,
+                );
+                await api.sendMessage(chatId, `🗞 ${markdownToTelegramHtml(summary).slice(0, 4000)}`, {
+                  parse_mode: "HTML",
+                });
+              }
+            }
+            // Keep the schedule alive even when a run is skipped (toggles resume later).
+            if (repeat && repeat >= 3600) scheduleJob("digest", payload, repeat);
             break;
           }
 

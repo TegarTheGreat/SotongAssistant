@@ -22,12 +22,15 @@ export async function streamOpenAiCompat(
   const url = `${baseUrl.replace(/\/$/, "")}/chat/completions`;
   const limit = req.maxTokens ?? 4096;
 
+  const signal = req.signal
+    ? AbortSignal.any([AbortSignal.timeout(120_000), req.signal])
+    : AbortSignal.timeout(120_000);
   const doFetch = (tokenParam: "max_tokens" | "max_completion_tokens") =>
     fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({ model: req.model, [tokenParam]: limit, stream: true, messages }),
-      signal: AbortSignal.timeout(120_000),
+      signal,
     });
 
   let res = await doFetch("max_tokens");

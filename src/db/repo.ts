@@ -268,6 +268,26 @@ export function deleteJob(id: number): boolean {
   return db.prepare("DELETE FROM jobs WHERE id = ?").run(id).changes > 0;
 }
 
+// ---------- guard-bot join queries (Mini App captcha flow) ----------
+
+export function savePendingJoinQuery(userId: number, chatId: number, queryId: string) {
+  db.prepare(
+    `INSERT INTO pending_join_queries (user_id, chat_id, query_id, ts) VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET chat_id = excluded.chat_id, query_id = excluded.query_id, ts = excluded.ts`,
+  ).run(userId, chatId, queryId, now());
+  // Queries older than an hour are dead — keep the table tidy.
+  db.prepare("DELETE FROM pending_join_queries WHERE ts < ?").run(now() - 3600);
+}
+
+/** Fetch and delete the pending query for a user (single-use). */
+export function takePendingJoinQuery(userId: number) {
+  const row = db
+    .prepare("SELECT chat_id, query_id FROM pending_join_queries WHERE user_id = ?")
+    .get(userId) as { chat_id: number; query_id: string } | undefined;
+  if (row) db.prepare("DELETE FROM pending_join_queries WHERE user_id = ?").run(userId);
+  return row;
+}
+
 // ---------- karma (atomic) ----------
 
 export function addKarma(chatId: number, userId: number, name: string | undefined, delta: number): number {

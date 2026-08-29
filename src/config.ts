@@ -24,6 +24,12 @@ export const config = {
   webhookUrl: process.env.WEBHOOK_URL,
   port: Number(process.env.PORT ?? 8080),
   webhookSecret: process.env.WEBHOOK_SECRET,
+  /**
+   * Public HTTPS base URL of this bot's HTTP server (e.g. https://bot.example.com).
+   * Enables the self-hosted Mini App captcha for guard-bot join requests; the
+   * HTTP server starts even in polling mode when this is set.
+   */
+  webappUrl: process.env.WEBAPP_URL?.replace(/\/$/, ""),
 };
 
 mkdirSync(config.dataDir, { recursive: true });

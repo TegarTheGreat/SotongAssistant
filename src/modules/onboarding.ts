@@ -1,5 +1,6 @@
 import { Composer, InlineKeyboard, type Context } from "grammy";
-import { getSettings, updateSettings, scheduleJob } from "../db/repo.js";
+import { config } from "../config.js";
+import { getSettings, updateSettings, scheduleJob, savePendingJoinQuery } from "../db/repo.js";
 import { escapeHtml, humanDuration } from "../util/format.js";
 import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
 import { isCasBanned } from "../services/cas.js";
@@ -150,6 +151,19 @@ onboarding.on("chat_join_request", async (ctx) => {
     // grammY's raw API is a proxy: any method name is forwarded to the wire,
     // so this stays valid even where local typings trail the live Bot API.
     const raw = ctx.api.raw as unknown as Record<string, (p: unknown) => Promise<unknown>>;
+    if (!banned && config.webappUrl) {
+      // Preferred: show the self-hosted Mini App captcha. The query id stays
+      // server-side; /captcha/verify resolves it after initData validation.
+      savePendingJoinQuery(req.from.id, req.chat.id, queryId);
+      const shown = await raw
+        .sendChatJoinRequestWebApp!({
+          chat_join_request_query_id: queryId,
+          web_app_url: `${config.webappUrl}/captcha`,
+        })
+        .then(() => true)
+        .catch(() => false);
+      if (shown) return; // Mini App flow owns this request now
+    }
     await raw
       .answerChatJoinRequestQuery!({
         chat_join_request_query_id: queryId,

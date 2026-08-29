@@ -127,6 +127,9 @@ export const id = {
   "announce.removed": "🗑 Pengumuman dihapus.",
   "broadcast.usage": "Pakai: /broadcast <teks> — kirim ke semua chat yang kukelola (khusus owner).",
   "broadcast.done": "📤 Broadcast terkirim ke {count} chat.",
+  "digest.usage": "Pakai: /digest <6h|24h> — nyalakan/matikan ringkasan AI berkala (min 1h).",
+  "digest.on": "🗞 Ringkasan dijadwalkan setiap {duration}. Kirim /digest lagi untuk mematikan.",
+  "digest.off": "🗞 Ringkasan berkala dimatikan.",
 
   "status.title": "📋 <b>Chat yang kuketahui</b>",
   "status.empty": "Belum ada chat tercatat. Tambahkan aku ke grup/channel dulu.",

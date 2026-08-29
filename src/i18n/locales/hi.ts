@@ -126,6 +126,9 @@ export const hi = {
   "announce.removed": "🗑 घोषणा हटाई गई।",
   "broadcast.usage": "उपयोग: /broadcast <टेक्स्ट> — मेरे सभी चैट में भेजें (केवल मालिक)।",
   "broadcast.done": "📤 प्रसारण {count} चैट में पहुँचा।",
+  "digest.usage": "उपयोग: /digest <6h|24h> — आवधिक AI सार चालू/बंद करें (न्यूनतम 1h)।",
+  "digest.on": "🗞 सार हर {duration} पर निर्धारित। बंद करने के लिए फिर /digest भेजें।",
+  "digest.off": "🗞 आवधिक सार बंद।",
 
   "status.title": "📋 <b>मेरे ज्ञात चैट</b>",
   "status.empty": "अभी कोई चैट दर्ज नहीं। पहले मुझे किसी ग्रुप/चैनल में जोड़ें।",

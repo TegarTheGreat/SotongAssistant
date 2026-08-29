@@ -8,13 +8,16 @@ import {
   setProviderKey,
   logMessage,
   recentMessages,
+  scheduleJob,
+  listJobsByKind,
+  deleteJob,
 } from "../db/repo.js";
 import { getCatalog, sortProviders, type CatalogProvider } from "../services/catalog.js";
 import { streamCompletion, resolveApiKey, AiError } from "../services/ai/index.js";
 import { appendExchange, compactIfNeeded } from "../services/memory.js";
 import { TelegramStreamer } from "../services/streamer.js";
 import { threadIdOf, replyEphemeral } from "../services/telegram.js";
-import { escapeHtml, markdownToTelegramHtml } from "../util/format.js";
+import { escapeHtml, markdownToTelegramHtml, parseDuration, humanDuration } from "../util/format.js";
 import { senderIsAdmin } from "../util/admin.js";
 import { tc, langOf, t } from "../i18n/index.js";
 
@@ -22,6 +25,7 @@ export const ai = new Composer<Context>();
 
 // One generation at a time per chat; light per-user rate limit with eviction.
 const activeGenerations = new Set<number>();
+const stopControllers = new Map<number, AbortController>();
 const userLastAsk = new Map<string, number>();
 const USER_COOLDOWN_MS = 20_000;
 let lastSweep = Date.now();
@@ -89,6 +93,9 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
   }
   userLastAsk.set(userKey, Date.now());
   activeGenerations.add(chatId);
+  // Wired to Telegram's native "stop generating" button (draft streaming).
+  const controller = new AbortController();
+  stopControllers.set(chatId, controller);
 
   const { provider, model } = await resolveModel(ctx);
   const providerId = provider?.id ?? settings.aiProvider ?? config.defaultProvider;
@@ -112,34 +119,69 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
       history: mem.messages,
       userText: question,
       userName: ctx.from?.first_name,
+      signal: controller.signal,
     };
 
+    // Track the partial answer so a user-initiated stop still delivers it.
+    let partial = "";
     let full: string;
     if (useEphemeral) {
-      full = await streamCompletion(request, () => undefined);
-      await replyEphemeral(ctx, markdownToTelegramHtml(full));
+      try {
+        full = await streamCompletion(request, (text) => (partial = text));
+      } catch (err) {
+        if (!controller.signal.aborted) throw err;
+        full = partial;
+      }
+      await replyEphemeral(ctx, markdownToTelegramHtml(full || "⏹"));
     } else {
       const streamer = new TelegramStreamer(ctx.api, chatId, threadId, isPrivate);
       await streamer.start();
       try {
-        full = await streamCompletion(request, (text) => streamer.update(text));
+        full = await streamCompletion(request, (text) => {
+          partial = text;
+          streamer.update(text);
+        });
       } catch (err) {
-        await streamer.fail(localizeAiError(ctx, err, providerId));
-        return;
+        if (controller.signal.aborted) {
+          // Stopped by the user — persist whatever was generated so far.
+          await streamer.finish(partial ? `${partial} ⏹` : "⏹");
+          full = partial;
+        } else {
+          await streamer.fail(localizeAiError(ctx, err, providerId));
+          return;
+        }
       }
-      await streamer.finish(full);
+      if (!controller.signal.aborted) await streamer.finish(full);
     }
 
-    appendExchange(memKey, ctx.from?.first_name, question, full);
-    compactIfNeeded(memKey, provider, model);
+    if (full) {
+      appendExchange(memKey, ctx.from?.first_name, question, full);
+      compactIfNeeded(memKey, provider, model);
+    }
   } catch (err) {
     await ctx
       .reply(localizeAiError(ctx, err, providerId), { message_thread_id: threadId })
       .catch(() => undefined);
   } finally {
     activeGenerations.delete(chatId);
+    stopControllers.delete(chatId);
   }
 }
+
+// Telegram's native "stop generating" button fires a stopped_message_generation
+// update (Bot API 10.3). It is not in grammY's filter set, so inspect raw updates.
+ai.use(async (ctx, next) => {
+  const stop = (ctx.update as unknown as Record<string, unknown>).stopped_message_generation as
+    | { chat?: { id?: number } }
+    | undefined;
+  if (stop) {
+    const chatId = stop.chat?.id;
+    if (chatId) stopControllers.get(chatId)?.abort();
+    else for (const c of stopControllers.values()) c.abort();
+    return;
+  }
+  await next();
+});
 
 // ---------- ambient logging (explicit opt-in via /settings) ----------
 
@@ -217,6 +259,35 @@ ai.command("summarize", async (ctx) => {
   } catch (err) {
     await streamer.fail(localizeAiError(ctx, err, provider.id));
   }
+});
+
+// /digest — toggle a recurring AI summary posted straight into the group.
+ai.command("digest", async (ctx) => {
+  const chat = ctx.chat;
+  if (chat.type !== "group" && chat.type !== "supergroup") return;
+  if (!(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const existing = listJobsByKind("digest").filter(
+    (j) => (JSON.parse(j.payload) as { chatId: number }).chatId === chat.id,
+  );
+  if (existing.length) {
+    for (const j of existing) deleteJob(j.id);
+    await ctx.reply(tc(ctx, "digest.off"));
+    return;
+  }
+  if (!getSettings(chat.id).ambient) {
+    await ctx.reply(tc(ctx, "ai.summarizeOff"));
+    return;
+  }
+  const seconds = parseDuration(ctx.match.trim()) ?? 24 * 3600;
+  if (seconds < 3600) {
+    await ctx.reply(tc(ctx, "digest.usage"));
+    return;
+  }
+  scheduleJob("digest", { chatId: chat.id, repeatSeconds: seconds }, seconds);
+  await ctx.reply(tc(ctx, "digest.on", { duration: humanDuration(seconds) }));
 });
 
 // Reply-to-bot, @mention, or any private-chat text triggers the assistant.

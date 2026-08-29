@@ -31,16 +31,16 @@ Every setting lives inside Telegram. No web dashboard.**
 
 | | Capability | Highlights |
 |---|---|---|
-| 🤖 | **AI assistant** | `/ask`, reply-to-bot, or @mention · pick **any provider & model from models.dev** via inline menus · streaming answers (throttled edits, within Telegram's rate budget) · per-chat personality (`/aiprompt`) · `/summarize` for group digests |
+| 🤖 | **AI assistant** | `/ask`, reply-to-bot, or @mention · pick **any provider & model from models.dev** via inline menus · **native draft streaming in DMs** (Bot API 9.3, with Telegram's own “stop generating” button) and throttled-edit streaming in groups · per-chat personality (`/aiprompt`) · `/summarize` on demand and `/digest` on a schedule |
 | 🧠 | **Layered memory** | Rolling short-term transcript **plus** a model-maintained long-term summary (OpenClaw/Hermes-style compaction) · per group *and* per forum topic · `/memory` to inspect, `/forget` to wipe |
 | 🛡 | **Moderation** | `/warn` with auto-escalation · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` |
 | 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome messages (auto-cleanup) · button captcha with timeout-kick · join-request gate verified in DM |
-| 🌊 | **Anti-abuse** | Anti-flood auto-mute · **auto raid protection** (join-spike lockdown with timed restore) · **CAS anti-spam screening** on joins & join requests · **guard-bot join queries** (Bot API 10.1) · channel-persona spam blocking (linked channel whitelisted) · anonymous-admin & auto-forward aware |
+| 🌊 | **Anti-abuse** | Anti-flood auto-mute · **auto raid protection** (join-spike lockdown with timed restore) · **CAS anti-spam screening** on joins & join requests · **guard-bot join queries with a self-hosted Mini App captcha** (Bot API 10.1, HMAC-verified `initData`) · channel-persona spam blocking (linked channel whitelisted) · anonymous-admin & auto-forward aware |
 | 📒 | **Notes & rules** | `/save faq` → recall with `#faq` · `/setrules` & `/rules` |
 | 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · **reaction karma** with `/karma` leaderboard · recurring `/announce` posts · `/donate` via Telegram Stars ⭐ (with owner `/refund`) |
 | 📣 | **Channels** | Tracks channels it administers, `/ping` health check |
 | 💼 | **Telegram Business** | Answers incoming customer chats with AI on the owner's behalf (rate-limited & concurrency-capped) |
-| 📋 | **Bot manager** | `/status` shows every chat it manages + its admin rights in each · owner `/broadcast` to all managed chats · group→supergroup migration handled automatically |
+| 📋 | **Bot manager** | `/status` shows every chat it manages + its admin rights in each · owner `/broadcast` to all managed chats · owner `/export` database backups · group→supergroup migration handled automatically |
 | 🤖 | **Rich Messages** | Final AI answers upgrade to native Rich Messages (tables, code, lists — Bot API 10.1) with automatic HTML fallback |
 | 🌐 | **Webhook mode** | Set `WEBHOOK_URL` for instant delivery and multi-replica deployments; long polling stays the zero-config default |
 | 🌐 | **10 languages** | Auto-detected from each user's Telegram, overridable per chat via `/lang`: EN · ID · RU · ES · PT · HI · AR · FA · TR · UK |
@@ -86,6 +86,7 @@ Then, in Telegram:
 | `WEBHOOK_URL` | – | Public HTTPS URL → switches to webhook mode (multi-replica safe) |
 | `PORT` | – | HTTP port for webhook mode (default `8080`, non-POST requests answer a health check) |
 | `WEBHOOK_SECRET` | – | Webhook secret token (defaults to a value derived from `BOT_TOKEN`) |
+| `WEBAPP_URL` | – | Public HTTPS base of this bot's HTTP server → enables the Mini App captcha for guard-bot join requests (server also starts in polling mode) |
 
 ## 📦 Deployment
 
@@ -179,13 +180,22 @@ timeline, framework comparison, platform pitfalls).
 
 ## 🗺 Roadmap
 
-- [x] Guard-bot join queries (Bot API 10.1) — CAS-listed users declined, others queued for admins
-- [x] Rich Messages for AI answers (`rich_message` edits, Bot API 10.1)
-- [x] Reaction-based karma (Bot API 10.0)
-- [x] Webhook mode with multi-replica support
-- [x] Recurring announcements & auto raid protection
-- [ ] Mini App captcha UI for guard-bot join queries (needs a hosted web app)
-- [ ] Streamed drafts in private chats (`sendMessageDraft`)
+**Done**
+
+- [x] Guard-bot join queries with a **self-hosted Mini App captcha** (Bot API 10.1)
+- [x] Native draft streaming in DMs with the “stop generating” button (`sendMessageDraft`)
+- [x] Rich Messages for AI answers (Bot API 10.1) · Reaction karma (10.0)
+- [x] Webhook mode (multi-replica) · CI · Recurring announcements & `/digest` · Auto raid protection · CAS screening · `/broadcast` & `/export`
+
+**Next**
+
+- [ ] Inline mode: `@bot query` to ask the AI or share notes from any chat
+- [ ] Telegram Stars subscription gating (`createChatSubscriptionInviteLink`) for paid groups
+- [ ] Cross-group federation ban lists
+- [ ] Auto-translation bridge for multilingual groups
+- [ ] Semantic (vector) search over long-term memory and the ambient log
+- [ ] Per-chat analytics: `/stats` with activity charts
+- [ ] Ephemeral moderation panels (inline mod actions visible only to the acting admin)
 
 ## 🤝 Contributing
 

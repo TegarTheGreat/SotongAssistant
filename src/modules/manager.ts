@@ -1,5 +1,7 @@
-import { Composer, type Context } from "grammy";
+import path from "node:path";
+import { Composer, InputFile, type Context } from "grammy";
 import { config } from "../config.js";
+import { checkpoint } from "../db/index.js";
 import { listKnownChats, upsertChat, migrateChatId } from "../db/repo.js";
 import { invalidateAdminCache } from "../util/admin.js";
 import { escapeHtml } from "../util/format.js";
@@ -44,6 +46,15 @@ manager.command("status", async (ctx) => {
     return `• <b>${escapeHtml(c.title ?? String(c.chat_id))}</b> (${c.type}) — ${c.status}${admin}`;
   });
   await ctx.reply(`${tc(ctx, "status.title")}\n${lines.join("\n")}`, { parse_mode: "HTML" });
+});
+
+// /export — owner only, DM only: send the SQLite database as a backup file.
+// Contains encrypted provider keys, settings, notes, memories.
+manager.command("export", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  checkpoint(); // flush the WAL so the file is a complete snapshot
+  const file = new InputFile(path.join(config.dataDir, "sotong.db"), "sotong-backup.db");
+  await ctx.replyWithDocument(file, { caption: `📦 ${new Date().toISOString().slice(0, 10)}` });
 });
 
 // /broadcast <text> — owner only, DM only: deliver to every managed group/channel.

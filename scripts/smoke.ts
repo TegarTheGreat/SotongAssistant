@@ -6,6 +6,8 @@ import { addKarma, topKarma, listJobsByKind, deleteJob } from "../src/db/repo.js
 import { t, LOCALES } from "../src/i18n/index.js";
 import { encryptSecret, decryptSecret } from "../src/services/security.js";
 import { chunkText, parseDuration, markdownToTelegramHtml } from "../src/util/format.js";
+import { validateInitData } from "../src/services/webapp.js";
+import { createHmac } from "node:crypto";
 
 // settings
 updateSettings(-100123, { captcha: true, warnLimit: 2, language: "id" });
@@ -58,5 +60,21 @@ if (topKarma(-100999)[0]?.score !== 3) throw new Error("karma top");
 scheduleJob("announcement", { chatId: -100999, text: "hi", repeatSeconds: 3600 }, 3600);
 if (listJobsByKind("announcement").length !== 1) throw new Error("announce list");
 if (!deleteJob(listJobsByKind("announcement")[0]!.id)) throw new Error("announce delete");
+
+// Mini App initData HMAC validation (forge a valid signature with the test token)
+{
+  const token = process.env.BOT_TOKEN!;
+  const params = new URLSearchParams({
+    auth_date: String(Math.floor(Date.now() / 1000)),
+    user: JSON.stringify({ id: 42, first_name: "Test" }),
+  });
+  const dcs = [...params.entries()].map(([k, v]) => `${k}=${v}`).sort().join("\n");
+  const secret = createHmac("sha256", "WebAppData").update(token).digest();
+  const hash = createHmac("sha256", secret).update(dcs).digest("hex");
+  params.set("hash", hash);
+  if (validateInitData(params.toString(), token) !== 42) throw new Error("valid initData rejected");
+  params.set("hash", hash.slice(0, -1) + (hash.endsWith("0") ? "1" : "0"));
+  if (validateInitData(params.toString(), token) !== undefined) throw new Error("tampered initData accepted");
+}
 
 console.log("ALL SMOKE TESTS OK");

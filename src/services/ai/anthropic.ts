@@ -26,12 +26,15 @@ export async function streamAnthropic(
   ];
 
   // Telegram replies are capped at 4096 chars per message — short output is intentional.
-  const stream = client(apiKey).messages.stream({
-    model: req.model,
-    max_tokens: req.maxTokens ?? 4096,
-    system: req.system,
-    messages,
-  });
+  const stream = client(apiKey).messages.stream(
+    {
+      model: req.model,
+      max_tokens: req.maxTokens ?? 4096,
+      system: req.system,
+      messages,
+    },
+    { signal: req.signal },
+  );
 
   let full = "";
   stream.on("text", (delta) => {

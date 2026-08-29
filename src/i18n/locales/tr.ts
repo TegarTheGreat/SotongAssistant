@@ -126,6 +126,9 @@ export const tr = {
   "announce.removed": "🗑 Duyuru kaldırıldı.",
   "broadcast.usage": "Kullanım: /broadcast <metin> — yönettiğim tüm sohbetlere gönder (yalnız sahip).",
   "broadcast.done": "📤 Yayın {count} sohbete ulaştı.",
+  "digest.usage": "Kullanım: /digest <6h|24h> — periyodik yapay zekâ özetini aç/kapat (en az 1h).",
+  "digest.on": "🗞 Özet her {duration} için planlandı. Kapatmak için tekrar /digest gönder.",
+  "digest.off": "🗞 Periyodik özet kapatıldı.",
 
   "status.title": "📋 <b>Bildiğim sohbetler</b>",
   "status.empty": "Henüz kayıtlı sohbet yok. Önce beni bir gruba ya da kanala ekle.",

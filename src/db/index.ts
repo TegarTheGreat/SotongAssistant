@@ -62,6 +62,12 @@ CREATE TABLE IF NOT EXISTS message_log (
   PRIMARY KEY (chat_id, message_id)
 );
 CREATE INDEX IF NOT EXISTS message_log_ts ON message_log (chat_id, ts);
+CREATE TABLE IF NOT EXISTS pending_join_queries (
+  user_id INTEGER PRIMARY KEY,              -- one pending guard-bot query per user
+  chat_id INTEGER NOT NULL,
+  query_id TEXT NOT NULL,
+  ts INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS karma (
   chat_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
@@ -91,3 +97,8 @@ for (const stmt of [
 }
 
 export const now = () => Math.floor(Date.now() / 1000);
+
+/** Flush the WAL into the main database file (used before /export backups). */
+export function checkpoint(): void {
+  db.pragma("wal_checkpoint(TRUNCATE)");
+}

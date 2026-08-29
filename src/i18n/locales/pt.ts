@@ -126,6 +126,9 @@ export const pt = {
   "announce.removed": "🗑 Anúncio removido.",
   "broadcast.usage": "Uso: /broadcast <texto> — enviar a todos os chats que gerencio (só o dono).",
   "broadcast.done": "📤 Transmissão entregue a {count} chats.",
+  "digest.usage": "Uso: /digest <6h|24h> — liga/desliga o resumo periódico de IA (mín. 1h).",
+  "digest.on": "🗞 Resumo agendado a cada {duration}. Envie /digest de novo para desligar.",
+  "digest.off": "🗞 Resumo periódico desligado.",
 
   "status.title": "📋 <b>Chats que eu conheço</b>",
   "status.empty": "Nenhum chat registrado ainda. Adicione-me a um grupo ou canal primeiro.",

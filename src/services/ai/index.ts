@@ -11,6 +11,8 @@ export interface AiRequest {
   userText: string;
   userName?: string;
   maxTokens?: number;
+  /** Abort generation early (e.g. Telegram's native "stop generating" button). */
+  signal?: AbortSignal;
 }
 
 /** Error carrying a machine-readable code so callers can localize the message. */

@@ -17,6 +17,7 @@ import { channels } from "./modules/channels.js";
 import { business } from "./modules/business.js";
 import { ai } from "./modules/ai.js";
 import { startJobRunner } from "./services/jobs.js";
+import { handleWebAppRequest } from "./services/webapp.js";
 
 const bot = new Bot(config.botToken);
 
@@ -77,6 +78,7 @@ async function registerCommands() {
     { command: "setrules", description: "Set group rules" },
     { command: "announce", description: "Recurring announcement" },
     { command: "announcements", description: "List announcements" },
+    { command: "digest", description: "Toggle recurring AI digest" },
     { command: "aimodel", description: "Pick AI provider & model" },
     { command: "aiprompt", description: "Set AI personality" },
     { command: "lang", description: "Change language" },
@@ -89,6 +91,7 @@ async function registerCommands() {
     { command: "setkey", description: "(owner) Set a provider API key" },
     { command: "status", description: "(owner) List managed chats" },
     { command: "broadcast", description: "(owner) Message all chats" },
+    { command: "export", description: "(owner) Backup the database" },
     { command: "memory", description: "Show long-term memory" },
     { command: "forget", description: "Wipe chat memory" },
     { command: "donate", description: "Support via Telegram Stars" },
@@ -135,7 +138,12 @@ const ALLOWED_UPDATES = [
   "pre_checkout_query",
   "poll",
   "poll_answer",
-] as const;
+  // Newer update kinds (Bot API 10.3) that typings may not know yet — the
+  // wire accepts them; casts below keep the compiler satisfied.
+  "stopped_message_generation",
+] as unknown as ReadonlyArray<
+  NonNullable<NonNullable<Parameters<InstanceType<typeof Bot>["start"]>[0]>["allowed_updates"]>[number]
+>;
 
 async function main() {
   await registerCommands();
@@ -155,17 +163,21 @@ async function main() {
     await bot.init();
     const handle = webhookCallback(bot, "http", { secretToken: secret });
     const server = createServer((req, res) => {
-      if (req.method === "POST") {
-        handle(req, res).catch((err: unknown) => {
-          console.error("webhook error:", err);
-          if (!res.headersSent) res.writeHead(200);
-          res.end();
-        });
-      } else {
-        // Health endpoint for load balancers / uptime checks.
-        res.writeHead(200, { "content-type": "text/plain" });
-        res.end("ok");
-      }
+      void (async () => {
+        // Mini App captcha routes are served from the same HTTP server.
+        if (await handleWebAppRequest(req, res, bot.api)) return;
+        if (req.method === "POST") {
+          await handle(req, res).catch((err: unknown) => {
+            console.error("webhook error:", err);
+            if (!res.headersSent) res.writeHead(200);
+            res.end();
+          });
+        } else {
+          // Health endpoint for load balancers / uptime checks.
+          res.writeHead(200, { "content-type": "text/plain" });
+          res.end("ok");
+        }
+      })();
     });
     server.listen(config.port, () =>
       console.log(`🦑 SotongAssistant webhook listening on :${config.port} as @${bot.botInfo.username}`),
@@ -180,14 +192,31 @@ async function main() {
   }
 
   // Long-polling mode (default) — exactly ONE instance per bot token.
+  // When WEBAPP_URL is set, the Mini App captcha server runs alongside polling.
+  let webappServer: ReturnType<typeof createServer> | undefined;
+  if (config.webappUrl) {
+    webappServer = createServer((req, res) => {
+      void handleWebAppRequest(req, res, bot.api).then((handled) => {
+        if (!handled) {
+          res.writeHead(200, { "content-type": "text/plain" });
+          res.end("ok");
+        }
+      });
+    });
+    webappServer.listen(config.port, () =>
+      console.log(`🦑 Mini App captcha server listening on :${config.port}`),
+    );
+  }
   // Graceful shutdown ACKs the last batch, so restarts never re-process
   // updates that were already answered.
   process.once("SIGINT", () => {
     stopJobs();
+    webappServer?.close();
     void bot.stop();
   });
   process.once("SIGTERM", () => {
     stopJobs();
+    webappServer?.close();
     void bot.stop();
   });
   await bot.start({

@@ -138,6 +138,9 @@ export const en = {
   "announce.removed": "🗑 Announcement removed.",
   "broadcast.usage": "Usage: /broadcast <text> — send to every chat I manage (owner only).",
   "broadcast.done": "📤 Broadcast delivered to {count} chats.",
+  "digest.usage": "Usage: /digest <6h|24h> — toggle a recurring AI digest (min 1h).",
+  "digest.on": "🗞 Digest scheduled every {duration}. Send /digest again to disable.",
+  "digest.off": "🗞 Digest disabled.",
 
   // ---- manager ----
   "status.title": "📋 <b>Chats I know</b>",
