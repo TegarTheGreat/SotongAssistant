@@ -17,6 +17,7 @@ import { renderMemberTemplate, extractButtons } from "../src/util/placeholders.j
 import { extractActions } from "../src/services/actions.js";
 import { semanticRerank } from "../src/services/embeddings.js";
 import { approveUser, isApproved, unapproveUser, bumpAiUsage, getAiUsageToday } from "../src/db/repo.js";
+import { upsertBusinessConnection, upsertLead, listLeads, listProvidersWithKeys } from "../src/db/repo.js";
 import { inWindow, parseHHMM, isValidTimezone, localMinutes } from "../src/util/time.js";
 import { validateInitData } from "../src/services/webapp.js";
 import { createHmac } from "node:crypto";
@@ -220,6 +221,28 @@ scheduleJob("ai_prompt", { chatId: -100999, prompt: "standup", repeatSeconds: 86
 if (getSettings(-100777).videoChatNotify !== false) throw new Error("videoChatNotify default");
 updateSettings(-100777, { videoChatNotify: true });
 if (!getSettings(-100777).videoChatNotify) throw new Error("videoChatNotify round-trip");
+
+// business lead inbox: labels accumulate per conversation and filter by label
+upsertBusinessConnection("conn1", 4242, true, true);
+upsertLead("conn1", 900, "Rina", "order", "high", "wants 2 units by Friday");
+upsertLead("conn1", 900, undefined, undefined, undefined, undefined); // second message
+upsertLead("conn1", 901, "Budi", "question", "low", "asks about opening hours");
+{
+  const all = listLeads(4242);
+  if (all.length !== 2) throw new Error("leads list");
+  const rina = all.find((l) => l.chat_id === 900);
+  // COALESCE keeps the earlier label while bumping the message counter.
+  if (rina?.label !== "order" || rina.messages !== 2) throw new Error("lead upsert merge");
+  if (listLeads(4242, "question").length !== 1) throw new Error("lead label filter");
+  if (listLeads(9999).length !== 0) throw new Error("leads are scoped per owner");
+}
+
+// key status exposes provider NAMES only (never values)
+{
+  const names = listProvidersWithKeys();
+  if (!names.includes("anthropic")) throw new Error("key status names");
+  if (names.some((n) => n.includes("sk-"))) throw new Error("key status must not leak values");
+}
 
 // Mini App initData HMAC validation (forge a valid signature with the test token)
 {

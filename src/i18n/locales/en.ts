@@ -340,4 +340,8 @@ export const en = {
   "botcfg.usage": "Usage: /setbotname <name> · /setbotdesc <text> · /setbotabout <short text> · /setrights (owner, DM).",
   "botcfg.saved": "✅ Bot {what} updated.",
   "botcfg.rights": "✅ Default admin rights set — new groups will pre-tick them.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>Customer inbox</b> ({n})",
+  "leads.empty": "No labelled customer conversations yet. Connect a Telegram Business account and I'll triage incoming chats here.",
 } as const;

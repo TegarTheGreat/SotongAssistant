@@ -328,4 +328,8 @@ export const ru = {
   "botcfg.usage": "Использование: /setbotname <имя> · /setbotdesc <текст> · /setbotabout <кратко> · /setrights (владелец, ЛС).",
   "botcfg.saved": "✅ {what} бота обновлено.",
   "botcfg.rights": "✅ Права админа по умолчанию заданы — в новых группах они отметятся сами.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>Входящие клиентов</b> ({n})",
+  "leads.empty": "Помеченных клиентских диалогов пока нет. Подключите Telegram Business — я буду сортировать входящие здесь.",
 } satisfies Partial<Record<keyof typeof en, string>>;

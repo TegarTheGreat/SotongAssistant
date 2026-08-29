@@ -327,4 +327,8 @@ export const hi = {
   "botcfg.usage": "उपयोग: /setbotname <नाम> · /setbotdesc <टेक्स्ट> · /setbotabout <छोटा टेक्स्ट> · /setrights (मालिक, DM)।",
   "botcfg.saved": "✅ बॉट का {what} अपडेट हुआ।",
   "botcfg.rights": "✅ डिफ़ॉल्ट एडमिन अधिकार सेट — नए ग्रुप में स्वतः टिक होंगे।",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>ग्राहक इनबॉक्स</b> ({n})",
+  "leads.empty": "अभी कोई लेबल की गई ग्राहक बातचीत नहीं। Telegram Business खाता जोड़ें, मैं आने वाली चैट यहाँ छाँट दूँगा।",
 } satisfies Partial<Record<keyof typeof en, string>>;

@@ -327,4 +327,8 @@ export const tr = {
   "botcfg.usage": "Kullanım: /setbotname <ad> · /setbotdesc <metin> · /setbotabout <kısa metin> · /setrights (sahip, DM).",
   "botcfg.saved": "✅ Botun {what} bilgisi güncellendi.",
   "botcfg.rights": "✅ Varsayılan yönetici yetkileri ayarlandı — yeni gruplarda otomatik işaretlenir.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>Müşteri gelen kutusu</b> ({n})",
+  "leads.empty": "Henüz etiketlenmiş müşteri görüşmesi yok. Telegram Business hesabı bağlayın, gelen sohbetleri burada sınıflandırayım.",
 } satisfies Partial<Record<keyof typeof en, string>>;

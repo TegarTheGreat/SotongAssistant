@@ -177,6 +177,7 @@ async function registerCommands() {
     { command: "import", description: "(owner) Restore a backup" },
     { command: "update", description: "(owner) Self-update from git" },
     { command: "balance", description: "(owner) Star balance" },
+    { command: "leads", description: "(business) Customer inbox" },
     { command: "setbotname", description: "(owner) Rename the bot" },
     { command: "newfed", description: "Create a ban federation" },
     { command: "memory", description: "Show long-term memory" },

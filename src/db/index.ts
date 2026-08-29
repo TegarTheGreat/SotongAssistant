@@ -155,6 +155,18 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   count INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (chat_id, day)
 );
+CREATE TABLE IF NOT EXISTS business_leads (
+  connection_id TEXT NOT NULL,
+  chat_id INTEGER NOT NULL,             -- the customer's chat
+  name TEXT,
+  label TEXT,                           -- AI intent label (question/order/…)
+  urgency TEXT,                         -- low | normal | high
+  summary TEXT,                         -- one-line AI summary of the request
+  messages INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (connection_id, chat_id)
+);
+CREATE INDEX IF NOT EXISTS business_leads_ts ON business_leads (connection_id, updated_at);
 CREATE TABLE IF NOT EXISTS business_connections (
   connection_id TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL,

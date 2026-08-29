@@ -328,4 +328,8 @@ export const id = {
   "botcfg.usage": "Cara pakai: /setbotname <nama> · /setbotdesc <teks> · /setbotabout <teks pendek> · /setrights (pemilik, DM).",
   "botcfg.saved": "✅ {what} bot diperbarui.",
   "botcfg.rights": "✅ Hak admin default diset — grup baru akan mencentangnya otomatis.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>Kotak masuk pelanggan</b> ({n})",
+  "leads.empty": "Belum ada percakapan pelanggan berlabel. Hubungkan akun Telegram Business, nanti kutriase chat masuk di sini.",
 } satisfies Partial<Record<keyof typeof en, string>>;

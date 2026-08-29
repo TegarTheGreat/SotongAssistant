@@ -327,4 +327,8 @@ export const uk = {
   "botcfg.usage": "Використання: /setbotname <ім'я> · /setbotdesc <текст> · /setbotabout <короткий текст> · /setrights (власник, ОП).",
   "botcfg.saved": "✅ {what} бота оновлено.",
   "botcfg.rights": "✅ Типові права адміна задано — у нових групах вони позначаться самі.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>Вхідні клієнтів</b> ({n})",
+  "leads.empty": "Позначених клієнтських розмов ще немає. Підключіть Telegram Business — я сортуватиму вхідні тут.",
 } satisfies Partial<Record<keyof typeof en, string>>;

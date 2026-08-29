@@ -326,4 +326,8 @@ export const ar = {
   "botcfg.usage": "الاستخدام: ‎/setbotname <اسم> · ‎/setbotdesc <نص> · ‎/setbotabout <نص قصير> · ‎/setrights (المالك، خاص).",
   "botcfg.saved": "✅ حُدّث {what} البوت.",
   "botcfg.rights": "✅ ضُبطت صلاحيات المشرف الافتراضية — ستُعلَّم تلقائيًا في المجموعات الجديدة.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>وارد العملاء</b> ({n})",
+  "leads.empty": "لا محادثات عملاء موسومة بعد. اربط حساب Telegram Business وسأفرز الرسائل الواردة هنا.",
 } satisfies Partial<Record<keyof typeof en, string>>;

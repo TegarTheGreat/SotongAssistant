@@ -327,4 +327,8 @@ export const fa = {
   "botcfg.usage": "کاربرد: ‎/setbotname <نام> · ‎/setbotdesc <متن> · ‎/setbotabout <متن کوتاه> · ‎/setrights (مالک، پیوی).",
   "botcfg.saved": "✅ {what} بات به‌روزرسانی شد.",
   "botcfg.rights": "✅ دسترسی‌های پیش‌فرض مدیر تنظیم شد — در گروه‌های جدید خودکار تیک می‌خورد.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>صندوق مشتریان</b> ({n})",
+  "leads.empty": "هنوز گفتگوی برچسب‌خوردهٔ مشتری نیست. حساب Telegram Business را وصل کنید تا پیام‌های ورودی را اینجا دسته‌بندی کنم.",
 } satisfies Partial<Record<keyof typeof en, string>>;

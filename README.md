@@ -64,7 +64,7 @@ Every setting lives inside Telegram. No web dashboard.**
 | 📒 | **Notes & rules** | `/save faq` → recall with `#faq` · `/setrules` & `/rules` |
 | 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · **reaction karma** with `/karma` leaderboard · recurring `/announce` posts · `/donate` via Telegram Stars ⭐ (with owner `/refund`) · **`/subscription` monthly Stars subscription links for channels** |
 | 📣 | **Channels** | Tracks channels it administers, `/ping` health check |
-| 💼 | **Telegram Business** | Answers incoming customer chats with AI on the owner's behalf (rate-limited & concurrency-capped) |
+| 💼 | **Telegram Business** | Answers incoming customer chats with AI on the owner's behalf (rate-limited & concurrency-capped) · **auto-triage**: every conversation gets an AI label (intent, urgency, one-line summary) at no extra API call, reviewable as an inbox with **`/leads [label]`** |
 | 📋 | **Bot manager** | `/status` shows every chat it manages + its admin rights in each · owner `/broadcast` to all managed chats · owner `/export` database backups · group→supergroup migration handled automatically |
 | 🤖 | **Rich Messages** | Final AI answers upgrade to native Rich Messages (tables, code, lists — Bot API 10.1) with automatic HTML fallback |
 | 🌐 | **Webhook mode** | Set `WEBHOOK_URL` for instant delivery and multi-replica deployments; long polling stays the zero-config default |

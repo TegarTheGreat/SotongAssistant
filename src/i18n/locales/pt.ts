@@ -327,4 +327,8 @@ export const pt = {
   "botcfg.usage": "Uso: /setbotname <nome> · /setbotdesc <texto> · /setbotabout <texto curto> · /setrights (dono, PV).",
   "botcfg.saved": "✅ {what} do bot atualizado.",
   "botcfg.rights": "✅ Direitos de admin padrão definidos — novos grupos já vêm marcados.",
+
+  // ---- business lead inbox ----
+  "leads.title": "📥 <b>Caixa de clientes</b> ({n})",
+  "leads.empty": "Ainda não há conversas de clientes etiquetadas. Conecte uma conta do Telegram Business e eu faço a triagem aqui.",
 } satisfies Partial<Record<keyof typeof en, string>>;

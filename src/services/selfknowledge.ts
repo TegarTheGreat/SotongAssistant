@@ -24,11 +24,12 @@ Commands you (the bot) support — point people to these when relevant:
 - Video chats: you can ANNOUNCE them (start/end/scheduled + reminder) when the "Video chat announcements" toggle is on — but note the Bot API has NO method to start, join or stream into a video chat; that is only possible from the Telegram apps or the MTProto API, so never claim you can go live
 - Payments extras: /paidpost <stars> (reply to a photo/video) reposts it as paid media; /gifts lists Telegram gifts, owner /gift <id> sends one, owner /balance shows the Star balance
 - Chat extras: /unpin /unpinall, /revokeinvite, /boosts, /tag <label> (member tags)
+- Telegram Business: incoming customer chats get an AI reply plus an automatic triage label (intent, urgency, one-line summary); the owner reviews them with /leads [label] in DM
 - Owner bot config from Telegram: /setbotname /setbotdesc /setbotabout /setrights — no BotFather needed
 - Group tools: /settings (all toggles live in Telegram), /welcome & /goodbye (placeholders: {name} {first} {last} {fullname} {username} {mention} {id} {chat} {count}), /setrules /rules, /save /notes #name, /lang, /stats, /recall <words>, /afk, /tr (translate by reply), /bridge (auto-translation), /tagall, /admins, /invite, /id, /ping, /uptime, /about
 - Forum topics (admins): /newtopic /closetopic /reopentopic /renametopic; discussion groups can auto-pin the linked channel's posts (toggle in /settings)
 - Fun & payments: /dice /darts /slot /coin /poll /quiz /remind /karma, /donate (Telegram Stars), /subscription (channel Stars subscription)
-- Owner (DM): /setkey (encrypted provider API keys), /status, /broadcast, /export (DB backup), /import (restore), /update (self-update from git). In the owner's DM you can also RUN owner actions when asked: broadcast, status, star_balance, update_check.
+- Owner (DM): /setkey (encrypted provider API keys), /status, /broadcast, /export (DB backup), /import (restore), /update (self-update from git). In the owner's DM you can also RUN owner actions when asked: broadcast, status, chat_setting (configure any managed group remotely), key_status (which providers have keys — NAMES only), star_balance, update_check. Never output or ask for an API key value.
 Onboarding: welcome/goodbye messages, button captcha, Mini App captcha for join requests, CAS screening, raid auto-lockdown.
 `.trim();
 

@@ -617,6 +617,58 @@ export function topKarma(chatId: number, limit = 10) {
     .all(chatId, limit) as Array<{ user_id: number; name: string | null; score: number }>;
 }
 
+// ---------- business leads (AI-labelled customer conversations) ----------
+
+export interface BusinessLead {
+  connection_id: string;
+  chat_id: number;
+  name: string | null;
+  label: string | null;
+  urgency: string | null;
+  summary: string | null;
+  messages: number;
+  updated_at: number;
+}
+
+/** Record (or refresh) the AI label for one customer conversation. */
+export function upsertLead(
+  connectionId: string,
+  chatId: number,
+  name: string | undefined,
+  label: string | undefined,
+  urgency: string | undefined,
+  summary: string | undefined,
+) {
+  db.prepare(
+    `INSERT INTO business_leads (connection_id, chat_id, name, label, urgency, summary, messages, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+     ON CONFLICT(connection_id, chat_id) DO UPDATE SET
+       name = COALESCE(excluded.name, business_leads.name),
+       label = COALESCE(excluded.label, business_leads.label),
+       urgency = COALESCE(excluded.urgency, business_leads.urgency),
+       summary = COALESCE(excluded.summary, business_leads.summary),
+       messages = business_leads.messages + 1,
+       updated_at = excluded.updated_at`,
+  ).run(connectionId, chatId, name ?? null, label ?? null, urgency ?? null, summary ?? null, now());
+}
+
+/** Owner inbox: most recently active conversations, optionally by label. */
+export function listLeads(userId: number, label?: string, limit = 20): BusinessLead[] {
+  const base = `SELECT l.* FROM business_leads l
+     JOIN business_connections c ON c.connection_id = l.connection_id
+     WHERE c.user_id = ?`;
+  return label
+    ? (db.prepare(`${base} AND l.label = ? ORDER BY l.updated_at DESC LIMIT ?`).all(userId, label, limit) as BusinessLead[])
+    : (db.prepare(`${base} ORDER BY l.updated_at DESC LIMIT ?`).all(userId, limit) as BusinessLead[]);
+}
+
+/** Which providers currently have a key stored (NAMES ONLY, never values). */
+export function listProvidersWithKeys(): string[] {
+  return (db.prepare("SELECT provider FROM provider_keys ORDER BY provider").all() as Array<{ provider: string }>).map(
+    (r) => r.provider,
+  );
+}
+
 // ---------- business connections ----------
 
 export function upsertBusinessConnection(id: string, userId: number, enabled: boolean, canReply: boolean) {
