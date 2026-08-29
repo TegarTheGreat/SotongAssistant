@@ -26,6 +26,11 @@ Toda la configuración vive dentro de Telegram. Sin panel web.**
 | 📣 | **Canales** | Registra los canales que administra, `/ping` |
 | 💼 | **Telegram Business** | Responde chats de clientes con IA en nombre del dueño (con límites de frecuencia y concurrencia) |
 | 📋 | **Gestor del bot** | `/status`: todos los chats + permisos del bot en cada uno · migración a supergrupo automática |
+| 🧹 | **Higiene de mensajes** | **Filtros de palabras clave** (`/filter`), **lista de palabras bloqueadas** (`/block`) con borrado inmediato, borrado de enlaces de invitación · panel de moderación de un toque `/mp` (efímero) |
+| 🤝 | **Federaciones** | **Listas de baneo entre grupos**: `/newfed` → `/joinfed` en cada grupo · `/fban` banea en todos a la vez y expulsa automáticamente al entrar |
+| 🌍 | **Traducción** | `/tr` (respuesta) traduce un mensaje · `/bridge de` traduce automáticamente los mensajes extranjeros en grupos multilingües |
+| 📊 | **Estadísticas y básicos** | `/stats` con gráfico de actividad y más activos · `/recall` busca mensajes · `/afk` · `/ping` `/uptime` `/about` `/admins` `/invite` |
+| 🔎 | **Inline y más** | `@botname pregunta` consulta a la IA **desde cualquier chat** · la IA **se conoce a sí misma** (versión, comandos, ajustes del chat) · **autoactualización** (`/update`, `AUTO_UPDATE=true`) · `/subscription` suscripciones Stars para canales |
 | 🌐 | **10 idiomas** | Autodetección desde el Telegram del usuario, sobrescribible por chat con `/lang` |
 
 **Todo se configura dentro de Telegram**: `/settings` abre un menú inline por

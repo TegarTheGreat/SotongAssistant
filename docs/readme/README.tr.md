@@ -26,6 +26,11 @@ Bütün ayarlar Telegram'ın içinde. Web paneli yok.**
 | 📣 | **Kanallar** | Yönettiği kanalları izler, `/ping` |
 | 💼 | **Telegram Business** | Sahibi adına müşteri sohbetlerini yapay zekâ ile yanıtlar (hız ve eşzamanlılık sınırlı) |
 | 📋 | **Bot yöneticisi** | `/status`: tüm sohbetler + her birindeki bot yetkileri · süper gruba geçiş otomatik |
+| 🧹 | **Mesaj hijyeni** | **Anahtar kelime filtreleri** (`/filter`), anında silme ile **kelime engel listesi** (`/block`), davet bağlantısı silme · tek dokunuş moderasyon paneli `/mp` (geçici) |
+| 🤝 | **Federasyonlar** | **Gruplar arası ortak ban listeleri**: her grupta `/newfed` → `/joinfed` · `/fban` hepsinde birden yasaklar ve katılırken otomatik atar |
+| 🌍 | **Çeviri** | `/tr` (yanıtla) mesajı çevirir · `/bridge de` çok dilli gruplarda yabancı mesajları otomatik çevirir |
+| 📊 | **İstatistik ve temeller** | `/stats` etkinlik grafiği ve en aktifler · `/recall` mesaj arama · `/afk` · `/ping` `/uptime` `/about` `/admins` `/invite` |
+| 🔎 | **Inline ve dahası** | `@botname soru` — **herhangi bir sohbetten** YZ'ye sorun · YZ **kendini bilir** (sürüm, komutlar, sohbet ayarları) · **kendi kendine güncelleme** (`/update`, `AUTO_UPDATE=true`) · kanallar için `/subscription` Stars abonelikleri |
 | 🌐 | **10 dil** | Kullanıcının Telegram'ından otomatik algılama, `/lang` ile sohbet başına değiştirilebilir |
 
 **Her şey Telegram içinde yapılandırılır**: `/settings` her grubun satır içi

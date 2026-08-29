@@ -1,4 +1,5 @@
 import type { Api, Context } from "grammy";
+import type { InlineKeyboardMarkup } from "grammy/types";
 
 /**
  * Forum-safe thread id: replies in non-forum supergroups also carry
@@ -14,7 +15,11 @@ export function threadIdOf(ctx: Context): number | undefined {
  * Bot API 10.2+). Falls back to a regular reply on servers/clients where
  * the feature is not available, so callers never need to care.
  */
-export async function replyEphemeral(ctx: Context, html: string): Promise<void> {
+export async function replyEphemeral(
+  ctx: Context,
+  html: string,
+  keyboard?: InlineKeyboardMarkup,
+): Promise<void> {
   const chatId = ctx.chat?.id;
   const userId = ctx.from?.id;
   if (!chatId) return;
@@ -24,6 +29,7 @@ export async function replyEphemeral(ctx: Context, html: string): Promise<void> 
         chat_id: chatId,
         text: html,
         parse_mode: "HTML",
+        reply_markup: keyboard,
         ephemeral_message_parameters: { receiver_user_id: userId },
         // Typings may trail the live Bot API; the wire accepts the field.
       } as never);
@@ -32,7 +38,7 @@ export async function replyEphemeral(ctx: Context, html: string): Promise<void> 
       /* fall through to a normal reply */
     }
   }
-  await ctx.reply(html, { parse_mode: "HTML", message_thread_id: threadIdOf(ctx) });
+  await ctx.reply(html, { parse_mode: "HTML", message_thread_id: threadIdOf(ctx), reply_markup: keyboard });
 }
 
 /** Send with a single retry honoring 429 retry_after. */

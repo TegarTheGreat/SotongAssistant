@@ -34,6 +34,43 @@ stars.on("message:successful_payment", async (ctx) => {
   );
 });
 
+/**
+ * /subscription — monthly Telegram Stars subscription invite link.
+ * Telegram only supports these on CHANNELS, with a fixed 30-day period.
+ * Use it inside the channel (/subscription <stars>) or from the owner's DM
+ * with an explicit channel id (/subscription <channel_id> <stars>).
+ */
+stars.command("subscription", async (ctx) => {
+  const parts = ctx.match.trim().split(/\s+/).filter(Boolean);
+  let chatId: number | undefined;
+  let amount: number;
+  if (ctx.chat.type === "channel") {
+    chatId = ctx.chat.id;
+    amount = Number(parts[0]);
+  } else if (ctx.chat.type === "private") {
+    if (ctx.from?.id !== config.ownerId) {
+      await ctx.reply(tc(ctx, "error.ownerOnly"));
+      return;
+    }
+    chatId = Number(parts[0]);
+    amount = Number(parts[1]);
+  } else {
+    await ctx.reply(tc(ctx, "sub.channelOnly"), { parse_mode: "HTML" });
+    return;
+  }
+  if (!chatId || !Number.isInteger(amount) || amount < 1 || amount > 10_000) {
+    await ctx.reply(tc(ctx, "sub.usage"));
+    return;
+  }
+  try {
+    // 2592000s = 30 days — the only period Telegram accepts.
+    const link = await ctx.api.createChatSubscriptionInviteLink(chatId, 2_592_000, amount);
+    await ctx.reply(tc(ctx, "sub.link", { amount, link: link.invite_link }));
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message }));
+  }
+});
+
 // /refund (owner, replying to the receipt that contains the charge id)
 stars.command("refund", async (ctx) => {
   if (ctx.from?.id !== config.ownerId) {

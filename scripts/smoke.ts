@@ -3,6 +3,12 @@ import {
   saveNote, getNote, listNotes, setProviderKey, getProviderKey, saveMemory, getMemory, migrateChatId,
 } from "../src/db/repo.js";
 import { addKarma, topKarma, listJobsByKind, deleteJob } from "../src/db/repo.js";
+import {
+  saveFilter, deleteFilter, listFilters, addBlockedWord, removeBlockedWord, listBlockedWords,
+  setAfk, getAfk, clearAfk, createFederation, getFederation, joinFederation, leaveFederation,
+  fedOfChat, fedChats, addFedBan, getFedBan, removeFedBan, fedBanCount, logMessage, messageStats,
+  allLoggedMessages,
+} from "../src/db/repo.js";
 import { t, LOCALES } from "../src/i18n/index.js";
 import { encryptSecret, decryptSecret } from "../src/services/security.js";
 import { chunkText, parseDuration, markdownToTelegramHtml } from "../src/util/format.js";
@@ -60,6 +66,39 @@ if (topKarma(-100999)[0]?.score !== 3) throw new Error("karma top");
 scheduleJob("announcement", { chatId: -100999, text: "hi", repeatSeconds: 3600 }, 3600);
 if (listJobsByKind("announcement").length !== 1) throw new Error("announce list");
 if (!deleteJob(listJobsByKind("announcement")[0]!.id)) throw new Error("announce delete");
+
+// filters & blocklist
+saveFilter(-100999, "hello", "Hi there!");
+saveFilter(-100999, "hello", "Hi again!"); // upsert
+if (listFilters(-100999).length !== 1 || listFilters(-100999)[0]!.response !== "Hi again!") throw new Error("filter upsert");
+if (!deleteFilter(-100999, "hello") || deleteFilter(-100999, "hello")) throw new Error("filter delete");
+addBlockedWord(-100999, "spamword");
+addBlockedWord(-100999, "spamword"); // idempotent
+if (listBlockedWords(-100999).length !== 1) throw new Error("blocklist");
+if (!removeBlockedWord(-100999, "spamword")) throw new Error("blocklist remove");
+
+// AFK lifecycle
+setAfk(42, "lunch");
+if (getAfk(42)?.reason !== "lunch") throw new Error("afk set");
+if (!clearAfk(42) || clearAfk(42) || getAfk(42)) throw new Error("afk clear");
+
+// federation: create → join → fban gates → leave
+createFederation("cafe0042", "Test Fed", 7);
+if (getFederation("cafe0042")?.owner_id !== 7) throw new Error("fed create");
+joinFederation("cafe0042", -100999);
+if (fedOfChat(-100999)?.fed_id !== "cafe0042" || fedChats("cafe0042").length !== 1) throw new Error("fed join");
+addFedBan("cafe0042", 666, "spammer");
+if (getFedBan("cafe0042", 666)?.reason !== "spammer" || fedBanCount("cafe0042") !== 1) throw new Error("fed ban");
+if (!removeFedBan("cafe0042", 666) || getFedBan("cafe0042", 666)) throw new Error("fed unban");
+if (!leaveFederation(-100999) || fedOfChat(-100999)) throw new Error("fed leave");
+
+// activity stats over the ambient log
+logMessage(-100999, 1, 7, "Alice", "the quick brown fox");
+logMessage(-100999, 2, 8, "Bob", "jumped over the lazy dog");
+const st = messageStats(-100999);
+if (st.total24h !== 2 || st.total7d !== 2 || st.topUsers.length !== 2) throw new Error("stats");
+const hits = allLoggedMessages(-100999).filter((m) => m.text.includes("fox"));
+if (hits.length !== 1 || hits[0]!.name !== "Alice") throw new Error("recall source");
 
 // Mini App initData HMAC validation (forge a valid signature with the test token)
 {

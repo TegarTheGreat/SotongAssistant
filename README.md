@@ -33,11 +33,19 @@ Every setting lives inside Telegram. No web dashboard.**
 |---|---|---|
 | 🤖 | **AI assistant** | `/ask`, reply-to-bot, or @mention · pick **any provider & model from models.dev** via inline menus · **native draft streaming in DMs** (Bot API 9.3, with Telegram's own “stop generating” button) and throttled-edit streaming in groups · per-chat personality (`/aiprompt`) · `/summarize` on demand and `/digest` on a schedule |
 | 🧠 | **Layered memory** | Rolling short-term transcript **plus** a model-maintained long-term summary (OpenClaw/Hermes-style compaction) · per group *and* per forum topic · `/memory` to inspect, `/forget` to wipe |
-| 🛡 | **Moderation** | `/warn` with auto-escalation · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` |
+| 🛡 | **Moderation** | `/warn` with auto-escalation · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` · **`/mp` one-tap mod panel** (ephemeral inline buttons only the acting admin sees) |
+| 🧹 | **Message hygiene** | **Keyword filters** (`/filter faq Read the pinned!` → auto-reply) · **word blocklist** (`/block`) with on-sight deletion · **invite-link deletion** toggle · all admin-exempt |
+| 🌍 | **Translation** | `/tr` (reply) translates any message with the chat's AI model · **`/bridge de`** auto-translates foreign-language messages for multilingual groups (throttled, best-effort) |
+| 🤝 | **Federations** | **Cross-group ban lists** (Rose-style): `/newfed` → `/joinfed` in every group · `/fban` bans everywhere at once and auto-removes listed users the moment they join |
+| 📊 | **Analytics** | `/stats` — 24h/7d counters, per-day activity chart, most active members · `/recall <words>` searches recent messages (both need the ambient opt-in) |
+| 💤 | **Everyday basics** | `/afk` with reasons & auto-return · `/ping`, `/uptime`, `/about` · `/admins`, `/invite`, `/echo`, `/del` |
+| 🔎 | **Inline mode** | `@botname question` asks the AI **from any chat** — placeholder posts instantly, the answer streams into it (enable *inline mode* + *inline feedback* in @BotFather) |
+| 🪞 | **Self-knowledge** | The AI carries a live capability card: its version, its commands, and the current settings of the very chat it's in — ask it “what can you do here?” and it answers accurately |
+| ⬆️ | **Self-updating** | Hourly `git fetch` — owner `/update` applies with one tap, or set `AUTO_UPDATE=true` to pull, reinstall and restart automatically |
 | 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome messages (auto-cleanup) · button captcha with timeout-kick · join-request gate verified in DM |
 | 🌊 | **Anti-abuse** | Anti-flood auto-mute · **auto raid protection** (join-spike lockdown with timed restore) · **CAS anti-spam screening** on joins & join requests · **guard-bot join queries with a self-hosted Mini App captcha** (Bot API 10.1, HMAC-verified `initData`) · channel-persona spam blocking (linked channel whitelisted) · anonymous-admin & auto-forward aware |
 | 📒 | **Notes & rules** | `/save faq` → recall with `#faq` · `/setrules` & `/rules` |
-| 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · **reaction karma** with `/karma` leaderboard · recurring `/announce` posts · `/donate` via Telegram Stars ⭐ (with owner `/refund`) |
+| 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · **reaction karma** with `/karma` leaderboard · recurring `/announce` posts · `/donate` via Telegram Stars ⭐ (with owner `/refund`) · **`/subscription` monthly Stars subscription links for channels** |
 | 📣 | **Channels** | Tracks channels it administers, `/ping` health check |
 | 💼 | **Telegram Business** | Answers incoming customer chats with AI on the owner's behalf (rate-limited & concurrency-capped) |
 | 📋 | **Bot manager** | `/status` shows every chat it manages + its admin rights in each · owner `/broadcast` to all managed chats · owner `/export` database backups · group→supergroup migration handled automatically |
@@ -87,6 +95,12 @@ Then, in Telegram:
 | `PORT` | – | HTTP port for webhook mode (default `8080`, non-POST requests answer a health check) |
 | `WEBHOOK_SECRET` | – | Webhook secret token (defaults to a value derived from `BOT_TOKEN`) |
 | `WEBAPP_URL` | – | Public HTTPS base of this bot's HTTP server → enables the Mini App captcha for guard-bot join requests (server also starts in polling mode) |
+| `AUTO_UPDATE` | – | `true` → the hourly git check pulls, reinstalls and restarts automatically; otherwise the owner just gets a “/update available” DM |
+
+> **Inline mode:** to use `@botname question` in any chat, enable *inline mode*
+> **and** *inline feedback* for your bot in [@BotFather](https://t.me/BotFather)
+> (`/setinline`, `/setinlinefeedback` → Enabled) — without inline feedback
+> Telegram never tells the bot which result was sent, so answers can't arrive.
 
 ## 📦 Deployment
 
@@ -164,13 +178,16 @@ src/
 │   ├── catalog.ts        # models.dev catalog (24h cache, short retry on failure, offline fallback)
 │   ├── ai/               # provider adapters: Anthropic SDK + OpenAI-compatible (SSE)
 │   ├── memory.ts         # layered memory: transcript + model-maintained summary
+│   ├── selfknowledge.ts  # live capability card injected into every AI prompt
 │   ├── streamer.ts       # throttled edit streaming, race-free finalization
 │   ├── security.ts       # AES-256-GCM for stored keys
 │   ├── telegram.ts       # ephemeral replies w/ fallback, forum-safe thread ids
+│   ├── updater.ts        # hourly git update check, /update & AUTO_UPDATE
 │   └── jobs.ts           # durable at-least-once job runner (SQLite-backed)
 └── modules/              # one file per capability
-    ├── moderation.ts  onboarding.ts  antiflood.ts  settings.ts
-    ├── ai.ts  notes.ts  fun.ts  stars.ts
+    ├── moderation.ts  modpanel.ts  onboarding.ts  antiflood.ts  settings.ts
+    ├── filters.ts  federation.ts  stats.ts  afk.ts  utility.ts  translate.ts
+    ├── ai.ts  inline.ts  notes.ts  fun.ts  stars.ts
     └── channels.ts  business.ts  manager.ts
 ```
 
@@ -186,16 +203,24 @@ timeline, framework comparison, platform pitfalls).
 - [x] Native draft streaming in DMs with the “stop generating” button (`sendMessageDraft`)
 - [x] Rich Messages for AI answers (Bot API 10.1) · Reaction karma (10.0)
 - [x] Webhook mode (multi-replica) · CI · Recurring announcements & `/digest` · Auto raid protection · CAS screening · `/broadcast` & `/export`
+- [x] Inline mode: `@bot question` asks the AI from any chat (edit-in-place answers)
+- [x] Telegram Stars subscriptions for channels (`/subscription`, `createChatSubscriptionInviteLink`)
+- [x] Cross-group federation ban lists (`/newfed` `/joinfed` `/fban` + join-time enforcement)
+- [x] Auto-translation bridge (`/bridge`) and reply translation (`/tr`)
+- [x] Per-chat analytics: `/stats` activity charts + `/recall` lexical search
+- [x] Ephemeral `/mp` moderation panel (actions visible only to the acting admin)
+- [x] Keyword filters, word blocklist, invite-link deletion · `/afk` · utilities (`/ping` `/uptime` `/about` `/admins` `/invite`)
+- [x] AI self-knowledge (live capability card in every prompt) · self-update (`/update`, `AUTO_UPDATE=true`)
 
 **Next**
 
-- [ ] Inline mode: `@bot query` to ask the AI or share notes from any chat
-- [ ] Telegram Stars subscription gating (`createChatSubscriptionInviteLink`) for paid groups
-- [ ] Cross-group federation ban lists
-- [ ] Auto-translation bridge for multilingual groups
 - [ ] Semantic (vector) search over long-term memory and the ambient log
-- [ ] Per-chat analytics: `/stats` with activity charts
-- [ ] Ephemeral moderation panels (inline mod actions visible only to the acting admin)
+- [ ] Scheduled messages & one-off timers managed from `/settings`
+- [ ] Night mode: auto-lockdown on a daily schedule per group
+- [ ] Media moderation: NSFW/spam image screening via multimodal models
+- [ ] Fed admin roles (promote co-owners) & fed ban export/import
+- [ ] Web dashboard-free backup/restore: `/import` to restore an `/export` file
+- [ ] Voice: transcribe voice notes and answer with the chat's AI model
 
 ## 🤝 Contributing
 

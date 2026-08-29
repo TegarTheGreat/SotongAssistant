@@ -3,6 +3,7 @@ import { Composer, InputFile, type Context } from "grammy";
 import { config } from "../config.js";
 import { checkpoint } from "../db/index.js";
 import { listKnownChats, upsertChat, migrateChatId } from "../db/repo.js";
+import { isGitCheckout, checkForUpdates, applyUpdate } from "../services/updater.js";
 import { invalidateAdminCache } from "../util/admin.js";
 import { escapeHtml } from "../util/format.js";
 import { tc } from "../i18n/index.js";
@@ -82,6 +83,29 @@ manager.command("broadcast", async (ctx) => {
   await ctx.reply(tc(ctx, "broadcast.done", { count: sent }));
 });
 
+// /update — owner only, DM only: git pull + npm ci, then exit(0) so the
+// process supervisor (systemd/pm2/Docker restart policy) boots the new code.
+manager.command("update", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (!isGitCheckout()) {
+    await ctx.reply(tc(ctx, "update.notGit"));
+    return;
+  }
+  const behind = await checkForUpdates();
+  if (!behind) {
+    await ctx.reply(tc(ctx, "update.none"));
+    return;
+  }
+  await ctx.reply(tc(ctx, "update.applying", { count: behind }));
+  try {
+    await applyUpdate();
+    await ctx.reply(tc(ctx, "update.done"));
+    process.exit(0);
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 300) }));
+  }
+});
+
 manager.command("id", async (ctx) => {
   await ctx.reply(
     `chat_id: <code>${ctx.chat.id}</code>` + (ctx.from ? `\nuser_id: <code>${ctx.from.id}</code>` : ""),
@@ -101,6 +125,7 @@ manager.command("help", async (ctx) => {
     tc(ctx, "help.moderation"),
     tc(ctx, "help.group"),
     tc(ctx, "help.fun"),
+    tc(ctx, "help.more"),
     tc(ctx, "help.footer"),
   ];
   await ctx.reply(sections.join("\n\n"), { parse_mode: "HTML" });

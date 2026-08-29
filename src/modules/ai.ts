@@ -15,6 +15,7 @@ import {
 import { getCatalog, sortProviders, type CatalogProvider } from "../services/catalog.js";
 import { streamCompletion, resolveApiKey, AiError } from "../services/ai/index.js";
 import { appendExchange, compactIfNeeded } from "../services/memory.js";
+import { selfKnowledge } from "../services/selfknowledge.js";
 import { TelegramStreamer } from "../services/streamer.js";
 import { threadIdOf, replyEphemeral } from "../services/telegram.js";
 import { escapeHtml, markdownToTelegramHtml, parseDuration, humanDuration } from "../util/format.js";
@@ -110,12 +111,17 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     await ctx.api.sendChatAction(chatId, "typing", { message_thread_id: threadId }).catch(() => undefined);
 
     const mem = getMemory(memKey);
+    // The capability card makes the assistant self-aware: version, settings of
+    // this very chat, and its full command surface. Appended to BOTH the
+    // default and custom personas, so /aiprompt never erases self-knowledge.
+    const knowledge = await selfKnowledge(ctx);
     const request = {
       provider,
       model,
-      system: settings.aiSystemPrompt
-        ? `${settings.aiSystemPrompt}${mem.summary ? `\n\nLong-term memory of this chat:\n${mem.summary}` : ""}`
-        : defaultSystemPrompt(ctx, mem.summary),
+      system:
+        (settings.aiSystemPrompt
+          ? `${settings.aiSystemPrompt}${mem.summary ? `\n\nLong-term memory of this chat:\n${mem.summary}` : ""}`
+          : defaultSystemPrompt(ctx, mem.summary)) + `\n\n${knowledge}`,
       history: mem.messages,
       userText: question,
       userName: ctx.from?.first_name,

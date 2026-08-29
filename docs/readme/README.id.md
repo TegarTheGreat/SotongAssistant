@@ -26,6 +26,11 @@ Semua pengaturan ada di dalam Telegram. Tanpa dashboard web.**
 | 📣 | **Channel** | Melacak channel yang dikelola, `/ping` |
 | 💼 | **Telegram Business** | Membalas chat pelanggan dengan AI atas nama pemilik akun (dibatasi rate & konkurensi) |
 | 📋 | **Bot manager** | `/status`: semua chat + hak admin bot · migrasi supergroup otomatis |
+| 🧹 | **Higiene pesan** | **Filter kata kunci** (`/filter`), **blocklist kata** (`/block`) dengan hapus otomatis, hapus tautan undangan · panel moderasi satu-ketuk `/mp` (ephemeral) |
+| 🤝 | **Federasi** | **Daftar ban lintas grup**: `/newfed` → `/joinfed` di tiap grup · `/fban` mem-ban di semua grup sekaligus dan mengusir otomatis saat join |
+| 🌍 | **Terjemahan** | `/tr` (reply) menerjemahkan pesan · `/bridge de` menerjemahkan otomatis pesan berbahasa asing untuk grup multibahasa |
+| 📊 | **Statistik & dasar** | `/stats` grafik aktivitas & anggota teraktif · `/recall` cari pesan · `/afk` · `/ping` `/uptime` `/about` `/admins` `/invite` |
+| 🔎 | **Inline & lainnya** | `@botname pertanyaan` bertanya ke AI **dari chat mana pun** · AI **mengenal dirinya sendiri** (versi, perintah, pengaturan chat) · **self-update** (`/update`, `AUTO_UPDATE=true`) · `/subscription` langganan Stars untuk channel |
 | 🌐 | **10 bahasa** | Deteksi otomatis dari Telegram user, bisa dioverride per chat via `/lang` |
 
 **Semua konfigurasi di dalam Telegram**: `/settings` membuka menu inline per grup

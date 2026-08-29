@@ -15,19 +15,33 @@ import { karma } from "./modules/karma.js";
 import { announce } from "./modules/announce.js";
 import { channels } from "./modules/channels.js";
 import { business } from "./modules/business.js";
+import { filters } from "./modules/filters.js";
+import { afk } from "./modules/afk.js";
+import { utility } from "./modules/utility.js";
+import { translate } from "./modules/translate.js";
+import { stats } from "./modules/stats.js";
+import { federation } from "./modules/federation.js";
+import { modpanel } from "./modules/modpanel.js";
+import { inline } from "./modules/inline.js";
 import { ai } from "./modules/ai.js";
 import { startJobRunner } from "./services/jobs.js";
 import { handleWebAppRequest } from "./services/webapp.js";
+import { startAutoUpdater } from "./services/updater.js";
 
 const bot = new Bot(config.botToken);
 
-// Order matters: anti-flood filters first; AI goes last because its
-// message:text handler consumes messages addressed to the bot.
+// Order matters: anti-flood first; federation BEFORE onboarding so fed-banned
+// joiners are removed before any welcome/captcha; filters (blocklist/antilink)
+// before notes & fun so deleted messages trigger nothing else; AI goes last
+// because its message:text handler consumes messages addressed to the bot.
 bot.use(manager);
 bot.use(antiflood);
+bot.use(federation);
 bot.use(settings);
 bot.use(moderation);
+bot.use(modpanel);
 bot.use(onboarding);
+bot.use(filters);
 bot.use(notes);
 bot.use(fun);
 bot.use(stars);
@@ -35,6 +49,11 @@ bot.use(karma);
 bot.use(announce);
 bot.use(channels);
 bot.use(business);
+bot.use(utility);
+bot.use(afk);
+bot.use(translate);
+bot.use(stats);
+bot.use(inline);
 bot.use(ai);
 
 // Without bot.catch, one throwing handler (e.g. a 403 after a user blocks the
@@ -55,15 +74,23 @@ async function registerCommands() {
   const groupCommands = [
     { command: "ask", description: "Ask the AI" },
     { command: "summarize", description: "Summarize recent messages" },
+    { command: "stats", description: "Group activity stats" },
+    { command: "recall", description: "Search recent messages" },
     { command: "karma", description: "Karma leaderboard" },
     { command: "rules", description: "Show group rules" },
     { command: "notes", description: "List saved notes" },
+    { command: "afk", description: "Mark yourself away" },
+    { command: "tr", description: "(reply) Translate a message" },
     { command: "report", description: "Call the admins" },
+    { command: "admins", description: "List the admins" },
     { command: "settings", description: "Group settings" },
+    { command: "ping", description: "Bot latency" },
+    { command: "about", description: "Version & info" },
     { command: "id", description: "Show chat/user id" },
   ];
   const adminCommands = [
     { command: "settings", description: "Group settings" },
+    { command: "mp", description: "(reply) Moderation panel" },
     { command: "warn", description: "(reply) Warn a user" },
     { command: "mute", description: "(reply) Mute — /mute 1h" },
     { command: "unmute", description: "(reply) Unmute" },
@@ -72,13 +99,22 @@ async function registerCommands() {
     { command: "kick", description: "(reply) Kick" },
     { command: "purge", description: "(reply) Bulk delete" },
     { command: "pin", description: "(reply) Pin message" },
+    { command: "del", description: "(reply) Delete a message" },
     { command: "lockdown", description: "Freeze the group" },
     { command: "unlock", description: "Unfreeze the group" },
+    { command: "filter", description: "Auto-reply: /filter hi Hello!" },
+    { command: "filters", description: "List auto-replies" },
+    { command: "block", description: "Block a word" },
+    { command: "blocklist", description: "List blocked words" },
+    { command: "bridge", description: "Auto-translate the group" },
     { command: "welcome", description: "Set welcome text" },
     { command: "setrules", description: "Set group rules" },
+    { command: "invite", description: "Create an invite link" },
     { command: "announce", description: "Recurring announcement" },
     { command: "announcements", description: "List announcements" },
     { command: "digest", description: "Toggle recurring AI digest" },
+    { command: "joinfed", description: "Join a ban federation" },
+    { command: "fedinfo", description: "Federation status" },
     { command: "aimodel", description: "Pick AI provider & model" },
     { command: "aiprompt", description: "Set AI personality" },
     { command: "lang", description: "Change language" },
@@ -92,8 +128,11 @@ async function registerCommands() {
     { command: "status", description: "(owner) List managed chats" },
     { command: "broadcast", description: "(owner) Message all chats" },
     { command: "export", description: "(owner) Backup the database" },
+    { command: "update", description: "(owner) Self-update from git" },
+    { command: "newfed", description: "Create a ban federation" },
     { command: "memory", description: "Show long-term memory" },
     { command: "forget", description: "Wipe chat memory" },
+    { command: "about", description: "Version & info" },
     { command: "donate", description: "Support via Telegram Stars" },
   ];
   await bot.api.setMyCommands(groupCommands, { scope: { type: "all_group_chats" } });
@@ -129,6 +168,9 @@ const ALLOWED_UPDATES = [
   "channel_post",
   "callback_query",
   "inline_query",
+  // Requires "inline feedback" in BotFather; carries inline_message_id for
+  // the inline-mode AI answers.
+  "chosen_inline_result",
   "my_chat_member",
   "chat_member",
   "chat_join_request",
@@ -148,6 +190,9 @@ const ALLOWED_UPDATES = [
 async function main() {
   await registerCommands();
   const stopJobs = startJobRunner(bot.api);
+  // Hourly git update check: applies automatically with AUTO_UPDATE=true,
+  // otherwise notifies the owner. No-op outside a git checkout.
+  const stopUpdater = startAutoUpdater(bot.api);
 
   if (config.webhookUrl) {
     // Webhook mode — supports multiple replicas behind a load balancer.
@@ -184,6 +229,7 @@ async function main() {
     );
     const shutdown = () => {
       stopJobs();
+      stopUpdater();
       server.close();
     };
     process.once("SIGINT", shutdown);
@@ -211,11 +257,13 @@ async function main() {
   // updates that were already answered.
   process.once("SIGINT", () => {
     stopJobs();
+    stopUpdater();
     webappServer?.close();
     void bot.stop();
   });
   process.once("SIGTERM", () => {
     stopJobs();
+    stopUpdater();
     webappServer?.close();
     void bot.stop();
   });

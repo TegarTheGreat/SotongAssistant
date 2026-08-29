@@ -24,6 +24,10 @@ export interface ChatSettings {
   ambient: boolean;
   /** Auto-lockdown when a join spike (raid) is detected. */
   antiraid: boolean;
+  /** Delete Telegram invite links posted by non-admins. */
+  antilink: boolean;
+  /** Auto-translation bridge target language (undefined = off). */
+  autoTranslate?: string;
   rules?: string;
   /** Default permissions snapshot taken before /lockdown, used by /unlock. */
   lockSnapshot?: ChatPermissions;
@@ -39,6 +43,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   antiflood: false,
   ambient: false,
   antiraid: false,
+  antilink: false,
 };
 
 export function getSettings(chatId: number): ChatSettings {
@@ -266,6 +271,153 @@ export function listJobsByKind(kind: string) {
 
 export function deleteJob(id: number): boolean {
   return db.prepare("DELETE FROM jobs WHERE id = ?").run(id).changes > 0;
+}
+
+// ---------- filters (auto-reply triggers) ----------
+
+export function saveFilter(chatId: number, trigger: string, response: string) {
+  db.prepare(
+    `INSERT INTO filters (chat_id, trigger, response) VALUES (?, ?, ?)
+     ON CONFLICT(chat_id, trigger) DO UPDATE SET response = excluded.response`,
+  ).run(chatId, trigger, response);
+}
+
+export function deleteFilter(chatId: number, trigger: string): boolean {
+  return db.prepare("DELETE FROM filters WHERE chat_id = ? AND trigger = ?").run(chatId, trigger).changes > 0;
+}
+
+export function listFilters(chatId: number) {
+  return db
+    .prepare("SELECT trigger, response FROM filters WHERE chat_id = ? ORDER BY trigger")
+    .all(chatId) as Array<{ trigger: string; response: string }>;
+}
+
+// ---------- blocklist (banned words) ----------
+
+export function addBlockedWord(chatId: number, word: string) {
+  db.prepare("INSERT OR IGNORE INTO blocklist (chat_id, word) VALUES (?, ?)").run(chatId, word);
+}
+
+export function removeBlockedWord(chatId: number, word: string): boolean {
+  return db.prepare("DELETE FROM blocklist WHERE chat_id = ? AND word = ?").run(chatId, word).changes > 0;
+}
+
+export function listBlockedWords(chatId: number): string[] {
+  return (db.prepare("SELECT word FROM blocklist WHERE chat_id = ? ORDER BY word").all(chatId) as Array<{ word: string }>).map(
+    (r) => r.word,
+  );
+}
+
+// ---------- AFK ----------
+
+export function setAfk(userId: number, reason: string | undefined) {
+  db.prepare(
+    `INSERT INTO afk (user_id, reason, since) VALUES (?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET reason = excluded.reason, since = excluded.since`,
+  ).run(userId, reason ?? null, now());
+}
+
+export function clearAfk(userId: number): boolean {
+  return db.prepare("DELETE FROM afk WHERE user_id = ?").run(userId).changes > 0;
+}
+
+export function getAfk(userId: number) {
+  return db.prepare("SELECT reason, since FROM afk WHERE user_id = ?").get(userId) as
+    | { reason: string | null; since: number }
+    | undefined;
+}
+
+// ---------- federations (cross-group ban lists) ----------
+
+export function createFederation(fedId: string, name: string, ownerId: number) {
+  db.prepare("INSERT INTO federations (fed_id, name, owner_id, created_at) VALUES (?, ?, ?, ?)").run(
+    fedId,
+    name,
+    ownerId,
+    now(),
+  );
+}
+
+export function getFederation(fedId: string) {
+  return db.prepare("SELECT fed_id, name, owner_id FROM federations WHERE fed_id = ?").get(fedId) as
+    | { fed_id: string; name: string; owner_id: number }
+    | undefined;
+}
+
+export function joinFederation(fedId: string, chatId: number) {
+  db.prepare(
+    `INSERT INTO fed_chats (chat_id, fed_id) VALUES (?, ?)
+     ON CONFLICT(chat_id) DO UPDATE SET fed_id = excluded.fed_id`,
+  ).run(chatId, fedId);
+}
+
+export function leaveFederation(chatId: number): boolean {
+  return db.prepare("DELETE FROM fed_chats WHERE chat_id = ?").run(chatId).changes > 0;
+}
+
+export function fedOfChat(chatId: number) {
+  return db
+    .prepare(
+      `SELECT f.fed_id, f.name, f.owner_id FROM fed_chats c JOIN federations f ON f.fed_id = c.fed_id
+       WHERE c.chat_id = ?`,
+    )
+    .get(chatId) as { fed_id: string; name: string; owner_id: number } | undefined;
+}
+
+export function fedChats(fedId: string): number[] {
+  return (db.prepare("SELECT chat_id FROM fed_chats WHERE fed_id = ?").all(fedId) as Array<{ chat_id: number }>).map(
+    (r) => r.chat_id,
+  );
+}
+
+export function addFedBan(fedId: string, userId: number, reason: string | undefined) {
+  db.prepare(
+    `INSERT INTO fed_bans (fed_id, user_id, reason, ts) VALUES (?, ?, ?, ?)
+     ON CONFLICT(fed_id, user_id) DO UPDATE SET reason = excluded.reason, ts = excluded.ts`,
+  ).run(fedId, userId, reason ?? null, now());
+}
+
+export function removeFedBan(fedId: string, userId: number): boolean {
+  return db.prepare("DELETE FROM fed_bans WHERE fed_id = ? AND user_id = ?").run(fedId, userId).changes > 0;
+}
+
+export function getFedBan(fedId: string, userId: number) {
+  return db.prepare("SELECT reason FROM fed_bans WHERE fed_id = ? AND user_id = ?").get(fedId, userId) as
+    | { reason: string | null }
+    | undefined;
+}
+
+export function fedBanCount(fedId: string): number {
+  return (db.prepare("SELECT COUNT(*) AS n FROM fed_bans WHERE fed_id = ?").get(fedId) as { n: number }).n;
+}
+
+// ---------- activity stats (from the ambient message log) ----------
+
+export function messageStats(chatId: number) {
+  const t24 = now() - 86400;
+  const t7d = now() - 7 * 86400;
+  const total24h = (db.prepare("SELECT COUNT(*) AS n FROM message_log WHERE chat_id = ? AND ts > ?").get(chatId, t24) as { n: number }).n;
+  const total7d = (db.prepare("SELECT COUNT(*) AS n FROM message_log WHERE chat_id = ? AND ts > ?").get(chatId, t7d) as { n: number }).n;
+  const perDay = db
+    .prepare(
+      `SELECT date(ts, 'unixepoch') AS day, COUNT(*) AS count FROM message_log
+       WHERE chat_id = ? AND ts > ? GROUP BY day ORDER BY day`,
+    )
+    .all(chatId, t7d) as Array<{ day: string; count: number }>;
+  const topUsers = db
+    .prepare(
+      `SELECT name, COUNT(*) AS count FROM message_log
+       WHERE chat_id = ? AND ts > ? AND name IS NOT NULL GROUP BY user_id ORDER BY count DESC LIMIT 5`,
+    )
+    .all(chatId, t7d) as Array<{ name: string; count: number }>;
+  return { total24h, total7d, perDay, topUsers };
+}
+
+/** Full ambient log rows for lexical /recall search (bounded by LOG_CAP). */
+export function allLoggedMessages(chatId: number) {
+  return db
+    .prepare("SELECT name, text, ts FROM message_log WHERE chat_id = ? ORDER BY ts DESC")
+    .all(chatId) as Array<{ name: string | null; text: string; ts: number }>;
 }
 
 // ---------- guard-bot join queries (Mini App captcha flow) ----------

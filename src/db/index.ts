@@ -62,6 +62,39 @@ CREATE TABLE IF NOT EXISTS message_log (
   PRIMARY KEY (chat_id, message_id)
 );
 CREATE INDEX IF NOT EXISTS message_log_ts ON message_log (chat_id, ts);
+CREATE TABLE IF NOT EXISTS filters (
+  chat_id INTEGER NOT NULL,
+  trigger TEXT NOT NULL,                    -- lowercase keyword
+  response TEXT NOT NULL,
+  PRIMARY KEY (chat_id, trigger)
+);
+CREATE TABLE IF NOT EXISTS blocklist (
+  chat_id INTEGER NOT NULL,
+  word TEXT NOT NULL,                       -- lowercase
+  PRIMARY KEY (chat_id, word)
+);
+CREATE TABLE IF NOT EXISTS afk (
+  user_id INTEGER PRIMARY KEY,
+  reason TEXT,
+  since INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS federations (
+  fed_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  owner_id INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS fed_chats (
+  chat_id INTEGER PRIMARY KEY,              -- a chat belongs to at most one federation
+  fed_id TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS fed_bans (
+  fed_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  reason TEXT,
+  ts INTEGER NOT NULL,
+  PRIMARY KEY (fed_id, user_id)
+);
 CREATE TABLE IF NOT EXISTS pending_join_queries (
   user_id INTEGER PRIMARY KEY,              -- one pending guard-bot query per user
   chat_id INTEGER NOT NULL,
