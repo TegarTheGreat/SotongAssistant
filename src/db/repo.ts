@@ -545,6 +545,15 @@ export function listApproved(chatId: number) {
 
 // ---------- AI usage metering (per-chat daily quota) ----------
 
+/** Today's AI-answer count for the chat (read-only; no side effects). */
+export function getAiUsageToday(chatId: number): number {
+  const day = new Date().toISOString().slice(0, 10);
+  const row = db.prepare("SELECT count FROM ai_usage WHERE chat_id = ? AND day = ?").get(chatId, day) as
+    | { count: number }
+    | undefined;
+  return row?.count ?? 0;
+}
+
 /** Bump today's AI-answer counter for the chat and return the new count. */
 export function bumpAiUsage(chatId: number): number {
   const day = new Date().toISOString().slice(0, 10);

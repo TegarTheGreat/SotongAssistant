@@ -1,5 +1,5 @@
 import { Composer, InputFile, type Context } from "grammy";
-import { getSettings } from "../db/repo.js";
+import { getSettings, getAiUsageToday, bumpAiUsage } from "../db/repo.js";
 import { generateImage } from "../services/imagegen.js";
 import { tc } from "../i18n/index.js";
 import { threadIdOf } from "../services/telegram.js";
@@ -17,13 +17,21 @@ imagine.command("imagine", async (ctx) => {
     return;
   }
   const chat = ctx.chat;
-  if ((chat.type === "group" || chat.type === "supergroup") && !getSettings(chat.id).ai) {
+  const isGroup = chat.type === "group" || chat.type === "supergroup";
+  const settings = getSettings(chat.id);
+  if (isGroup && !settings.ai) {
     await ctx.reply(tc(ctx, "ai.disabled"));
     return;
   }
   const uid = ctx.from?.id ?? 0;
   if (Date.now() - (userLast.get(uid) ?? 0) < COOLDOWN_MS) {
     await ctx.react("🥱").catch(() => undefined);
+    return;
+  }
+  // Image generation is the priciest AI call, so it counts against the same
+  // /aiquota daily cap as text answers (read-only check; bumped after success).
+  if (isGroup && settings.aiDailyLimit && getAiUsageToday(chat.id) >= settings.aiDailyLimit) {
+    await ctx.reply(tc(ctx, "ai.quotaReached", { limit: settings.aiDailyLimit }));
     return;
   }
   userLast.set(uid, Date.now());
@@ -36,6 +44,7 @@ imagine.command("imagine", async (ctx) => {
       await ctx.reply(tc(ctx, "img.noProvider"));
       return;
     }
+    if (isGroup && settings.aiDailyLimit) bumpAiUsage(chat.id);
     await ctx.replyWithPhoto(new InputFile(image, "imagine.png"), {
       caption: `🎨 ${prompt.slice(0, 900)}`,
       message_thread_id: threadIdOf(ctx),

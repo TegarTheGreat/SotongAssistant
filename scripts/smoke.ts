@@ -15,7 +15,7 @@ import { encryptSecret, decryptSecret } from "../src/services/security.js";
 import { chunkText, parseDuration, markdownToTelegramHtml } from "../src/util/format.js";
 import { renderMemberTemplate, extractButtons } from "../src/util/placeholders.js";
 import { extractActions } from "../src/services/actions.js";
-import { approveUser, isApproved, unapproveUser, bumpAiUsage } from "../src/db/repo.js";
+import { approveUser, isApproved, unapproveUser, bumpAiUsage, getAiUsageToday } from "../src/db/repo.js";
 import { inWindow, parseHHMM, isValidTimezone, localMinutes } from "../src/util/time.js";
 import { validateInitData } from "../src/services/webapp.js";
 import { createHmac } from "node:crypto";
@@ -164,6 +164,24 @@ updateSettings(-100999, { disabledCommands: ["dice"], linkAllowlist: ["example.c
   const many = extractActions('```action\n{"action":"a"}\n```'.repeat(5));
   if (many.actions.length !== 3) throw new Error("action cap");
   if (extractActions("plain answer").actions.length !== 0) throw new Error("action none");
+  // A generation stopped mid-block must not leak the raw fence into the text.
+  const cut = extractActions('Banning him now.\n```action\n{"action":"ban');
+  if (cut.actions.length !== 0 || cut.clean.includes("```") || cut.clean.includes("action"))
+    throw new Error("action unterminated leak");
+}
+
+// AI usage: read-only check never mutates; bump increments; both agree
+{
+  const before = getAiUsageToday(-100888);
+  if (before !== 0) throw new Error("usage read default");
+  if (getAiUsageToday(-100888) !== 0) throw new Error("usage read is side-effect free");
+  if (bumpAiUsage(-100888) !== 1 || getAiUsageToday(-100888) !== 1) throw new Error("usage bump/read agree");
+}
+
+// welcome buttons: whitespace-only labels are dropped, not sent as empty
+{
+  const b = extractButtons("Welcome!\n[   ](https://t.me/x)\n[Rules](https://t.me/r)");
+  if (b.buttons.length !== 1 || b.buttons[0]!.label !== "Rules") throw new Error("empty button label");
 }
 
 // welcome-template buttons: https only, removed from text

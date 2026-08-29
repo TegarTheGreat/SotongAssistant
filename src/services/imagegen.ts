@@ -27,11 +27,20 @@ export async function generateImage(prompt: string): Promise<Buffer | undefined>
   let res = await request("gpt-image-1", {});
   if (!res.ok) {
     const body = await res.text().catch(() => "");
+    // A content-policy rejection means the PROMPT is disallowed — retrying it
+    // against dall-e-3 would just fail again, so surface it immediately.
+    if (/content_policy|safety|moderation/i.test(body)) {
+      throw new Error(`image rejected: ${body.slice(0, 200)}`);
+    }
     // Accounts without gpt-image-1 access get a model/verification error.
     if (res.status === 400 || res.status === 403 || res.status === 404) {
       res = await request("dall-e-3", { response_format: "b64_json" });
-    }
-    if (!res.ok) {
+      if (!res.ok) {
+        // Report the ACTUAL failing response's status and body (not the first).
+        const fallbackBody = await res.text().catch(() => "");
+        throw new Error(`image API ${res.status}: ${fallbackBody.slice(0, 200)}`);
+      }
+    } else {
       throw new Error(`image API ${res.status}: ${body.slice(0, 200)}`);
     }
   }

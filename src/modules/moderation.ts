@@ -353,16 +353,26 @@ moderation.command("pin", async (ctx) => {
 });
 
 // ---------- lockdown ----------
+// Shared with the AI-action executor so both paths snapshot/restore identically.
 
-moderation.command("lockdown", async (ctx) => {
-  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
-  const chatId = ctx.chat!.id;
+/** Snapshot current permissions, then mute everyone. Throws on missing rights. */
+export async function applyLockdown(ctx: Context, chatId: number): Promise<void> {
   // Snapshot current defaults BEFORE locking — there is no server-side undo.
   const info = await ctx.api.getChat(chatId);
   updateSettings(chatId, { lockSnapshot: info.permissions ?? UNMUTED_PERMISSIONS });
-  const ok = await withRights(ctx, "can_restrict_members", () =>
-    ctx.api.setChatPermissions(chatId, MUTED_PERMISSIONS),
-  );
+  await ctx.api.setChatPermissions(chatId, MUTED_PERMISSIONS);
+}
+
+/** Restore the pre-lockdown permission snapshot. Throws on missing rights. */
+export async function applyUnlock(ctx: Context, chatId: number): Promise<void> {
+  const snapshot = getSettings(chatId).lockSnapshot ?? UNMUTED_PERMISSIONS;
+  await ctx.api.setChatPermissions(chatId, snapshot);
+  updateSettings(chatId, { lockSnapshot: undefined });
+}
+
+moderation.command("lockdown", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const ok = await withRights(ctx, "can_restrict_members", () => applyLockdown(ctx, ctx.chat!.id));
   if (ok) await ctx.reply(tc(ctx, "mod.lockdownOn"));
 });
 
@@ -373,15 +383,8 @@ moderation.command("unlock", async (ctx) => {
     const { unlockTypes } = await import("./locks.js");
     if (await unlockTypes(ctx, ctx.match)) return;
   }
-  const chatId = ctx.chat!.id;
-  const snapshot = getSettings(chatId).lockSnapshot ?? UNMUTED_PERMISSIONS;
-  const ok = await withRights(ctx, "can_restrict_members", () =>
-    ctx.api.setChatPermissions(chatId, snapshot),
-  );
-  if (ok) {
-    updateSettings(chatId, { lockSnapshot: undefined });
-    await ctx.reply(tc(ctx, "mod.lockdownOff"));
-  }
+  const ok = await withRights(ctx, "can_restrict_members", () => applyUnlock(ctx, ctx.chat!.id));
+  if (ok) await ctx.reply(tc(ctx, "mod.lockdownOff"));
 });
 
 // ---------- info / report ----------

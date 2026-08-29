@@ -154,11 +154,15 @@ onboarding.on("chat_member", async (ctx) => {
     } else {
       text = tc(ctx, "welcome.default", { name: safeName });
     }
+    // Send with HTML + buttons; if that fails, retry as plain text WITHOUT the
+    // keyboard (a rejected button is the likeliest culprit) so a joiner is
+    // always greeted. A total failure just skips the auto-delete cleanup.
     const msg = await ctx.api
       .sendMessage(upd.chat.id, text, { parse_mode: "HTML", reply_markup: keyboard })
-      .catch(() => ctx.api.sendMessage(upd.chat.id, text.replace(/<[^>]+>/g, ""), { reply_markup: keyboard }));
-    // Keep the group tidy: auto-delete the welcome after 5 minutes.
-    scheduleJob("delete_message", { chatId: upd.chat.id, messageId: msg.message_id }, 300);
+      .catch(() =>
+        ctx.api.sendMessage(upd.chat.id, text.replace(/<[^>]+>/g, "")).catch(() => undefined),
+      );
+    if (msg) scheduleJob("delete_message", { chatId: upd.chat.id, messageId: msg.message_id }, 300);
   }
 });
 

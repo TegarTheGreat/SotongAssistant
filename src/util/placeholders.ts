@@ -53,7 +53,10 @@ export function extractButtons(template: string): {
   const buttons: Array<{ label: string; url: string }> = [];
   const text = template
     .replace(BUTTON_RE, (_m, label: string, url: string) => {
-      if (buttons.length < 6) buttons.push({ label: label.trim(), url });
+      const trimmed = label.trim();
+      // A whitespace-only label would make Telegram reject the whole message,
+      // so drop those buttons but still remove the markup from the text.
+      if (trimmed && buttons.length < 6) buttons.push({ label: trimmed, url });
       return "";
     })
     .replace(/[ \t]+\n/g, "\n")
