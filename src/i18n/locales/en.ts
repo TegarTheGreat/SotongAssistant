@@ -206,7 +206,7 @@ export const en = {
   "update.none": "✅ Already up to date.",
   "update.applying": "⬆️ {count} new commit(s) — pulling, installing, restarting…",
   "update.done": "✅ Update applied. Restarting now.",
-  "help.more": "🧩 <b>More tools</b>\n/filter /block /antilink /allowlink — auto-replies, blocked words &amp; link policy\n/lock /locks — media-type locks · /mp — mod panel · /warnmode — warn penalty\n/promote /demote /title · /unote — private user notes (shown in /info)\n/night &amp; /settz — nightly auto-lockdown · /schedule — timed messages · /disable — command management\n/newfed /joinfed /fban /fpromote /fexport — ban federations · /tagall — mention active members\n/welcome &amp; /goodbye with {mention} {count} placeholders · NSFW filter in /settings\n/stats /recall — analytics with AI answers · /afk · /tr /bridge — translation · /transcribe — voice → text\n/newtopic /closetopic — forum topics · /paidpost — paid media (Stars) · Inline: @botname + a question anywhere\n/about /ping /uptime · owner: /update /export /import",
+  "help.more": "🪄 <b>AI that acts</b>: admins can just TELL me things — “mute him 2h”, “enable captcha”, “poll: lunch?” — and I execute them. Plus /imagine for images, /approve for trusted users, /aiquota for cost control.\n🧩 <b>More tools</b>\n/filter /block /antilink /allowlink — auto-replies, blocked words &amp; link policy\n/lock /locks — media-type locks · /mp — mod panel · /warnmode — warn penalty\n/promote /demote /title · /unote — private user notes (shown in /info)\n/night &amp; /settz — nightly auto-lockdown · /schedule — timed messages · /disable — command management\n/newfed /joinfed /fban /fpromote /fexport — ban federations · /tagall — mention active members\n/welcome &amp; /goodbye with {mention} {count} placeholders · NSFW filter in /settings\n/stats /recall — analytics with AI answers · /afk · /tr /bridge — translation · /transcribe — voice → text\n/newtopic /closetopic — forum topics · /paidpost — paid media (Stars) · Inline: @botname + a question anywhere\n/about /ping /uptime · owner: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 <b>{name}</b> left the group. Farewell!",
@@ -289,4 +289,21 @@ export const en = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>Content locks</b> — tap a type to toggle it:",
   "settings.back": "« Back",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "unknown action",
+  "act.notAllowed": "admins only",
+  "ai.quotaReached": "🥱 This chat reached its daily AI limit ({limit}). An admin can raise it with /aiquota.",
+  "aiquota.usage": "Usage: /aiquota <answers per day|off> — current: {current}",
+  "aiquota.set": "✅ AI limited to {n} answers per day here.",
+  "aiquota.off": "✅ AI daily limit removed.",
+  "approve.done": "🤝 <b>{name}</b> is approved — exempt from anti-flood, locks, link/word filters and NSFW screening.",
+  "approve.removed": "✅ <b>{name}</b> is no longer approved.",
+  "approve.list": "🤝 <b>Approved users</b>",
+  "approve.empty": "Nobody is approved here yet. Reply to someone with /approve.",
+  "img.usage": "Usage: /imagine <description of the image>",
+  "img.noProvider": "🎨 Image generation needs an OpenAI API key (owner: /setkey openai …).",
+  "settings.buttons": "Buttons: add [Label](https://example.com) anywhere in the text — it becomes an inline button.",
 } as const;

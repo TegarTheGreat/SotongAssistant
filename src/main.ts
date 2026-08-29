@@ -28,6 +28,7 @@ import { stats } from "./modules/stats.js";
 import { federation } from "./modules/federation.js";
 import { modpanel } from "./modules/modpanel.js";
 import { inline } from "./modules/inline.js";
+import { imagine } from "./modules/imagine.js";
 import { ai } from "./modules/ai.js";
 import { startJobRunner } from "./services/jobs.js";
 import { handleWebAppRequest } from "./services/webapp.js";
@@ -66,6 +67,7 @@ bot.use(afk);
 bot.use(translate);
 bot.use(stats);
 bot.use(inline);
+bot.use(imagine);
 bot.use(ai);
 
 // Without bot.catch, one throwing handler (e.g. a 403 after a user blocks the
@@ -85,6 +87,7 @@ bot.catch((err) => {
 async function registerCommands() {
   const groupCommands = [
     { command: "ask", description: "Ask the AI" },
+    { command: "imagine", description: "AI image from a prompt" },
     { command: "summarize", description: "Summarize recent messages" },
     { command: "stats", description: "Group activity stats" },
     { command: "recall", description: "Search recent messages" },
@@ -135,6 +138,8 @@ async function registerCommands() {
     { command: "enable", description: "Re-enable a command" },
     { command: "disabled", description: "List disabled commands" },
     { command: "tagall", description: "Mention active members" },
+    { command: "approve", description: "(reply) Trust a user" },
+    { command: "aiquota", description: "Daily AI answer cap" },
     { command: "bridge", description: "Auto-translate the group" },
     { command: "welcome", description: "Set welcome text" },
     { command: "goodbye", description: "Set farewell text" },

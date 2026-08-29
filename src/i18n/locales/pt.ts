@@ -193,7 +193,7 @@ export const pt = {
   "update.none": "✅ Já está atualizado.",
   "update.applying": "⬆️ {count} commit(s) novos — baixando, instalando, reiniciando…",
   "update.done": "✅ Atualização aplicada. Reiniciando.",
-  "help.more": "🧩 <b>Mais ferramentas</b>\n/filter /block /antilink /allowlink — respostas automáticas, palavras bloqueadas e política de links\n/lock /locks — bloqueios por tipo de mídia · /mp — painel de moderação · /warnmode — punição de avisos\n/promote /demote /title · /unote — notas privadas de usuários (em /info)\n/night e /settz — bloqueio noturno automático · /schedule — mensagens agendadas · /disable — gestão de comandos\n/newfed /joinfed /fban /fpromote /fexport — federações de ban · /tagall — mencionar ativos\n/welcome e /goodbye com marcadores {mention} {count} · filtro NSFW em /settings\n/stats /recall — análises com respostas de IA · /afk · /tr /bridge — tradução · /transcribe — voz → texto\n/newtopic /closetopic — tópicos do fórum · /paidpost — mídia paga (Stars) · Inline: @nomedobot + pergunta em qualquer lugar\n/about /ping /uptime · dono: /update /export /import",
+  "help.more": "🪄 <b>IA que age</b>: os admins só precisam MANDAR — “muta ele 2h”, “liga o captcha”, “enquete: almoço?” — e eu executo. Mais /imagine para imagens, /approve para confiáveis, /aiquota para controlar custos.\n🧩 <b>Mais ferramentas</b>\n/filter /block /antilink /allowlink — respostas automáticas, palavras bloqueadas e política de links\n/lock /locks — bloqueios por tipo de mídia · /mp — painel de moderação · /warnmode — punição de avisos\n/promote /demote /title · /unote — notas privadas de usuários (em /info)\n/night e /settz — bloqueio noturno automático · /schedule — mensagens agendadas · /disable — gestão de comandos\n/newfed /joinfed /fban /fpromote /fexport — federações de ban · /tagall — mencionar ativos\n/welcome e /goodbye com marcadores {mention} {count} · filtro NSFW em /settings\n/stats /recall — análises com respostas de IA · /afk · /tr /bridge — tradução · /transcribe — voz → texto\n/newtopic /closetopic — tópicos do fórum · /paidpost — mídia paga (Stars) · Inline: @nomedobot + pergunta em qualquer lugar\n/about /ping /uptime · dono: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 <b>{name}</b> saiu do grupo. Até logo!",
@@ -276,4 +276,21 @@ export const pt = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>Bloqueios de conteúdo</b> — toque num tipo para alternar:",
   "settings.back": "« Voltar",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "ação desconhecida",
+  "act.notAllowed": "somente admins",
+  "ai.quotaReached": "🥱 Este chat atingiu o limite diário de IA ({limit}). Um admin pode aumentá-lo com /aiquota.",
+  "aiquota.usage": "Uso: /aiquota <respostas por dia|off> — atual: {current}",
+  "aiquota.set": "✅ IA limitada a {n} respostas por dia aqui.",
+  "aiquota.off": "✅ Limite diário de IA removido.",
+  "approve.done": "🤝 <b>{name}</b> é confiável — isento de anti-flood, bloqueios, filtros de links/palavras e NSFW.",
+  "approve.removed": "✅ <b>{name}</b> não é mais confiável.",
+  "approve.list": "🤝 <b>Usuários confiáveis</b>",
+  "approve.empty": "Ninguém é confiável ainda. Responda a alguém com /approve.",
+  "img.usage": "Uso: /imagine <descrição da imagem>",
+  "img.noProvider": "🎨 Gerar imagens requer uma chave OpenAI (dono: /setkey openai …).",
+  "settings.buttons": "Botões: coloque [Rótulo](https://example.com) no texto — vira um botão inline.",
 } satisfies Partial<Record<keyof typeof en, string>>;

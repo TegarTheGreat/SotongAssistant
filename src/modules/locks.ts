@@ -1,6 +1,6 @@
 import { Composer, type Context } from "grammy";
 import type { Message } from "grammy/types";
-import { getSettings, updateSettings } from "../db/repo.js";
+import { getSettings, updateSettings, isApproved } from "../db/repo.js";
 import { senderIsAdmin, isAdmin } from "../util/admin.js";
 import { tc } from "../i18n/index.js";
 
@@ -87,6 +87,7 @@ locks.on("message", async (ctx, next) => {
   if (!locked?.length) return next();
   const hit = locked.some((t) => DETECTORS[t]?.(ctx.message));
   if (!hit) return next();
+  if (isApproved(ctx.chat.id, ctx.from.id)) return next();
   if (await isAdmin(ctx, ctx.from.id)) return next();
   await ctx.deleteMessage().catch(() => undefined);
   // Deleted — downstream modules must not react to it.

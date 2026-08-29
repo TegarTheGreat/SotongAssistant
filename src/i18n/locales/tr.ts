@@ -193,7 +193,7 @@ export const tr = {
   "update.none": "✅ Zaten güncel.",
   "update.applying": "⬆️ {count} yeni commit — çekiliyor, kuruluyor, yeniden başlatılıyor…",
   "update.done": "✅ Güncelleme uygulandı. Yeniden başlatıyorum.",
-  "help.more": "🧩 <b>Daha fazla araç</b>\n/filter /block /antilink /allowlink — otomatik yanıtlar, engelli kelimeler ve bağlantı politikası\n/lock /locks — medya türü kilitleri · /mp — moderasyon paneli · /warnmode — uyarı cezası\n/promote /demote /title · /unote — özel kullanıcı notları (/info içinde)\n/night ve /settz — gece otomatik kilidi · /schedule — zamanlanmış mesajlar · /disable — komut yönetimi\n/newfed /joinfed /fban /fpromote /fexport — ban federasyonları · /tagall — aktifleri etiketle\n/welcome ve /goodbye ({mention} {count} yer tutucularıyla) · /settings içinde NSFW filtresi\n/stats /recall — YZ yanıtlı analiz · /afk · /tr /bridge — çeviri · /transcribe — ses → metin\n/newtopic /closetopic — forum konuları · /paidpost — ücretli medya (Stars) · Inline: her yerde @botadı + soru\n/about /ping /uptime · sahip: /update /export /import",
+  "help.more": "🪄 <b>Eyleme geçen YZ</b>: yöneticiler sadece SÖYLER — “onu 2 saat sustur”, “captcha'yı aç”, “anket: öğle yemeği?” — ben yaparım. Ayrıca görseller için /imagine, güvenilirler için /approve, maliyet için /aiquota.\n🧩 <b>Daha fazla araç</b>\n/filter /block /antilink /allowlink — otomatik yanıtlar, engelli kelimeler ve bağlantı politikası\n/lock /locks — medya türü kilitleri · /mp — moderasyon paneli · /warnmode — uyarı cezası\n/promote /demote /title · /unote — özel kullanıcı notları (/info içinde)\n/night ve /settz — gece otomatik kilidi · /schedule — zamanlanmış mesajlar · /disable — komut yönetimi\n/newfed /joinfed /fban /fpromote /fexport — ban federasyonları · /tagall — aktifleri etiketle\n/welcome ve /goodbye ({mention} {count} yer tutucularıyla) · /settings içinde NSFW filtresi\n/stats /recall — YZ yanıtlı analiz · /afk · /tr /bridge — çeviri · /transcribe — ses → metin\n/newtopic /closetopic — forum konuları · /paidpost — ücretli medya (Stars) · Inline: her yerde @botadı + soru\n/about /ping /uptime · sahip: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 <b>{name}</b> gruptan ayrıldı. Güle güle!",
@@ -276,4 +276,21 @@ export const tr = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>İçerik kilitleri</b> — değiştirmek için türe dokunun:",
   "settings.back": "« Geri",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "bilinmeyen eylem",
+  "act.notAllowed": "yalnızca yöneticiler",
+  "ai.quotaReached": "🥱 Bu sohbet günlük YZ sınırına ulaştı ({limit}). Bir yönetici /aiquota ile artırabilir.",
+  "aiquota.usage": "Kullanım: /aiquota <günlük yanıt|off> — şu an: {current}",
+  "aiquota.set": "✅ YZ burada günde {n} yanıtla sınırlandı.",
+  "aiquota.off": "✅ Günlük YZ sınırı kaldırıldı.",
+  "approve.done": "🤝 <b>{name}</b> güvenilir — anti-flood, kilitler, bağlantı/kelime filtreleri ve NSFW taramasından muaf.",
+  "approve.removed": "✅ <b>{name}</b> artık güvenilir değil.",
+  "approve.list": "🤝 <b>Güvenilir kullanıcılar</b>",
+  "approve.empty": "Henüz güvenilir kimse yok. Birini yanıtlayıp /approve yazın.",
+  "img.usage": "Kullanım: /imagine <görselin açıklaması>",
+  "img.noProvider": "🎨 Görsel üretimi için OpenAI anahtarı gerekir (sahip: /setkey openai …).",
+  "settings.buttons": "Düğmeler: metne [Etiket](https://example.com) ekleyin — inline düğme olur.",
 } satisfies Partial<Record<keyof typeof en, string>>;

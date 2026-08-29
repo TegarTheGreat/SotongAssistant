@@ -194,7 +194,7 @@ export const ru = {
   "update.none": "✅ Уже последняя версия.",
   "update.applying": "⬆️ Новых коммитов: {count} — забираю, устанавливаю, перезапускаюсь…",
   "update.done": "✅ Обновление применено. Перезапускаюсь.",
-  "help.more": "🧩 <b>Ещё инструменты</b>\n/filter /block /antilink /allowlink — автоответы, запрещённые слова и политика ссылок\n/lock /locks — блокировки по типам медиа · /mp — панель модерации · /warnmode — наказание за варны\n/promote /demote /title · /unote — приватные заметки о пользователях (в /info)\n/night и /settz — ночная автоблокировка · /schedule — отложенные сообщения · /disable — управление командами\n/newfed /joinfed /fban /fpromote /fexport — федерации банов · /tagall — упомянуть активных\n/welcome и /goodbye с плейсхолдерами {mention} {count} · NSFW-фильтр в /settings\n/stats /recall — аналитика с ответами ИИ · /afk · /tr /bridge — перевод · /transcribe — голос → текст\n/newtopic /closetopic — темы форума · /paidpost — платные медиа (Stars) · Inline: @имябота + вопрос где угодно\n/about /ping /uptime · владелец: /update /export /import",
+  "help.more": "🪄 <b>ИИ, который действует</b>: админы просто ГОВОРЯТ — «замуть его на 2ч», «включи капчу», «опрос: обед?» — и я выполняю. Плюс /imagine для картинок, /approve для доверенных, /aiquota для контроля расходов.\n🧩 <b>Ещё инструменты</b>\n/filter /block /antilink /allowlink — автоответы, запрещённые слова и политика ссылок\n/lock /locks — блокировки по типам медиа · /mp — панель модерации · /warnmode — наказание за варны\n/promote /demote /title · /unote — приватные заметки о пользователях (в /info)\n/night и /settz — ночная автоблокировка · /schedule — отложенные сообщения · /disable — управление командами\n/newfed /joinfed /fban /fpromote /fexport — федерации банов · /tagall — упомянуть активных\n/welcome и /goodbye с плейсхолдерами {mention} {count} · NSFW-фильтр в /settings\n/stats /recall — аналитика с ответами ИИ · /afk · /tr /bridge — перевод · /transcribe — голос → текст\n/newtopic /closetopic — темы форума · /paidpost — платные медиа (Stars) · Inline: @имябота + вопрос где угодно\n/about /ping /uptime · владелец: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 <b>{name}</b> покинул(а) группу. Прощай!",
@@ -277,4 +277,21 @@ export const ru = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>Блокировки контента</b> — нажмите тип, чтобы переключить:",
   "settings.back": "« Назад",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "неизвестное действие",
+  "act.notAllowed": "только для админов",
+  "ai.quotaReached": "🥱 Дневной лимит ИИ в этом чате исчерпан ({limit}). Админ может поднять его: /aiquota.",
+  "aiquota.usage": "Использование: /aiquota <ответов в день|off> — сейчас: {current}",
+  "aiquota.set": "✅ ИИ ограничен {n} ответами в день здесь.",
+  "aiquota.off": "✅ Дневной лимит ИИ снят.",
+  "approve.done": "🤝 <b>{name}</b> в доверенных — освобождён от антифлуда, блокировок, фильтров ссылок/слов и NSFW-проверки.",
+  "approve.removed": "✅ <b>{name}</b> больше не в доверенных.",
+  "approve.list": "🤝 <b>Доверенные пользователи</b>",
+  "approve.empty": "Доверенных пока нет. Ответьте кому-нибудь командой /approve.",
+  "img.usage": "Использование: /imagine <описание картинки>",
+  "img.noProvider": "🎨 Для генерации изображений нужен ключ OpenAI (владелец: /setkey openai …).",
+  "settings.buttons": "Кнопки: добавьте [Надпись](https://example.com) в текст — станет inline-кнопкой.",
 } satisfies Partial<Record<keyof typeof en, string>>;

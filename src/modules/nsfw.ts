@@ -1,6 +1,6 @@
 import { Composer, type Context } from "grammy";
 import type { PhotoSize } from "grammy/types";
-import { getSettings, addWarn, clearWarns } from "../db/repo.js";
+import { getSettings, addWarn, clearWarns, isApproved } from "../db/repo.js";
 import { classifyTelegramImage } from "../services/nsfw.js";
 import { applyWarnAction } from "./moderation.js";
 import { isAdmin } from "../util/admin.js";
@@ -39,7 +39,9 @@ nsfw.on(["message:photo", "message:sticker", "message:video", "message:animation
     : (msg.sticker?.thumbnail ?? msg.video?.thumbnail ?? msg.animation?.thumbnail);
   if (!target) return next();
 
-  // Admins are exempt — checked first so they never consume the budget.
+  // Approved users and admins are exempt — checked first so they never
+  // consume the screening budget.
+  if (isApproved(chat.id, ctx.from.id)) return next();
   if (await isAdmin(ctx, ctx.from.id)) return next();
 
   // Screening budget: never let one busy group burn the AI quota.

@@ -194,7 +194,7 @@ export const id = {
   "update.none": "✅ Sudah versi terbaru.",
   "update.applying": "⬆️ {count} commit baru — menarik, memasang, me-restart…",
   "update.done": "✅ Pembaruan diterapkan. Restart sekarang.",
-  "help.more": "🧩 <b>Alat lainnya</b>\n/filter /block /antilink /allowlink — balasan otomatis, kata terblokir &amp; kebijakan tautan\n/lock /locks — kunci per tipe media · /mp — panel moderasi · /warnmode — hukuman warn\n/promote /demote /title · /unote — catatan privat pengguna (tampil di /info)\n/night &amp; /settz — kunci malam otomatis · /schedule — pesan terjadwal · /disable — manajemen perintah\n/newfed /joinfed /fban /fpromote /fexport — federasi ban · /tagall — sebut anggota aktif\n/welcome &amp; /goodbye dengan placeholder {mention} {count} · filter NSFW di /settings\n/stats /recall — analitik dengan jawaban AI · /afk · /tr /bridge — terjemahan · /transcribe — suara → teks\n/newtopic /closetopic — topik forum · /paidpost — media berbayar (Stars) · Inline: @namabot + pertanyaan di mana pun\n/about /ping /uptime · pemilik: /update /export /import",
+  "help.more": "🪄 <b>AI yang bertindak</b>: admin cukup MENYURUH — “mute dia 2 jam”, “nyalakan captcha”, “polling: makan siang?” — dan kueksekusi. Plus /imagine untuk gambar, /approve pengguna terpercaya, /aiquota kontrol biaya.\n🧩 <b>Alat lainnya</b>\n/filter /block /antilink /allowlink — balasan otomatis, kata terblokir &amp; kebijakan tautan\n/lock /locks — kunci per tipe media · /mp — panel moderasi · /warnmode — hukuman warn\n/promote /demote /title · /unote — catatan privat pengguna (tampil di /info)\n/night &amp; /settz — kunci malam otomatis · /schedule — pesan terjadwal · /disable — manajemen perintah\n/newfed /joinfed /fban /fpromote /fexport — federasi ban · /tagall — sebut anggota aktif\n/welcome &amp; /goodbye dengan placeholder {mention} {count} · filter NSFW di /settings\n/stats /recall — analitik dengan jawaban AI · /afk · /tr /bridge — terjemahan · /transcribe — suara → teks\n/newtopic /closetopic — topik forum · /paidpost — media berbayar (Stars) · Inline: @namabot + pertanyaan di mana pun\n/about /ping /uptime · pemilik: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 <b>{name}</b> keluar dari grup. Sampai jumpa!",
@@ -277,4 +277,21 @@ export const id = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>Kunci konten</b> — ketuk tipe untuk mengubah:",
   "settings.back": "« Kembali",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "aksi tidak dikenal",
+  "act.notAllowed": "khusus admin",
+  "ai.quotaReached": "🥱 Chat ini mencapai batas AI harian ({limit}). Admin bisa menaikkan lewat /aiquota.",
+  "aiquota.usage": "Cara pakai: /aiquota <jawaban per hari|off> — sekarang: {current}",
+  "aiquota.set": "✅ AI dibatasi {n} jawaban per hari di sini.",
+  "aiquota.off": "✅ Batas harian AI dihapus.",
+  "approve.done": "🤝 <b>{name}</b> dipercaya — bebas dari anti-flood, kunci, filter tautan/kata, dan saringan NSFW.",
+  "approve.removed": "✅ <b>{name}</b> tidak lagi dipercaya.",
+  "approve.list": "🤝 <b>Pengguna terpercaya</b>",
+  "approve.empty": "Belum ada yang dipercaya di sini. Balas seseorang dengan /approve.",
+  "img.usage": "Cara pakai: /imagine <deskripsi gambarnya>",
+  "img.noProvider": "🎨 Generasi gambar butuh API key OpenAI (pemilik: /setkey openai …).",
+  "settings.buttons": "Tombol: taruh [Label](https://example.com) di mana pun dalam teks — jadi tombol inline.",
 } satisfies Partial<Record<keyof typeof en, string>>;

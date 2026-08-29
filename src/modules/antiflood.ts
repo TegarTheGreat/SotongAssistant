@@ -1,5 +1,5 @@
 import { Composer, type Context } from "grammy";
-import { getSettings } from "../db/repo.js";
+import { getSettings, isApproved } from "../db/repo.js";
 import { isAdmin } from "../util/admin.js";
 import { escapeHtml, humanDuration } from "../util/format.js";
 import { MUTED_PERMISSIONS } from "../util/permissions.js";
@@ -47,7 +47,7 @@ antiflood.on("message", async (ctx, next) => {
     }
   }
 
-  if (hits.length > LIMIT && !(await isAdmin(ctx, from.id))) {
+  if (hits.length > LIMIT && !isApproved(chat.id, from.id) && !(await isAdmin(ctx, from.id))) {
     buckets.delete(key);
     try {
       await ctx.api.restrictChatMember(chat.id, from.id, MUTED_PERMISSIONS, {

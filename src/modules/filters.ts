@@ -8,6 +8,7 @@ import {
   listBlockedWords,
   getSettings,
   updateSettings,
+  isApproved,
 } from "../db/repo.js";
 import { senderIsAdmin, isAdmin } from "../util/admin.js";
 import { escapeHtml } from "../util/format.js";
@@ -210,8 +211,8 @@ filters.on("message:text", async (ctx, next) => {
       }
     }
     const hit = linkHit || (blocked.length > 0 && blocked.some((w) => lower.includes(w)));
-    // Only pay for the (cached) admin lookup when something is enforceable.
-    if (hit && !(await isAdmin(ctx, ctx.from.id))) {
+    // Approved users and admins are exempt; the admin lookup stays last (cached).
+    if (hit && !isApproved(chatId, ctx.from.id) && !(await isAdmin(ctx, ctx.from.id))) {
       await ctx.deleteMessage().catch(() => undefined);
       return;
     }

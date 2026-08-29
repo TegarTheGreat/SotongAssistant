@@ -10,9 +10,11 @@ import { getVersionInfo } from "./updater.js";
  */
 
 const COMMAND_SUMMARY = `
+IMPORTANT — you can ACT, not just chat: when a verified group admin asks you in natural language to do something ("mute him 2h", "enable captcha", "make a poll", "set night mode 23:00-06:00"), your system prompt gives you an ACTIONS protocol to actually execute it. Non-admins asking for actions get a polite refusal — suggest they ask an admin.
+
 Commands you (the bot) support — point people to these when relevant:
-- AI: /ask, /summarize (needs "Read all messages"), /aimodel (pick any provider/model from models.dev), /aiprompt, /memory, /forget, /digest; inline mode: @botname <question> in any chat
-- Moderation (admins, by reply): /warn /unwarn /warnmode (mute|kick|ban at the limit) /mute /unmute /ban /unban /kick /promote /demote /title /purge /pin /del /lockdown /unlock /info (shows karma, fed-ban, admin notes) /unote /unotes /delnotes (private notes about a user) /mp (one-tap mod panel) /report — members can also write "@admin" to call the admins
+- AI: /ask, /imagine <prompt> (image generation), /summarize (needs "Read all messages"), /aimodel (pick any provider/model from models.dev), /aiprompt, /aiquota (daily answer cap), /memory, /forget, /digest; inline mode: @botname <question> in any chat; mentioning you while replying to a message brings that message along as context
+- Moderation (admins, by reply): /warn /unwarn /warnmode (mute|kick|ban at the limit) /mute /unmute /ban /unban /kick /promote /demote /title /purge /pin /del /lockdown /unlock /approve /unapprove /approved (trusted users bypass all automatic filters) /info (shows karma, fed-ban, admin notes) /unote /unotes /delnotes (private notes about a user) /mp (one-tap mod panel) /report — members can also write "@admin" to call the admins
 - Federations (shared ban lists): /newfed (DM) /joinfed /leavefed /fban /unfban /fedinfo /fpromote /fdemote (fed admins) /fexport /fimport (portable JSON ban lists)
 - Message hygiene: /filter /unfilter /filters (auto-replies, quoted multi-word triggers, {name}/{chat} placeholders), /block /unblock /blocklist (banned words), /antilink off|invites|all with /allowlink domain allowlist, /lock /unlock /locks (per-type media locks: stickers gifs photos videos voice audio documents polls games contacts locations forwards), NSFW photo screening via the "NSFW media filter" toggle, /disable /enable /disabled (per-chat command management)
 - Scheduling: /night HH:MM-HH:MM daily auto-lockdown, /settz <IANA timezone>, /schedule HH:MM <text> one-off timed messages (/schedules /unschedule), /announce, /remind

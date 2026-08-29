@@ -230,7 +230,9 @@ settings.command("welcome", async (ctx) => {
   if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) return;
   const text = ctx.match.trim();
   if (!text) {
-    await ctx.reply(`${tc(ctx, "settings.welcomeUsage")}\n${tc(ctx, "settings.placeholders")}`);
+    await ctx.reply(
+      `${tc(ctx, "settings.welcomeUsage")}\n${tc(ctx, "settings.placeholders")}\n${tc(ctx, "settings.buttons")}`,
+    );
     return;
   }
   updateSettings(ctx.chat.id, { welcomeText: text === "-" ? undefined : text });
@@ -242,7 +244,9 @@ settings.command("goodbye", async (ctx) => {
   if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) return;
   const text = ctx.match.trim();
   if (!text) {
-    await ctx.reply(`${tc(ctx, "settings.goodbyeUsage")}\n${tc(ctx, "settings.placeholders")}`);
+    await ctx.reply(
+      `${tc(ctx, "settings.goodbyeUsage")}\n${tc(ctx, "settings.placeholders")}\n${tc(ctx, "settings.buttons")}`,
+    );
     return;
   }
   updateSettings(ctx.chat.id, { goodbye: true, goodbyeText: text === "-" ? undefined : text });

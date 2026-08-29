@@ -192,7 +192,7 @@ export const ar = {
   "update.none": "✅ أنت على أحدث إصدار.",
   "update.applying": "⬆️ {count} إيداعات جديدة — سحب وتثبيت وإعادة تشغيل…",
   "update.done": "✅ طُبق التحديث. أُعيد التشغيل الآن.",
-  "help.more": "🧩 <b>أدوات إضافية</b>\n/filter /block /antilink /allowlink — ردود تلقائية وكلمات محظورة وسياسة روابط\n/lock /locks — أقفال حسب نوع الوسائط · /mp — لوحة الإشراف · /warnmode — عقوبة الإنذارات\n/promote /demote /title · /unote — ملاحظات خاصة عن المستخدمين (في ‎/info)\n/night و /settz — قفل ليلي تلقائي · /schedule — رسائل مجدولة · /disable — إدارة الأوامر\n/newfed /joinfed /fban /fpromote /fexport — اتحادات الحظر · /tagall — ذكر النشطين\n/welcome و /goodbye مع عناصر {mention} {count} · فلتر NSFW في ‎/settings\n/stats /recall — تحليلات بإجابات الذكاء · /afk · /tr /bridge — ترجمة · /transcribe — صوت ← نص\n/newtopic /closetopic — مواضيع المنتدى · /paidpost — وسائط مدفوعة (نجوم) · مضمّن: ‎@اسم_البوت + سؤال في أي مكان\n/about /ping /uptime · المالك: /update /export /import",
+  "help.more": "🪄 <b>ذكاء ينفّذ</b>: يكفي أن يقول المشرف — «اكتمه ساعتين»، «فعّل الكابتشا»، «استطلاع: الغداء؟» — وأنا أنفّذ. إضافةً إلى ‎/imagine للصور و‎/approve للموثوقين و‎/aiquota للتكلفة.\n🧩 <b>أدوات إضافية</b>\n/filter /block /antilink /allowlink — ردود تلقائية وكلمات محظورة وسياسة روابط\n/lock /locks — أقفال حسب نوع الوسائط · /mp — لوحة الإشراف · /warnmode — عقوبة الإنذارات\n/promote /demote /title · /unote — ملاحظات خاصة عن المستخدمين (في ‎/info)\n/night و /settz — قفل ليلي تلقائي · /schedule — رسائل مجدولة · /disable — إدارة الأوامر\n/newfed /joinfed /fban /fpromote /fexport — اتحادات الحظر · /tagall — ذكر النشطين\n/welcome و /goodbye مع عناصر {mention} {count} · فلتر NSFW في ‎/settings\n/stats /recall — تحليلات بإجابات الذكاء · /afk · /tr /bridge — ترجمة · /transcribe — صوت ← نص\n/newtopic /closetopic — مواضيع المنتدى · /paidpost — وسائط مدفوعة (نجوم) · مضمّن: ‎@اسم_البوت + سؤال في أي مكان\n/about /ping /uptime · المالك: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 غادر <b>{name}</b> المجموعة. وداعًا!",
@@ -275,4 +275,21 @@ export const ar = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>أقفال المحتوى</b> — اضغط نوعًا لتبديله:",
   "settings.back": "« رجوع",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "إجراء غير معروف",
+  "act.notAllowed": "للمشرفين فقط",
+  "ai.quotaReached": "🥱 بلغت هذه الدردشة حدّ الذكاء اليومي ({limit}). يمكن للمشرف رفعه بـ ‎/aiquota.",
+  "aiquota.usage": "الاستخدام: ‎/aiquota <إجابات يوميًا|off> — الحالي: {current}",
+  "aiquota.set": "✅ حُدّد الذكاء بـ {n} إجابة يوميًا هنا.",
+  "aiquota.off": "✅ أُزيل الحد اليومي للذكاء.",
+  "approve.done": "🤝 <b>{name}</b> موثوق — معفى من مانع الفيض والأقفال وفلاتر الروابط/الكلمات وفحص NSFW.",
+  "approve.removed": "✅ لم يعد <b>{name}</b> موثوقًا.",
+  "approve.list": "🤝 <b>المستخدمون الموثوقون</b>",
+  "approve.empty": "لا موثوقين بعد. رُد على أحدهم بـ ‎/approve.",
+  "img.usage": "الاستخدام: ‎/imagine <وصف الصورة>",
+  "img.noProvider": "🎨 يتطلب توليد الصور مفتاح OpenAI (المالك: ‎/setkey openai …).",
+  "settings.buttons": "الأزرار: ضع [تسمية](https://example.com) في النص — تصبح زرًا مضمّنًا.",
 } satisfies Partial<Record<keyof typeof en, string>>;

@@ -13,6 +13,9 @@ import {
   addUserNote,
   listUserNotes,
   deleteUserNotes,
+  approveUser,
+  unapproveUser,
+  listApproved,
 } from "../db/repo.js";
 import { senderIsAdmin, isProtectedTarget } from "../util/admin.js";
 import { parseDuration, humanDuration, escapeHtml } from "../util/format.js";
@@ -405,6 +408,48 @@ moderation.command("info", async (ctx) => {
     if (notes.length > 3) lines.push(`… +${notes.length - 3}`);
   }
   await ctx.reply(lines.join("\n"), { parse_mode: "HTML", message_thread_id: threadIdOf(ctx) });
+});
+
+// ---------- approvals (trusted users bypass every automatic filter) ----------
+
+// /approve (reply) — exempt a user from antiflood, locks, link/word filters
+// and NSFW screening. Rose-style trust list; admins are always exempt anyway.
+moderation.command("approve", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const target = targetFromReply(ctx);
+  if (!target) {
+    await ctx.reply(tc(ctx, "error.replyRequired"));
+    return;
+  }
+  approveUser(ctx.chat!.id, target.id, ctx.message?.reply_to_message?.from?.first_name);
+  await ctx.reply(tc(ctx, "approve.done", { name: target.name }), { parse_mode: "HTML" });
+});
+
+moderation.command("unapprove", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const target = targetFromReply(ctx);
+  if (!target) {
+    await ctx.reply(tc(ctx, "error.replyRequired"));
+    return;
+  }
+  unapproveUser(ctx.chat!.id, target.id);
+  await ctx.reply(tc(ctx, "approve.removed", { name: target.name }), { parse_mode: "HTML" });
+});
+
+moderation.command("approved", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const rows = listApproved(ctx.chat!.id);
+  if (!rows.length) {
+    await ctx.reply(tc(ctx, "approve.empty"));
+    return;
+  }
+  const list = rows
+    .map((r) => `• <a href="tg://user?id=${r.user_id}">${escapeHtml(r.name ?? String(r.user_id))}</a>`)
+    .join("\n");
+  await ctx.reply(`${tc(ctx, "approve.list")}\n${list}`, { parse_mode: "HTML" });
 });
 
 // ---------- per-user admin notes ----------

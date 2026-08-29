@@ -193,7 +193,7 @@ export const fa = {
   "update.none": "✅ همین حالا به‌روز است.",
   "update.applying": "⬆️ {count} کامیت جدید — دریافت، نصب، راه‌اندازی مجدد…",
   "update.done": "✅ به‌روزرسانی اعمال شد. در حال راه‌اندازی مجدد.",
-  "help.more": "🧩 <b>ابزارهای بیشتر</b>\n/filter /block /antilink /allowlink — پاسخ خودکار، واژه‌های مسدود و سیاست لینک\n/lock /locks — قفل بر اساس نوع رسانه · /mp — پنل مدیریت · /warnmode — مجازات اخطار\n/promote /demote /title · /unote — یادداشت خصوصی کاربران (در ‎/info)\n/night و /settz — قفل شبانهٔ خودکار · /schedule — پیام زمان‌بندی‌شده · /disable — مدیریت دستورها\n/newfed /joinfed /fban /fpromote /fexport — فدراسیون‌های بن · /tagall — منشن فعال‌ها\n/welcome و /goodbye با جای‌نگهدارهای {mention} {count} · فیلتر NSFW در ‎/settings\n/stats /recall — تحلیل با پاسخ هوش · /afk · /tr /bridge — ترجمه · /transcribe — صدا ← متن\n/newtopic /closetopic — موضوع‌های انجمن · /paidpost — رسانهٔ پولی (استارز) · اینلاین: هر جا ‎@نام_بات + سؤال\n/about /ping /uptime · مالک: /update /export /import",
+  "help.more": "🪄 <b>هوشی که عمل می‌کند</b>: مدیر فقط می‌گوید — «۲ ساعت سکوتش کن»، «کپچا را روشن کن»، «نظرسنجی: ناهار؟» — و اجرا می‌کنم. به‌علاوه ‎/imagine برای تصویر، ‎/approve برای معتمدها، ‎/aiquota برای هزینه.\n🧩 <b>ابزارهای بیشتر</b>\n/filter /block /antilink /allowlink — پاسخ خودکار، واژه‌های مسدود و سیاست لینک\n/lock /locks — قفل بر اساس نوع رسانه · /mp — پنل مدیریت · /warnmode — مجازات اخطار\n/promote /demote /title · /unote — یادداشت خصوصی کاربران (در ‎/info)\n/night و /settz — قفل شبانهٔ خودکار · /schedule — پیام زمان‌بندی‌شده · /disable — مدیریت دستورها\n/newfed /joinfed /fban /fpromote /fexport — فدراسیون‌های بن · /tagall — منشن فعال‌ها\n/welcome و /goodbye با جای‌نگهدارهای {mention} {count} · فیلتر NSFW در ‎/settings\n/stats /recall — تحلیل با پاسخ هوش · /afk · /tr /bridge — ترجمه · /transcribe — صدا ← متن\n/newtopic /closetopic — موضوع‌های انجمن · /paidpost — رسانهٔ پولی (استارز) · اینلاین: هر جا ‎@نام_بات + سؤال\n/about /ping /uptime · مالک: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 <b>{name}</b> گروه را ترک کرد. بدرود!",
@@ -276,4 +276,21 @@ export const fa = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>قفل‌های محتوا</b> — برای تغییر روی نوع بزنید:",
   "settings.back": "« بازگشت",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "اقدام ناشناخته",
+  "act.notAllowed": "فقط مدیران",
+  "ai.quotaReached": "🥱 سقف روزانهٔ هوش این چت پر شد ({limit}). مدیر می‌تواند با ‎/aiquota بالا ببرد.",
+  "aiquota.usage": "کاربرد: ‎/aiquota <پاسخ در روز|off> — فعلی: {current}",
+  "aiquota.set": "✅ هوش اینجا به {n} پاسخ در روز محدود شد.",
+  "aiquota.off": "✅ سقف روزانهٔ هوش برداشته شد.",
+  "approve.done": "🤝 <b>{name}</b> مورد اعتماد است — از ضدسیل، قفل‌ها، فیلتر لینک/واژه و بررسی NSFW معاف.",
+  "approve.removed": "✅ <b>{name}</b> دیگر مورد اعتماد نیست.",
+  "approve.list": "🤝 <b>کاربران مورد اعتماد</b>",
+  "approve.empty": "هنوز کسی مورد اعتماد نیست. روی کسی ریپلای کنید و ‎/approve بفرستید.",
+  "img.usage": "کاربرد: ‎/imagine <توضیح تصویر>",
+  "img.noProvider": "🎨 تولید تصویر به کلید OpenAI نیاز دارد (مالک: ‎/setkey openai …).",
+  "settings.buttons": "دکمه‌ها: [برچسب](https://example.com) را در متن بگذارید — دکمهٔ اینلاین می‌شود.",
 } satisfies Partial<Record<keyof typeof en, string>>;

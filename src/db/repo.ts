@@ -39,6 +39,8 @@ export interface ChatSettings {
   disabledCommands?: string[];
   /** Media types non-admins may not send (Rose-style /lock stickers gifs …). */
   locks?: string[];
+  /** Max AI answers per UTC day for this chat (undefined = unlimited). */
+  aiDailyLimit?: number;
   /** AI screening of photos/video thumbnails for NSFW content (opt-in). */
   antiNsfw: boolean;
   /** Pin the linked channel's auto-forwarded posts in the discussion group. */
@@ -516,6 +518,45 @@ export function allLoggedMessages(chatId: number) {
   return db
     .prepare("SELECT name, text, ts FROM message_log WHERE chat_id = ? ORDER BY ts DESC")
     .all(chatId) as Array<{ name: string | null; text: string; ts: number }>;
+}
+
+// ---------- approvals (trusted users exempt from all automatic filters) ----------
+
+export function approveUser(chatId: number, userId: number, name: string | undefined) {
+  db.prepare(
+    `INSERT INTO approvals (chat_id, user_id, name) VALUES (?, ?, ?)
+     ON CONFLICT(chat_id, user_id) DO UPDATE SET name = COALESCE(excluded.name, approvals.name)`,
+  ).run(chatId, userId, name ?? null);
+}
+
+export function unapproveUser(chatId: number, userId: number): boolean {
+  return db.prepare("DELETE FROM approvals WHERE chat_id = ? AND user_id = ?").run(chatId, userId).changes > 0;
+}
+
+export function isApproved(chatId: number, userId: number): boolean {
+  return Boolean(db.prepare("SELECT 1 FROM approvals WHERE chat_id = ? AND user_id = ?").get(chatId, userId));
+}
+
+export function listApproved(chatId: number) {
+  return db
+    .prepare("SELECT user_id, name FROM approvals WHERE chat_id = ? ORDER BY user_id")
+    .all(chatId) as Array<{ user_id: number; name: string | null }>;
+}
+
+// ---------- AI usage metering (per-chat daily quota) ----------
+
+/** Bump today's AI-answer counter for the chat and return the new count. */
+export function bumpAiUsage(chatId: number): number {
+  const day = new Date().toISOString().slice(0, 10);
+  const row = db
+    .prepare(
+      `INSERT INTO ai_usage (chat_id, day, count) VALUES (?, ?, 1)
+       ON CONFLICT(chat_id, day) DO UPDATE SET count = count + 1 RETURNING count`,
+    )
+    .get(chatId, day) as { count: number };
+  // Drop old rows opportunistically so the table never grows unbounded.
+  db.prepare("DELETE FROM ai_usage WHERE day < ?").run(new Date(Date.now() - 3 * 86400_000).toISOString().slice(0, 10));
+  return row.count;
 }
 
 // ---------- guard-bot join queries (Mini App captcha flow) ----------

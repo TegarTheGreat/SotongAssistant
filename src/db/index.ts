@@ -143,6 +143,18 @@ CREATE TABLE IF NOT EXISTS user_notes (
   ts INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS user_notes_user ON user_notes (chat_id, user_id);
+CREATE TABLE IF NOT EXISTS approvals (
+  chat_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  name TEXT,
+  PRIMARY KEY (chat_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS ai_usage (
+  chat_id INTEGER NOT NULL,
+  day TEXT NOT NULL,                        -- UTC YYYY-MM-DD
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (chat_id, day)
+);
 CREATE TABLE IF NOT EXISTS business_connections (
   connection_id TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL,

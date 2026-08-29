@@ -13,7 +13,9 @@ import {
 import { t, LOCALES } from "../src/i18n/index.js";
 import { encryptSecret, decryptSecret } from "../src/services/security.js";
 import { chunkText, parseDuration, markdownToTelegramHtml } from "../src/util/format.js";
-import { renderMemberTemplate } from "../src/util/placeholders.js";
+import { renderMemberTemplate, extractButtons } from "../src/util/placeholders.js";
+import { extractActions } from "../src/services/actions.js";
+import { approveUser, isApproved, unapproveUser, bumpAiUsage } from "../src/db/repo.js";
 import { inWindow, parseHHMM, isValidTimezone, localMinutes } from "../src/util/time.js";
 import { validateInitData } from "../src/services/webapp.js";
 import { createHmac } from "node:crypto";
@@ -150,6 +152,32 @@ updateSettings(-100999, { disabledCommands: ["dice"], linkAllowlist: ["example.c
   if (s2.disabledCommands?.[0] !== "dice" || s2.linkAllowlist?.[0] !== "example.com" || s2.warnAction !== "kick")
     throw new Error("new settings");
 }
+
+// AI action-block parser: extraction, cleanup, malformed blocks, cap at 3
+{
+  const out = extractActions(
+    'Done!\n```action\n{"action":"mute","duration":"2h"}\n```\n```action\nnot json\n```\n```action\n{"action":"poll","question":"q","options":["a","b"]}\n```',
+  );
+  if (out.actions.length !== 2 || out.actions[0]!.action !== "mute" || out.actions[1]!.action !== "poll")
+    throw new Error("action parse");
+  if (out.clean !== "Done!") throw new Error("action clean");
+  const many = extractActions('```action\n{"action":"a"}\n```'.repeat(5));
+  if (many.actions.length !== 3) throw new Error("action cap");
+  if (extractActions("plain answer").actions.length !== 0) throw new Error("action none");
+}
+
+// welcome-template buttons: https only, removed from text
+{
+  const b = extractButtons("Hi {name}!\n[Rules](https://t.me/rules)\n[Bad](javascript:alert(1))");
+  if (b.buttons.length !== 1 || b.buttons[0]!.url !== "https://t.me/rules") throw new Error("buttons");
+  if (b.text.includes("Rules](")) throw new Error("buttons strip");
+}
+
+// approvals + AI usage metering
+approveUser(-100999, 55, "Trusty");
+if (!isApproved(-100999, 55) || isApproved(-100999, 56)) throw new Error("approve");
+if (!unapproveUser(-100999, 55) || isApproved(-100999, 55)) throw new Error("unapprove");
+if (bumpAiUsage(-100999) !== 1 || bumpAiUsage(-100999) !== 2) throw new Error("ai usage");
 
 // Mini App initData HMAC validation (forge a valid signature with the test token)
 {

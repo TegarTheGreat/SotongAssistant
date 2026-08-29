@@ -16,6 +16,7 @@ Toda la configuración vive dentro de Telegram. Sin panel web.**
 
 | | Capacidad | Detalles |
 |---|---|---|
+| 🪄 | **IA que ACTÚA** | Los admins solo **lo piden en lenguaje natural** — «mutéalo 2h», «activa el captcha», «encuesta: ¿almuerzo?», «modo nocturno 23:00-06:00» — y el bot lo ejecuta: 30+ acciones en lista blanca, cada una reverificada en el servidor (solo admins, objetivos protegidos, máx. 3 por mensaje) con recibo · más `/imagine`, `/approve`, `/aiquota` y botones URL en la bienvenida |
 | 🤖 | **Asistente IA** | `/ask`, responder al bot o @mención · elige **cualquier proveedor y modelo de models.dev** con menús inline · respuestas en streaming · personalidad por chat (`/aiprompt`) · `/summarize` para resúmenes del grupo |
 | 🧠 | **Memoria por capas** | Transcripción a corto plazo **más** un resumen a largo plazo mantenido por el propio modelo (estilo OpenClaw/Hermes) · por grupo *y* por topic · `/memory`, `/forget` |
 | 🛡 | **Moderación** | `/warn` con escalada automática · `/mute 2h` (aplicado por los servidores de Telegram — sobrevive reinicios) · `/ban` + borrado total · `/unban` seguro · `/purge` · `/lockdown` y `/unlock` · `/info`, `/report` |

@@ -193,7 +193,7 @@ export const hi = {
   "update.none": "✅ पहले से नवीनतम।",
   "update.applying": "⬆️ {count} नए commit — खींच रहा हूँ, इंस्टॉल, रीस्टार्ट…",
   "update.done": "✅ अपडेट लागू। अभी रीस्टार्ट कर रहा हूँ।",
-  "help.more": "🧩 <b>और उपकरण</b>\n/filter /block /antilink /allowlink — स्वतः जवाब, ब्लॉक शब्द और लिंक नीति\n/lock /locks — मीडिया-प्रकार लॉक · /mp — मॉडरेशन पैनल · /warnmode — चेतावनी सज़ा\n/promote /demote /title · /unote — निजी यूज़र नोट (/info में)\n/night और /settz — रात का ऑटो-लॉक · /schedule — समयबद्ध संदेश · /disable — कमांड प्रबंधन\n/newfed /joinfed /fban /fpromote /fexport — बैन फ़ेडरेशन · /tagall — सक्रिय सदस्यों को टैग करें\n/welcome और /goodbye ({mention} {count} प्लेसहोल्डर) · /settings में NSFW फ़िल्टर\n/stats /recall — AI जवाबों के साथ विश्लेषण · /afk · /tr /bridge — अनुवाद · /transcribe — आवाज़ → टेक्स्ट\n/newtopic /closetopic — फ़ोरम टॉपिक · /paidpost — सशुल्क मीडिया (Stars) · इनलाइन: कहीं भी @botname + सवाल\n/about /ping /uptime · मालिक: /update /export /import",
+  "help.more": "🪄 <b>काम करने वाला AI</b>: एडमिन बस कह दें — “इसे 2 घंटे म्यूट करो”, “कैप्चा चालू करो”, “पोल: लंच?” — और मैं कर देता हूँ। साथ में /imagine, /approve, /aiquota।\n🧩 <b>और उपकरण</b>\n/filter /block /antilink /allowlink — स्वतः जवाब, ब्लॉक शब्द और लिंक नीति\n/lock /locks — मीडिया-प्रकार लॉक · /mp — मॉडरेशन पैनल · /warnmode — चेतावनी सज़ा\n/promote /demote /title · /unote — निजी यूज़र नोट (/info में)\n/night और /settz — रात का ऑटो-लॉक · /schedule — समयबद्ध संदेश · /disable — कमांड प्रबंधन\n/newfed /joinfed /fban /fpromote /fexport — बैन फ़ेडरेशन · /tagall — सक्रिय सदस्यों को टैग करें\n/welcome और /goodbye ({mention} {count} प्लेसहोल्डर) · /settings में NSFW फ़िल्टर\n/stats /recall — AI जवाबों के साथ विश्लेषण · /afk · /tr /bridge — अनुवाद · /transcribe — आवाज़ → टेक्स्ट\n/newtopic /closetopic — फ़ोरम टॉपिक · /paidpost — सशुल्क मीडिया (Stars) · इनलाइन: कहीं भी @botname + सवाल\n/about /ping /uptime · मालिक: /update /export /import",
 
   // ---- goodbye, warn modes, admin mgmt, links, commands, night mode, topics, NSFW ----
   "goodbye.default": "👋 <b>{name}</b> ने ग्रुप छोड़ दिया। अलविदा!",
@@ -276,4 +276,21 @@ export const hi = {
   "settings.tzBtn": "🕒 {tz}",
   "settings.locksTitle": "🔒 <b>कंटेंट लॉक</b> — बदलने के लिए प्रकार पर टैप करें:",
   "settings.back": "« वापस",
+
+  // ---- AI actions, approvals, image generation, AI quota, welcome buttons ----
+  "act.ok": "✅ {what}",
+  "act.fail": "⚠️ {what} — {reason}",
+  "act.unknown": "अनजान कार्रवाई",
+  "act.notAllowed": "केवल एडमिन",
+  "ai.quotaReached": "🥱 इस चैट की दैनिक AI सीमा पूरी हो गई ({limit})। एडमिन /aiquota से बढ़ा सकते हैं।",
+  "aiquota.usage": "उपयोग: /aiquota <जवाब प्रति दिन|off> — वर्तमान: {current}",
+  "aiquota.set": "✅ यहाँ AI प्रतिदिन {n} जवाबों तक सीमित।",
+  "aiquota.off": "✅ AI की दैनिक सीमा हटाई गई।",
+  "approve.done": "🤝 <b>{name}</b> विश्वसनीय है — एंटी-फ्लड, लॉक, लिंक/शब्द फ़िल्टर और NSFW जाँच से मुक्त।",
+  "approve.removed": "✅ <b>{name}</b> अब विश्वसनीय नहीं।",
+  "approve.list": "🤝 <b>विश्वसनीय उपयोगकर्ता</b>",
+  "approve.empty": "अभी कोई विश्वसनीय नहीं। किसी को reply करके /approve भेजें।",
+  "img.usage": "उपयोग: /imagine <चित्र का विवरण>",
+  "img.noProvider": "🎨 चित्र बनाने के लिए OpenAI API key चाहिए (मालिक: /setkey openai …)।",
+  "settings.buttons": "बटन: टेक्स्ट में [लेबल](https://example.com) जोड़ें — इनलाइन बटन बन जाएगा।",
 } satisfies Partial<Record<keyof typeof en, string>>;

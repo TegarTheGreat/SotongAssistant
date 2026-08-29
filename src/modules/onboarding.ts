@@ -2,7 +2,7 @@ import { Composer, InlineKeyboard, type Context } from "grammy";
 import { config } from "../config.js";
 import { getSettings, updateSettings, scheduleJob, savePendingJoinQuery } from "../db/repo.js";
 import { escapeHtml, humanDuration } from "../util/format.js";
-import { renderMemberTemplate, templateNeedsCount } from "../util/placeholders.js";
+import { renderMemberTemplate, templateNeedsCount, extractButtons } from "../util/placeholders.js";
 import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
 import { isCasBanned } from "../services/cas.js";
 import { tc } from "../i18n/index.js";
@@ -24,6 +24,14 @@ const RAID_LOCK_S = 30 * 60;
 
 const joinWindow = new Map<number, number[]>();
 const raidActive = new Set<number>();
+
+/** Inline URL buttons declared inside a welcome/goodbye template. */
+function buttonsKeyboard(buttons: Array<{ label: string; url: string }>): InlineKeyboard | undefined {
+  if (!buttons.length) return undefined;
+  const kb = new InlineKeyboard();
+  for (const b of buttons) kb.url(b.label, b.url).row();
+  return kb;
+}
 
 async function maybeTriggerRaidMode(ctx: Context, chatId: number): Promise<void> {
   const nowMs = Date.now();
@@ -69,11 +77,17 @@ onboarding.on("chat_member", async (ctx) => {
   if (wasIn && !isIn && newM.status === "left" && !newM.user.is_bot) {
     const s = getSettings(upd.chat.id);
     if (s.goodbye) {
-      const text = s.goodbyeText
-        ? renderMemberTemplate(s.goodbyeText, newM.user, upd.chat)
-        : tc(ctx, "goodbye.default", { name: escapeHtml(newM.user.first_name) });
+      let text: string;
+      let keyboard: InlineKeyboard | undefined;
+      if (s.goodbyeText) {
+        const parts = extractButtons(s.goodbyeText);
+        text = renderMemberTemplate(parts.text, newM.user, upd.chat);
+        keyboard = buttonsKeyboard(parts.buttons);
+      } else {
+        text = tc(ctx, "goodbye.default", { name: escapeHtml(newM.user.first_name) });
+      }
       const msg = await ctx.api
-        .sendMessage(upd.chat.id, text, { parse_mode: "HTML" })
+        .sendMessage(upd.chat.id, text, { parse_mode: "HTML", reply_markup: keyboard })
         .catch(() => undefined);
       if (msg) scheduleJob("delete_message", { chatId: upd.chat.id, messageId: msg.message_id }, 300);
     }
@@ -125,20 +139,24 @@ onboarding.on("chat_member", async (ctx) => {
   }
 
   if (settings.welcome) {
-    // Templates support the full Rose-style placeholder set; everything is
-    // escaped inside renderMemberTemplate, so user text can't inject HTML.
+    // Templates support the full Rose-style placeholder set plus inline URL
+    // buttons ([Label](https://…)); everything is escaped inside
+    // renderMemberTemplate, so user text can't inject HTML.
     let text: string;
+    let keyboard: InlineKeyboard | undefined;
     if (settings.welcomeText) {
-      const count = templateNeedsCount(settings.welcomeText)
+      const parts = extractButtons(settings.welcomeText);
+      const count = templateNeedsCount(parts.text)
         ? await ctx.api.getChatMemberCount(upd.chat.id).catch(() => undefined)
         : undefined;
-      text = renderMemberTemplate(settings.welcomeText, user, upd.chat, count);
+      text = renderMemberTemplate(parts.text, user, upd.chat, count);
+      keyboard = buttonsKeyboard(parts.buttons);
     } else {
       text = tc(ctx, "welcome.default", { name: safeName });
     }
     const msg = await ctx.api
-      .sendMessage(upd.chat.id, text, { parse_mode: "HTML" })
-      .catch(() => ctx.api.sendMessage(upd.chat.id, text.replace(/<[^>]+>/g, "")));
+      .sendMessage(upd.chat.id, text, { parse_mode: "HTML", reply_markup: keyboard })
+      .catch(() => ctx.api.sendMessage(upd.chat.id, text.replace(/<[^>]+>/g, ""), { reply_markup: keyboard }));
     // Keep the group tidy: auto-delete the welcome after 5 minutes.
     scheduleJob("delete_message", { chatId: upd.chat.id, messageId: msg.message_id }, 300);
   }

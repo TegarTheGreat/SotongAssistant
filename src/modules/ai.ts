@@ -17,6 +17,8 @@ import { transcribeTelegramAudio } from "../services/transcribe.js";
 import { streamCompletion, resolveApiKey, AiError } from "../services/ai/index.js";
 import { appendExchange, compactIfNeeded } from "../services/memory.js";
 import { selfKnowledge } from "../services/selfknowledge.js";
+import { extractActions, executeActions, actionInstructions } from "../services/actions.js";
+import { bumpAiUsage } from "../db/repo.js";
 import { TelegramStreamer } from "../services/streamer.js";
 import { threadIdOf, replyEphemeral } from "../services/telegram.js";
 import { escapeHtml, markdownToTelegramHtml, parseDuration, humanDuration } from "../util/format.js";
@@ -93,6 +95,12 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     await ctx.react("🤔").catch(() => undefined);
     return;
   }
+  // Per-chat daily quota (admin-set via /aiquota) — checked after the cheap
+  // throttles so rejected spam never consumes it.
+  if (settings.aiDailyLimit && bumpAiUsage(chatId) > settings.aiDailyLimit) {
+    await ctx.reply(tc(ctx, "ai.quotaReached", { limit: settings.aiDailyLimit }));
+    return;
+  }
   userLastAsk.set(userKey, Date.now());
   activeGenerations.add(chatId);
   // Wired to Telegram's native "stop generating" button (draft streaming).
@@ -116,13 +124,24 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     // this very chat, and its full command surface. Appended to BOTH the
     // default and custom personas, so /aiprompt never erases self-knowledge.
     const knowledge = await selfKnowledge(ctx);
+    // AI Actions: verified admins can TELL the assistant to act ("mute him
+    // 2h", "enable captcha"). The instructions only exist for admins, and the
+    // executor re-checks every permission server-side regardless.
+    const isGroupChat = ctx.chat!.type === "group" || ctx.chat!.type === "supergroup";
+    const invokerIsAdmin = isGroupChat && (await senderIsAdmin(ctx));
+    const repliedMsg = ctx.message?.reply_to_message;
+    const actionTarget =
+      repliedMsg?.from && repliedMsg.from.id !== ctx.me.id && !repliedMsg.from.is_bot ? repliedMsg : undefined;
+    const actionPrompt = invokerIsAdmin
+      ? `\n\n${actionInstructions(Boolean(actionTarget), actionTarget?.from?.first_name)}`
+      : "";
     const request = {
       provider,
       model,
       system:
         (settings.aiSystemPrompt
           ? `${settings.aiSystemPrompt}${mem.summary ? `\n\nLong-term memory of this chat:\n${mem.summary}` : ""}`
-          : defaultSystemPrompt(ctx, mem.summary)) + `\n\n${knowledge}`,
+          : defaultSystemPrompt(ctx, mem.summary)) + `\n\n${knowledge}${actionPrompt}`,
       history: mem.messages,
       userText: question,
       userName: ctx.from?.first_name,
@@ -132,14 +151,40 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     // Track the partial answer so a user-initiated stop still delivers it.
     let partial = "";
     let full: string;
+    let aborted = false;
+
+    // Run parsed action blocks and return the localized receipt (or undefined).
+    const runActions = async (actions: ReturnType<typeof extractActions>["actions"]) => {
+      if (aborted || !actions.length || !isGroupChat) return undefined;
+      const receipt = await executeActions(
+        {
+          ctx,
+          chatId,
+          invokerIsAdmin,
+          targetUserId: actionTarget?.from?.id,
+          targetName: actionTarget?.from?.first_name,
+          targetMessageId: actionTarget?.message_id,
+        },
+        actions,
+      );
+      return receipt.length ? receipt.join("\n") : undefined;
+    };
+
     if (useEphemeral) {
       try {
         full = await streamCompletion(request, (text) => (partial = text));
       } catch (err) {
         if (!controller.signal.aborted) throw err;
         full = partial;
+        aborted = true;
       }
-      await replyEphemeral(ctx, markdownToTelegramHtml(full || "⏹"));
+      const { clean, actions } = extractActions(full);
+      const receipt = await runActions(actions);
+      await replyEphemeral(
+        ctx,
+        `${markdownToTelegramHtml(clean || (aborted ? "⏹" : "⚙️"))}${receipt ? `\n\n${receipt}` : ""}`,
+      );
+      full = clean;
     } else {
       const streamer = new TelegramStreamer(ctx.api, chatId, threadId, isPrivate);
       await streamer.start();
@@ -151,14 +196,26 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
       } catch (err) {
         if (controller.signal.aborted) {
           // Stopped by the user — persist whatever was generated so far.
-          await streamer.finish(partial ? `${partial} ⏹` : "⏹");
+          aborted = true;
           full = partial;
         } else {
           await streamer.fail(localizeAiError(ctx, err, providerId));
           return;
         }
       }
-      if (!controller.signal.aborted) await streamer.finish(full);
+      // Strip action blocks from the visible answer; execute them after the
+      // final edit so the receipt lands as its own compact message.
+      const { clean, actions } = extractActions(full);
+      await streamer.finish(
+        aborted ? `${clean || "⏹"}${clean ? " ⏹" : ""}` : clean || (actions.length ? "⚙️" : full),
+      );
+      const receipt = await runActions(actions);
+      if (receipt) {
+        await ctx.api
+          .sendMessage(chatId, receipt, { parse_mode: "HTML", message_thread_id: threadId })
+          .catch(() => undefined);
+      }
+      full = clean;
     }
 
     if (full) {
@@ -330,15 +387,43 @@ ai.command("transcribe", async (ctx) => {
   );
 });
 
+// /aiquota <n|off> — cap AI answers per day in this chat (cost control).
+ai.command("aiquota", async (ctx) => {
+  if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const arg = ctx.match.trim().toLowerCase();
+  if (arg === "off") {
+    updateSettings(ctx.chat.id, { aiDailyLimit: undefined });
+    await ctx.reply(tc(ctx, "aiquota.off"));
+    return;
+  }
+  const n = Number(arg);
+  if (!Number.isInteger(n) || n < 1 || n > 10_000) {
+    await ctx.reply(tc(ctx, "aiquota.usage", { current: getSettings(ctx.chat.id).aiDailyLimit ?? "off" }));
+    return;
+  }
+  updateSettings(ctx.chat.id, { aiDailyLimit: n });
+  await ctx.reply(tc(ctx, "aiquota.set", { n }));
+});
+
 // Reply-to-bot, @mention, or any private-chat text triggers the assistant.
 ai.on("message:text", async (ctx, next) => {
   const text = ctx.message.text;
-  const isReplyToBot = ctx.message.reply_to_message?.from?.id === ctx.me.id;
+  const replied = ctx.message.reply_to_message;
+  const isReplyToBot = replied?.from?.id === ctx.me.id;
   const mention = `@${ctx.me.username}`;
   const isMention = text.includes(mention);
   const isPrivate = ctx.chat.type === "private";
   if (isReplyToBot || isMention || isPrivate) {
-    const q = text.replaceAll(mention, "").trim();
+    let q = text.replaceAll(mention, "").trim();
+    // Mentioning the bot while replying to someone else's message brings that
+    // message along as context ("@bot summarize this", "translate this", …).
+    const repliedText = replied?.text ?? replied?.caption;
+    if (q && !isReplyToBot && repliedText && replied?.from && !replied.from.is_bot) {
+      q += `\n\n[Replied message, from ${replied.from.first_name}]: ${repliedText.slice(0, 1500)}`;
+    }
     if (q && !q.startsWith("/")) {
       await runAsk(ctx, q);
       return;

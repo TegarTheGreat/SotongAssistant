@@ -16,6 +16,7 @@ Bütün ayarlar Telegram'ın içinde. Web paneli yok.**
 
 | | Yetenek | Ayrıntılar |
 |---|---|---|
+| 🪄 | **Eyleme geçen YZ** | Yöneticiler sadece **doğal dille söyler** — “onu 2 saat sustur”, “captcha'yı aç”, “anket: öğle yemeği?”, “gece modu 23:00-06:00” — bot uygular: beyaz listede 30+ eylem, her biri sunucuda yeniden doğrulanır (yalnız yöneticiler, korunan hedefler, mesaj başına en çok 3) makbuzla · ayrıca `/imagine`, `/approve`, `/aiquota` ve karşılamada URL düğmeleri |
 | 🤖 | **Yapay zekâ asistanı** | `/ask`, bota yanıt ya da @etiket · satır içi menülerle **models.dev'deki her sağlayıcı ve modeli** seç · akış hâlinde yanıtlar · sohbete özel kişilik (`/aiprompt`) · grup özeti için `/summarize` |
 | 🧠 | **Katmanlı hafıza** | Kısa vadeli transkript **artı** modelin kendisinin koruduğu uzun vadeli özet (OpenClaw/Hermes tarzı) · grup *ve* konu başına · `/memory`, `/forget` |
 | 🛡 | **Moderasyon** | Otomatik tırmanan `/warn` · `/mute 2h` (Telegram sunucuları uygular — yeniden başlatmadan etkilenmez) · `/ban` + tüm mesajları silme · güvenli `/unban` · `/purge` · `/lockdown` ve `/unlock` · `/info`, `/report` |

@@ -38,3 +38,26 @@ export function renderMemberTemplate(
 export function templateNeedsCount(template: string): boolean {
   return template.includes("{count}");
 }
+
+const BUTTON_RE = /\[([^\]\n]{1,64})\]\((https:\/\/[^\s)]+)\)/g;
+
+/**
+ * Welcome/goodbye templates may embed inline URL buttons with Markdown-link
+ * syntax — `[Rules](https://t.me/c/...)`. Extract them (https only, so a
+ * template can never smuggle tg:// or javascript: links into a button).
+ */
+export function extractButtons(template: string): {
+  text: string;
+  buttons: Array<{ label: string; url: string }>;
+} {
+  const buttons: Array<{ label: string; url: string }> = [];
+  const text = template
+    .replace(BUTTON_RE, (_m, label: string, url: string) => {
+      if (buttons.length < 6) buttons.push({ label: label.trim(), url });
+      return "";
+    })
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { text, buttons };
+}

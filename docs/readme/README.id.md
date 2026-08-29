@@ -16,6 +16,7 @@ Semua pengaturan ada di dalam Telegram. Tanpa dashboard web.**
 
 | | Kapabilitas | Sorotan |
 |---|---|---|
+| 🪄 | **AI yang BERTINDAK** | Admin cukup **menyuruh dengan bahasa biasa** — “mute dia 2 jam”, “nyalakan captcha”, “buat polling: makan siang?”, “mode malam 23:00-06:00” — dan bot mengeksekusinya: 30+ aksi ter-whitelist, semua diverifikasi ulang server-side (khusus admin, target terlindungi, maks 3/pesan) dengan bukti eksekusi · plus `/imagine` gambar AI, `/approve` pengguna terpercaya, `/aiquota` batas biaya, tombol URL di welcome |
 | 🤖 | **Asisten AI** | `/ask`, reply, atau @mention · pilih **provider & model apa pun dari models.dev** lewat menu inline · jawaban streaming · kepribadian per chat (`/aiprompt`) · `/summarize` untuk ringkasan grup |
 | 🧠 | **Memori berlapis** | Transcript jangka pendek **plus** ringkasan jangka panjang yang dirawat model (gaya OpenClaw/Hermes) · per grup *dan* per topic forum · `/memory`, `/forget` |
 | 🛡 | **Moderasi** | `/warn` bereskalasi otomatis · `/mute 2h` (di-enforce server Telegram — tahan restart) · `/ban` + hapus semua pesan · `/unban` aman · `/purge` · `/lockdown` & `/unlock` · `/info`, `/report` |

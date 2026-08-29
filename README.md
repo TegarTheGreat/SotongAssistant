@@ -31,7 +31,8 @@ Every setting lives inside Telegram. No web dashboard.**
 
 | | Capability | Highlights |
 |---|---|---|
-| 🤖 | **AI assistant** | `/ask`, reply-to-bot, or @mention · pick **any provider & model from models.dev** via inline menus · **native draft streaming in DMs** (Bot API 9.3, with Telegram's own “stop generating” button) and throttled-edit streaming in groups · per-chat personality (`/aiprompt`) · `/summarize` on demand and `/digest` on a schedule |
+| 🪄 | **AI that ACTS** | Admins just **tell the assistant what to do in natural language** — “mute him for 2h”, “turn captcha on”, “make a poll: lunch?”, “set night mode 23:00-06:00” — and it executes: 30+ whitelisted actions (moderation, settings, filters, locks, night mode, schedules, polls…), every one re-verified server-side (admin-only, protected targets, max 3 per message), with a receipt of what ran |
+| 🤖 | **AI assistant** | `/ask`, reply-to-bot, or @mention (mentioning while replying brings the replied message as context) · **`/imagine`** image generation · pick **any provider & model from models.dev** via inline menus · **native draft streaming in DMs** (Bot API 9.3, with Telegram's own “stop generating” button) and throttled-edit streaming in groups · per-chat personality (`/aiprompt`) · `/aiquota` daily cost cap · `/summarize` on demand and `/digest` on a schedule |
 | 🧠 | **Layered memory** | Rolling short-term transcript **plus** a model-maintained long-term summary (OpenClaw/Hermes-style compaction) · per group *and* per forum topic · `/memory` to inspect, `/forget` to wipe |
 | 🛡 | **Moderation** | `/warn` with auto-escalation and a configurable **`/warnmode` (mute/kick/ban)** · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` — and writing **“@admin”** calls the admins too · **`/promote` `/demote` `/title`** admin management · `/tagall` mentions active members · **`/mp` one-tap mod panel** (ephemeral inline buttons only the acting admin sees) |
 | 🧹 | **Message hygiene** | **Keyword filters** (`/filter faq Read the pinned!`, quoted multi-word triggers, `{name}`/`{chat}` placeholders) · **word blocklist** (`/block`) with on-sight deletion · **`/antilink off\|invites\|all`** with a `/allowlink` domain allowlist · **`/disable` per-chat command management** · all admin-exempt |
@@ -51,7 +52,8 @@ Every setting lives inside Telegram. No web dashboard.**
 | 🔎 | **Inline mode** | `@botname question` asks the AI **from any chat** — placeholder posts instantly, the answer streams into it (enable *inline mode* + *inline feedback* in @BotFather) |
 | 🪞 | **Self-knowledge** | The AI carries a live capability card: its version, its commands, and the current settings of the very chat it's in — ask it “what can you do here?” and it answers accurately |
 | ⬆️ | **Self-updating** | Hourly `git fetch` — owner `/update` applies with one tap, or set `AUTO_UPDATE=true` to pull, reinstall and restart automatically |
-| 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome **and goodbye** messages (auto-cleanup) with the full Rose-style placeholder set (`{mention}` `{fullname}` `{username}` `{count}`…) · button captcha with timeout-kick · join-request gate verified in DM |
+| 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome **and goodbye** messages (auto-cleanup) with the full Rose-style placeholder set (`{mention}` `{fullname}` `{username}` `{count}`…) **plus inline URL buttons** (`[Rules](https://…)`) · button captcha with timeout-kick · join-request gate verified in DM |
+| 🤝 | **Approvals** | `/approve` marks trusted users who bypass anti-flood, content locks, link/word filters and NSFW screening — Rose-style trust lists |
 | 🌊 | **Anti-abuse** | Anti-flood auto-mute · **auto raid protection** (join-spike lockdown with timed restore) · **CAS anti-spam screening** on joins & join requests · **guard-bot join queries with a self-hosted Mini App captcha** (Bot API 10.1, HMAC-verified `initData`) · channel-persona spam blocking (linked channel whitelisted) · anonymous-admin & auto-forward aware |
 | 📒 | **Notes & rules** | `/save faq` → recall with `#faq` · `/setrules` & `/rules` |
 | 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · **reaction karma** with `/karma` leaderboard · recurring `/announce` posts · `/donate` via Telegram Stars ⭐ (with owner `/refund`) · **`/subscription` monthly Stars subscription links for channels** |
@@ -240,15 +242,17 @@ timeline, framework comparison, platform pitfalls).
 - [x] Voice: DM voice notes transcribed (Whisper) & answered · `/transcribe` in groups
 - [x] Per-user moderation notes (`/unote`) & a full dossier in `/info`
 - [x] Paid media posts (`/paidpost`, Telegram Stars) · fully inline `/settings` panel
+- [x] **AI Actions**: natural-language group management for admins, provider-agnostic, server-verified
+- [x] `/imagine` image generation · `/approve` trust lists · welcome/goodbye URL buttons
+- [x] `/aiquota` per-chat daily AI caps · reply-context for @mention questions
 
 **Next**
 
 - [ ] True vector embeddings for `/recall` when the provider exposes an embeddings endpoint
-- [ ] Welcome buttons (custom inline URL buttons under the welcome message)
-- [ ] Approvals: exempt trusted users from all filters (Rose-style /approve)
+- [ ] AI Actions in DMs for the owner (broadcasts, status, key management by chat)
 - [ ] Sticker-pack tools: /kang to clone stickers into the bot's pack
-- [ ] Per-chat AI usage quotas & spending caps
 - [ ] Business: AI auto-labels & folders for customer chats
+- [ ] Scheduled AI prompts (“every Monday 9:00 post a standup question”)
 
 ## 🤝 Contributing
 
