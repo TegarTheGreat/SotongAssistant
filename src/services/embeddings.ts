@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getCatalog } from "./catalog.js";
 import { resolveApiKey } from "./ai/index.js";
 
@@ -12,10 +13,49 @@ import { resolveApiKey } from "./ai/index.js";
  * So a /recall costs exactly ONE embeddings request regardless of log size,
  * and any failure (no OpenAI key, provider outage) returns undefined so the
  * caller silently keeps its lexical ordering.
+ *
+ * Vectors are also CACHED by text hash, so repeated /recall calls only pay for
+ * messages the cache has not seen — a second search over the same history
+ * embeds just the query.
  */
 
 const EMBED_MODEL = "text-embedding-3-small";
 const MAX_CANDIDATES = 40;
+/** Bounded in-memory vector cache, keyed by a hash of the exact text. */
+const CACHE_CAP = 4000;
+const vectorCache = new Map<string, number[]>();
+
+function cacheKey(text: string): string {
+  return createHash("sha1").update(text).digest("base64");
+}
+
+function cacheGet(text: string): number[] | undefined {
+  const k = cacheKey(text);
+  const hit = vectorCache.get(k);
+  if (hit) {
+    // Refresh recency so hot entries survive eviction (poor-man's LRU).
+    vectorCache.delete(k);
+    vectorCache.set(k, hit);
+  }
+  return hit;
+}
+
+function cacheSet(text: string, vec: number[]): void {
+  if (vectorCache.size >= CACHE_CAP) {
+    // Drop the oldest ~10% in insertion order.
+    let drop = Math.ceil(CACHE_CAP * 0.1);
+    for (const k of vectorCache.keys()) {
+      vectorCache.delete(k);
+      if (--drop <= 0) break;
+    }
+  }
+  vectorCache.set(cacheKey(text), vec);
+}
+
+/** Test/introspection helper: how many vectors are currently cached. */
+export function embeddingCacheSize(): number {
+  return vectorCache.size;
+}
 
 function cosine(a: number[], b: number[]): number {
   let dot = 0;
@@ -70,12 +110,25 @@ export async function semanticRerank<T>(
 ): Promise<T[] | undefined> {
   const pool = candidates.slice(0, MAX_CANDIDATES);
   if (pool.length < 2) return undefined;
-  const vectors = await embedBatch([query, ...pool.map(textOf)]);
-  if (!vectors) return undefined;
-  const [queryVec, ...itemVecs] = vectors;
+
+  // Only texts the cache has never seen go to the API; the query is always
+  // fresh (it is new by definition, and caching queries would bloat the map).
+  const texts = pool.map(textOf);
+  const misses = [...new Set(texts.filter((t) => !cacheGet(t)))];
+  const fetched = await embedBatch([query, ...misses]);
+  if (!fetched) return undefined;
+  const queryVec = fetched[0];
   if (!queryVec) return undefined;
+  misses.forEach((text, i) => {
+    const vec = fetched[i + 1];
+    if (vec) cacheSet(text, vec);
+  });
+
   return pool
-    .map((item, i) => ({ item, score: itemVecs[i] ? cosine(queryVec, itemVecs[i]!) : -1 }))
+    .map((item, i) => {
+      const vec = cacheGet(texts[i]!);
+      return { item, score: vec ? cosine(queryVec, vec) : -1 };
+    })
     .sort((a, b) => b.score - a.score)
     .map((x) => x.item);
 }

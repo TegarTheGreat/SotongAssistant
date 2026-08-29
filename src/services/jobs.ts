@@ -1,4 +1,6 @@
-import type { Api } from "grammy";
+import path from "node:path";
+import { InputFile, type Api } from "grammy";
+import { checkpoint } from "../db/index.js";
 import { config } from "../config.js";
 import {
   claimDueJobs,
@@ -13,6 +15,7 @@ import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
 import { localMinutes, parseHHMM, inWindow } from "../util/time.js";
 import { escapeHtml, markdownToTelegramHtml } from "../util/format.js";
 import { t } from "../i18n/index.js";
+import { metrics } from "./dashboard.js";
 import { getCatalog } from "./catalog.js";
 import { streamCompletion } from "./ai/index.js";
 
@@ -23,7 +26,7 @@ import { streamCompletion } from "./ai/index.js";
  * jobs past the attempt limit are dropped on claim.
  *
  * Kinds: delete_message · kick_unverified · reminder · raid_unlock · digest ·
- * say · ai_prompt · announcement (self-rescheduling when payload.repeatSeconds
+ * say · ai_prompt · backup · announcement (self-rescheduling when payload.repeatSeconds
  * is set).
  */
 /**
@@ -181,6 +184,23 @@ export function startJobRunner(api: Api): () => void {
             break;
           }
 
+          case "backup": {
+            // Scheduled database backup delivered to the owner's DM. The WAL is
+            // checkpointed first so the file is a complete, consistent snapshot.
+            const repeat = payload.repeatSeconds as number | undefined;
+            if (config.ownerId) {
+              checkpoint();
+              const file = new InputFile(path.join(config.dataDir, "sotong.db"), `sotong-${new Date()
+                .toISOString()
+                .slice(0, 10)}.db`);
+              await api
+                .sendDocument(config.ownerId, file, { caption: "🗄 Automatic backup" })
+                .catch((e: unknown) => console.warn("backup send failed:", (e as Error).message));
+            }
+            if (repeat && repeat >= 3600) scheduleJob("backup", payload, repeat);
+            break;
+          }
+
           case "say": {
             // One-off /schedule message, delivered into the original topic.
             await api.sendMessage(payload.chatId as number, `🗓 ${escapeHtml(payload.text as string)}`, {
@@ -201,6 +221,7 @@ export function startJobRunner(api: Api): () => void {
           }
         }
         completeJob(job.id);
+        metrics.jobsRun++;
       } catch (err) {
         // Leave the job in the table — the bumped due_at retries it in ~60s,
         // and the attempt cap prevents infinite loops.

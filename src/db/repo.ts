@@ -47,6 +47,8 @@ export interface ChatSettings {
   autoPinChannelPosts: boolean;
   /** Announce video chats / live streams starting, ending and scheduled. */
   videoChatNotify: boolean;
+  /** Emoji the bot auto-reacts with on media posts (undefined = off). */
+  autoReact?: string;
   /** IANA timezone for night mode and time displays (e.g. Asia/Jakarta). */
   timezone?: string;
   /** Daily lockdown window in chat-local time, e.g. { start: "23:00", end: "06:00" }. */
@@ -125,6 +127,11 @@ export function listKnownChats() {
   return db
     .prepare("SELECT chat_id, type, title, status, rights FROM chats ORDER BY updated_at DESC LIMIT 50")
     .all() as Array<{ chat_id: number; type: string; title: string | null; status: string; rights: string | null }>;
+}
+
+/** Row count of a known table (dashboard metrics only; name is whitelisted). */
+export function countRows(table: "notes" | "filters" | "karma" | "approvals" | "business_leads"): number {
+  return (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
 }
 
 // ---------- warns (atomic, race-free across processes) ----------

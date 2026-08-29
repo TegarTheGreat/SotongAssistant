@@ -82,6 +82,26 @@ topics.command("reopentopic", async (ctx) => {
   }
 });
 
+/**
+ * The General topic is special: it always exists and has its own methods.
+ * /closegeneral · /reopengeneral · /hidegeneral · /unhidegeneral
+ */
+const GENERAL_OPS = {
+  closegeneral: (ctx: Context) => ctx.api.closeGeneralForumTopic(ctx.chat!.id),
+  reopengeneral: (ctx: Context) => ctx.api.reopenGeneralForumTopic(ctx.chat!.id),
+  hidegeneral: (ctx: Context) => ctx.api.hideGeneralForumTopic(ctx.chat!.id),
+  unhidegeneral: (ctx: Context) => ctx.api.unhideGeneralForumTopic(ctx.chat!.id),
+} as const;
+
+for (const [cmd, run] of Object.entries(GENERAL_OPS)) {
+  topics.command(cmd, async (ctx) => {
+    if (!(await topicGuard(ctx))) return;
+    if (await withTopicRights(ctx, () => run(ctx))) {
+      await ctx.reply(tc(ctx, "topic.general", { op: cmd.replace("general", "") }));
+    }
+  });
+}
+
 topics.command("renametopic", async (ctx) => {
   if (!(await topicGuard(ctx))) return;
   const topicId = currentTopicId(ctx);

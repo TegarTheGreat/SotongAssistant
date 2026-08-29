@@ -20,6 +20,8 @@ import { topics } from "./modules/topics.js";
 import { locks } from "./modules/locks.js";
 import { stickers } from "./modules/stickers.js";
 import { videochat } from "./modules/videochat.js";
+import { reactions } from "./modules/reactions.js";
+import { setup } from "./modules/setup.js";
 import { schedule } from "./modules/schedule.js";
 import { nsfw } from "./modules/nsfw.js";
 import { filters } from "./modules/filters.js";
@@ -34,6 +36,7 @@ import { imagine } from "./modules/imagine.js";
 import { ai } from "./modules/ai.js";
 import { startJobRunner } from "./services/jobs.js";
 import { handleWebAppRequest } from "./services/webapp.js";
+import { handleDashboardRequest, metrics } from "./services/dashboard.js";
 import { startAutoUpdater } from "./services/updater.js";
 
 const bot = new Bot(config.botToken);
@@ -44,15 +47,22 @@ const bot = new Bot(config.botToken);
 // (blocklist/antilink) before notes & fun so deleted messages trigger nothing
 // else; AI goes last because its message:text handler consumes messages
 // addressed to the bot.
+// Cheap instrumentation for /metrics — counted before any handler runs.
+bot.use(async (ctx, next) => {
+  metrics.updates++;
+  await next();
+});
 bot.use(commands);
 bot.use(manager);
 bot.use(antiflood);
 bot.use(federation);
 bot.use(settings);
+bot.use(setup);
 bot.use(moderation);
 bot.use(modpanel);
 bot.use(topics);
 bot.use(videochat);
+bot.use(reactions);
 bot.use(onboarding);
 bot.use(locks);
 bot.use(nsfw);
@@ -77,6 +87,7 @@ bot.use(ai);
 // Without bot.catch, one throwing handler (e.g. a 403 after a user blocks the
 // bot) would kill the whole process.
 bot.catch((err) => {
+  metrics.errors++;
   const e = err.error;
   if (e instanceof GrammyError) {
     console.error(`Telegram error ${e.error_code} on update ${err.ctx.update.update_id}: ${e.description}`);
@@ -112,6 +123,7 @@ async function registerCommands() {
   ];
   const adminCommands = [
     { command: "settings", description: "Group settings" },
+    { command: "setup", description: "One-tap group setup" },
     { command: "mp", description: "(reply) Moderation panel" },
     { command: "warn", description: "(reply) Warn a user" },
     { command: "warnmode", description: "Warn penalty: mute|kick|ban" },
@@ -136,6 +148,8 @@ async function registerCommands() {
     { command: "aitask", description: "Recurring AI post" },
     { command: "unpin", description: "(reply) Unpin a message" },
     { command: "tag", description: "(reply) Set a member tag" },
+    { command: "react", description: "(reply) React to a message" },
+    { command: "autoreact", description: "Auto-react to media" },
     { command: "unote", description: "(reply) Note about a user" },
     { command: "antilink", description: "Link filter: off|invites|all" },
     { command: "allowlink", description: "Allowlist a domain" },
@@ -178,6 +192,7 @@ async function registerCommands() {
     { command: "update", description: "(owner) Self-update from git" },
     { command: "balance", description: "(owner) Star balance" },
     { command: "leads", description: "(business) Customer inbox" },
+    { command: "autobackup", description: "(owner) Scheduled backups" },
     { command: "setbotname", description: "(owner) Rename the bot" },
     { command: "newfed", description: "Create a ban federation" },
     { command: "memory", description: "Show long-term memory" },
@@ -259,8 +274,9 @@ async function main() {
     const handle = webhookCallback(bot, "http", { secretToken: secret });
     const server = createServer((req, res) => {
       void (async () => {
-        // Mini App captcha routes are served from the same HTTP server.
+        // Mini App captcha + dashboard/health/metrics share this HTTP server.
         if (await handleWebAppRequest(req, res, bot.api)) return;
+        if (await handleDashboardRequest(req, res)) return;
         if (req.method === "POST") {
           await handle(req, res).catch((err: unknown) => {
             console.error("webhook error:", err);
@@ -292,12 +308,12 @@ async function main() {
   let webappServer: ReturnType<typeof createServer> | undefined;
   if (config.webappUrl) {
     webappServer = createServer((req, res) => {
-      void handleWebAppRequest(req, res, bot.api).then((handled) => {
-        if (!handled) {
-          res.writeHead(200, { "content-type": "text/plain" });
-          res.end("ok");
-        }
-      });
+      void (async () => {
+        if (await handleWebAppRequest(req, res, bot.api)) return;
+        if (await handleDashboardRequest(req, res)) return;
+        res.writeHead(200, { "content-type": "text/plain" });
+        res.end("ok");
+      })();
     });
     webappServer.listen(config.port, () =>
       console.log(`🦑 Mini App captcha server listening on :${config.port}`),

@@ -15,7 +15,7 @@ import { encryptSecret, decryptSecret } from "../src/services/security.js";
 import { chunkText, parseDuration, markdownToTelegramHtml } from "../src/util/format.js";
 import { renderMemberTemplate, extractButtons } from "../src/util/placeholders.js";
 import { extractActions } from "../src/services/actions.js";
-import { semanticRerank } from "../src/services/embeddings.js";
+import { semanticRerank, embeddingCacheSize } from "../src/services/embeddings.js";
 import { approveUser, isApproved, unapproveUser, bumpAiUsage, getAiUsageToday } from "../src/db/repo.js";
 import { upsertBusinessConnection, upsertLead, listLeads, listProvidersWithKeys } from "../src/db/repo.js";
 import { inWindow, parseHHMM, isValidTimezone, localMinutes } from "../src/util/time.js";
@@ -243,6 +243,18 @@ upsertLead("conn1", 901, "Budi", "question", "low", "asks about opening hours");
   if (!names.includes("anthropic")) throw new Error("key status names");
   if (names.some((n) => n.includes("sk-"))) throw new Error("key status must not leak values");
 }
+
+// embedding cache starts empty and stays empty without a provider key
+if (embeddingCacheSize() !== 0) throw new Error("embedding cache should start empty");
+
+// auto-react + auto-backup settings round-trip
+updateSettings(-100999, { autoReact: "🔥" });
+if (getSettings(-100999).autoReact !== "🔥") throw new Error("autoReact setting");
+updateSettings(-100999, { autoReact: undefined });
+if (getSettings(-100999).autoReact !== undefined) throw new Error("autoReact clear");
+scheduleJob("backup", { repeatSeconds: 86400 }, 86400);
+if (listJobsByKind("backup").length !== 1) throw new Error("backup job");
+if (!deleteJob(listJobsByKind("backup")[0]!.id)) throw new Error("backup cancel");
 
 // Mini App initData HMAC validation (forge a valid signature with the test token)
 {

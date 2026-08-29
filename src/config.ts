@@ -30,6 +30,8 @@ export const config = {
    * HTTP server starts even in polling mode when this is set.
    */
   webappUrl: process.env.WEBAPP_URL?.replace(/\/$/, ""),
+  /** Optional shared secret required by the /metrics endpoint (?token=…). */
+  metricsToken: process.env.METRICS_TOKEN,
   /** Apply git updates automatically (hourly check); otherwise just notify the owner. */
   autoUpdate: process.env.AUTO_UPDATE === "true",
 };

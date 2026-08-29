@@ -19,6 +19,7 @@ import { appendExchange, compactIfNeeded } from "../services/memory.js";
 import { selfKnowledge } from "../services/selfknowledge.js";
 import { extractActions, executeActions, actionInstructions, ownerActionInstructions } from "../services/actions.js";
 import { bumpAiUsage, getAiUsageToday } from "../db/repo.js";
+import { metrics } from "../services/dashboard.js";
 import { TelegramStreamer } from "../services/streamer.js";
 import { threadIdOf, replyEphemeral } from "../services/telegram.js";
 import { escapeHtml, markdownToTelegramHtml, parseDuration, humanDuration } from "../util/format.js";
@@ -229,6 +230,7 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     if (full) {
       // Meter usage only for answers that actually landed (kept in sync with
       // the read-only pre-check above), so outages never exhaust the quota.
+      metrics.aiAnswers++;
       if (settings.aiDailyLimit) bumpAiUsage(chatId);
       appendExchange(memKey, ctx.from?.first_name, question, full);
       compactIfNeeded(memKey, provider, model);

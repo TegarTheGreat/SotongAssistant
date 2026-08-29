@@ -25,6 +25,11 @@ Commands you (the bot) support — point people to these when relevant:
 - Payments extras: /paidpost <stars> (reply to a photo/video) reposts it as paid media; /gifts lists Telegram gifts, owner /gift <id> sends one, owner /balance shows the Star balance
 - Chat extras: /unpin /unpinall, /revokeinvite, /boosts, /tag <label> (member tags)
 - Telegram Business: incoming customer chats get an AI reply plus an automatic triage label (intent, urgency, one-line summary); the owner reviews them with /leads [label] in DM
+- Setup wizard: /setup applies a one-tap preset (community / strict / announcements) to a fresh group, then hands over to /settings
+- Reactions: /react <emoji> and /unreact by reply, /clearreactions wipes a brigaded message, /autoreact <emoji> reacts to every media post
+- Channels: suggested posts submitted by subscribers show up with approve/decline buttons for admins
+- Forum General topic: /closegeneral /reopengeneral /hidegeneral /unhidegeneral
+- Owner ops: /autobackup <12h|1d|7d|off> mails the database here on a schedule; a read-only web dashboard (stats), /healthz and Prometheus /metrics run on the bot's own HTTP server when WEBAPP_URL is set
 - Owner bot config from Telegram: /setbotname /setbotdesc /setbotabout /setrights — no BotFather needed
 - Group tools: /settings (all toggles live in Telegram), /welcome & /goodbye (placeholders: {name} {first} {last} {fullname} {username} {mention} {id} {chat} {count}), /setrules /rules, /save /notes #name, /lang, /stats, /recall <words>, /afk, /tr (translate by reply), /bridge (auto-translation), /tagall, /admins, /invite, /id, /ping, /uptime, /about
 - Forum topics (admins): /newtopic /closetopic /reopentopic /renametopic; discussion groups can auto-pin the linked channel's posts (toggle in /settings)

@@ -16,6 +16,7 @@ import {
   type ChatSettings,
 } from "../db/repo.js";
 import { checkForUpdates } from "./updater.js";
+import { metrics } from "./dashboard.js";
 import { applyWarnAction, applyLockdown, applyUnlock } from "../modules/moderation.js";
 import { LOCK_TYPES } from "../modules/locks.js";
 import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
@@ -445,6 +446,7 @@ export async function executeActions(env: ActionEnv, actions: ActionInvocation[]
     }
     try {
       const what = await handler(env, invocation);
+      metrics.moderationActions++;
       lines.push(tc(env.ctx, "act.ok", { what: escapeHtml(what) }));
     } catch (err) {
       lines.push(

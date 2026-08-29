@@ -3,14 +3,14 @@ import { writeFileSync } from "node:fs";
 import { Composer, InputFile, type Context } from "grammy";
 import { config } from "../config.js";
 import { checkpoint, restorePath } from "../db/index.js";
-import { listKnownChats, upsertChat, migrateChatId } from "../db/repo.js";
+import { listKnownChats, upsertChat, migrateChatId, scheduleJob, listJobsByKind, deleteJob } from "../db/repo.js";
 import {
   isGitCheckout,
   checkForUpdates,
   applyUpdate,
 } from "../services/updater.js";
 import { invalidateAdminCache } from "../util/admin.js";
-import { escapeHtml } from "../util/format.js";
+import { escapeHtml, parseDuration, humanDuration } from "../util/format.js";
 import { tc } from "../i18n/index.js";
 
 /**
@@ -267,6 +267,32 @@ manager.command("setrights", async (ctx) => {
       }),
     );
   }
+});
+
+/**
+ * /autobackup <12h|1d|7d|off> — owner, DM: schedule recurring database
+ * backups into this chat. Minimum interval is one hour; the job re-arms
+ * itself, so it survives restarts.
+ */
+manager.command("autobackup", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  const arg = ctx.match.trim().toLowerCase();
+  const existing = listJobsByKind("backup");
+  if (arg === "off") {
+    for (const j of existing) deleteJob(j.id);
+    await ctx.reply(tc(ctx, "backup.off"));
+    return;
+  }
+  const seconds = parseDuration(arg);
+  if (!seconds || seconds < 3600) {
+    await ctx.reply(
+      tc(ctx, "backup.usage", { current: existing.length ? tc(ctx, "backup.on") : tc(ctx, "backup.offState") }),
+    );
+    return;
+  }
+  for (const j of existing) deleteJob(j.id); // one schedule at a time
+  scheduleJob("backup", { repeatSeconds: seconds }, seconds);
+  await ctx.reply(tc(ctx, "backup.set", { duration: humanDuration(seconds) }));
 });
 
 manager.command("id", async (ctx) => {

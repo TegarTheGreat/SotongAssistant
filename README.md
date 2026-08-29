@@ -56,6 +56,11 @@ Every setting lives inside Telegram. No web dashboard.**
 | 📊 | **Analytics** | `/stats` — 24h/7d counters, per-day activity chart, most active members · `/recall <words>` **hybrid search** — lexical scoring plus embedding-based semantic re-ranking (so it finds messages sharing no words with your query), then an AI answer grounded in the matches (both need the ambient opt-in) |
 | 💤 | **Everyday basics** | `/afk` with reasons & auto-return · `/ping`, `/uptime`, `/about` · `/admins`, `/invite`, `/echo`, `/del` |
 | 🔎 | **Inline mode** | `@botname question` asks the AI **from any chat** — placeholder posts instantly, the answer streams into it (enable *inline mode* + *inline feedback* in @BotFather) |
+| 🧭 | **`/setup` wizard** | A freshly promoted bot offers a one-tap setup: **Community**, **Strict** or **Announcements** preset configures welcome, captcha, AI, link policy, anti-flood/raid and warn behaviour in a single click, then hands over to `/settings` |
+| 📈 | **Dashboard & metrics** | A read-only stats page on the bot's own HTTP server (owner-only, authenticated with Mini App `initData` — opening the URL alone reveals nothing) · **`/healthz`** liveness probe · **Prometheus `/metrics`** with update, AI, moderation, job and error counters, optionally token-gated |
+| 🗄 | **Automatic backups** | `/autobackup 1d` mails the checkpointed database to the owner's DM on a schedule, re-arming itself across restarts |
+| 😀 | **Reaction tools** | `/react` & `/unreact` by reply · **`/clearreactions`** wipes a brigaded message clean · **`/autoreact 🔥`** reacts to every media post |
+| 📝 | **Suggested posts** | Subscriber submissions to a channel surface with one-tap **approve / decline** buttons for admins |
 | 🪞 | **Self-knowledge** | The AI carries a live capability card: its version, its commands, and the current settings of the very chat it's in — ask it “what can you do here?” and it answers accurately |
 | ⬆️ | **Self-updating** | Hourly `git fetch` — owner `/update` applies with one tap, or set `AUTO_UPDATE=true` to pull, reinstall and restart automatically |
 | 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome **and goodbye** messages (auto-cleanup) with the full Rose-style placeholder set (`{mention}` `{fullname}` `{username}` `{count}`…) **plus inline URL buttons** (`[Rules](https://…)`) · button captcha with timeout-kick · join-request gate verified in DM |
@@ -116,6 +121,7 @@ Then, in Telegram:
 | `PORT` | – | HTTP port for webhook mode (default `8080`, non-POST requests answer a health check) |
 | `WEBHOOK_SECRET` | – | Webhook secret token (defaults to a value derived from `BOT_TOKEN`) |
 | `WEBAPP_URL` | – | Public HTTPS base of this bot's HTTP server → enables the Mini App captcha for guard-bot join requests (server also starts in polling mode) |
+| `METRICS_TOKEN` | – | When set, `/metrics` requires `?token=…` (leave unset on a private network) |
 | `AUTO_UPDATE` | – | `true` → the hourly git check pulls, reinstalls and restarts automatically; otherwise the owner just gets a “/update available” DM |
 
 > **Inline mode:** to use `@botname question` in any chat, enable *inline mode*
@@ -257,13 +263,30 @@ timeline, framework comparison, platform pitfalls).
 - [x] `/imagine` image generation · `/approve` trust lists · welcome/goodbye URL buttons
 - [x] `/aiquota` per-chat daily AI caps · reply-context for @mention questions
 
+- [x] Hybrid `/recall`: lexical prefilter + batched embeddings re-ranking (graceful fallback)
+- [x] AI Actions in the owner's DM: broadcast, status, `chat_setting`, `key_status`, Star balance, update check
+- [x] `/kang` sticker cloning · `/aitask` recurring AI posts · video-chat announcements
+- [x] Gifts & Star treasury · member tags · `/unpin` `/unpinall` `/revokeinvite` `/boosts`
+- [x] Bot identity from Telegram (`/setbotname` `/setbotdesc` `/setbotabout` `/setrights`)
+- [x] Business AI auto-labels + `/leads` triaged customer inbox
+- [x] Capability audit against all 185 Bot API 10.3 methods (42 → 60 in use)
+
+- [x] **Web dashboard** (owner-only, `initData`-authenticated) · **`/healthz`** · **Prometheus `/metrics`**
+- [x] **Automatic backups** (`/autobackup`) with self-rearming schedule
+- [x] **Embedding cache** — `/recall` re-embeds only texts the cache has not seen
+- [x] **Suggested-post moderation** for channels (approve / decline buttons)
+- [x] **Reaction tools** — `/react`, `/clearreactions`, `/autoreact`
+- [x] **`/setup` wizard** — one-tap presets for a freshly added group
+- [x] **General-topic control** — `/closegeneral` `/reopengeneral` `/hidegeneral` `/unhidegeneral`
+
 **Next**
 
-- [ ] True vector embeddings for `/recall` when the provider exposes an embeddings endpoint
-- [ ] AI Actions in DMs for the owner (broadcasts, status, key management by chat)
-- [ ] Sticker-pack tools: /kang to clone stickers into the bot's pack
-- [ ] Business: AI auto-labels & folders for customer chats
-- [ ] Scheduled AI prompts (“every Monday 9:00 post a standup question”)
+- [ ] Persist the embedding cache to SQLite so it survives restarts
+- [ ] Dashboard charts (per-day sparklines) and a per-chat drill-down view
+- [ ] Alerting: notify the owner when error rate or job backlog crosses a threshold
+- [ ] Checklists (`sendChecklist`) once Telegram allows them outside Business accounts
+- [ ] Multi-owner support: a small admin team for owner-level commands
+- [ ] Per-chat AI spend accounting in Stars/tokens, surfaced in the dashboard
 
 ## 🤝 Contributing
 
