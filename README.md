@@ -33,8 +33,11 @@ Every setting lives inside Telegram. No web dashboard.**
 |---|---|---|
 | 🤖 | **AI assistant** | `/ask`, reply-to-bot, or @mention · pick **any provider & model from models.dev** via inline menus · **native draft streaming in DMs** (Bot API 9.3, with Telegram's own “stop generating” button) and throttled-edit streaming in groups · per-chat personality (`/aiprompt`) · `/summarize` on demand and `/digest` on a schedule |
 | 🧠 | **Layered memory** | Rolling short-term transcript **plus** a model-maintained long-term summary (OpenClaw/Hermes-style compaction) · per group *and* per forum topic · `/memory` to inspect, `/forget` to wipe |
-| 🛡 | **Moderation** | `/warn` with auto-escalation · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` · **`/mp` one-tap mod panel** (ephemeral inline buttons only the acting admin sees) |
-| 🧹 | **Message hygiene** | **Keyword filters** (`/filter faq Read the pinned!` → auto-reply) · **word blocklist** (`/block`) with on-sight deletion · **invite-link deletion** toggle · all admin-exempt |
+| 🛡 | **Moderation** | `/warn` with auto-escalation and a configurable **`/warnmode` (mute/kick/ban)** · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` — and writing **“@admin”** calls the admins too · **`/promote` `/demote` `/title`** admin management · `/tagall` mentions active members · **`/mp` one-tap mod panel** (ephemeral inline buttons only the acting admin sees) |
+| 🧹 | **Message hygiene** | **Keyword filters** (`/filter faq Read the pinned!`, quoted multi-word triggers, `{name}`/`{chat}` placeholders) · **word blocklist** (`/block`) with on-sight deletion · **`/antilink off\|invites\|all`** with a `/allowlink` domain allowlist · **`/disable` per-chat command management** · all admin-exempt |
+| 🔞 | **NSFW filter** | Opt-in AI screening of photos, sticker & video thumbnails using the chat's own multimodal model — confirmed NSFW is deleted and feeds the normal warn escalation; fail-open, cached per file, budget-capped |
+| 🌙 | **Night mode** | `/night 23:00-06:00` locks the group on a daily schedule in **chat-local time** (`/settz Asia/Jakarta`), announces lights-out and reopening, restores the exact permission snapshot — restart-safe |
+| 🧵 | **Forum topics** | `/newtopic` `/closetopic` `/reopentopic` `/renametopic` for supergroups with Topics · discussion groups can **auto-pin the linked channel's posts** |
 | 🌍 | **Translation** | `/tr` (reply) translates any message with the chat's AI model · **`/bridge de`** auto-translates foreign-language messages for multilingual groups (throttled, best-effort) |
 | 🤝 | **Federations** | **Cross-group ban lists** (Rose-style): `/newfed` → `/joinfed` in every group · `/fban` bans everywhere at once and auto-removes listed users the moment they join |
 | 📊 | **Analytics** | `/stats` — 24h/7d counters, per-day activity chart, most active members · `/recall <words>` searches recent messages (both need the ambient opt-in) |
@@ -42,7 +45,7 @@ Every setting lives inside Telegram. No web dashboard.**
 | 🔎 | **Inline mode** | `@botname question` asks the AI **from any chat** — placeholder posts instantly, the answer streams into it (enable *inline mode* + *inline feedback* in @BotFather) |
 | 🪞 | **Self-knowledge** | The AI carries a live capability card: its version, its commands, and the current settings of the very chat it's in — ask it “what can you do here?” and it answers accurately |
 | ⬆️ | **Self-updating** | Hourly `git fetch` — owner `/update` applies with one tap, or set `AUTO_UPDATE=true` to pull, reinstall and restart automatically |
-| 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome messages (auto-cleanup) · button captcha with timeout-kick · join-request gate verified in DM |
+| 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome **and goodbye** messages (auto-cleanup) with the full Rose-style placeholder set (`{mention}` `{fullname}` `{username}` `{count}`…) · button captcha with timeout-kick · join-request gate verified in DM |
 | 🌊 | **Anti-abuse** | Anti-flood auto-mute · **auto raid protection** (join-spike lockdown with timed restore) · **CAS anti-spam screening** on joins & join requests · **guard-bot join queries with a self-hosted Mini App captcha** (Bot API 10.1, HMAC-verified `initData`) · channel-persona spam blocking (linked channel whitelisted) · anonymous-admin & auto-forward aware |
 | 📒 | **Notes & rules** | `/save faq` → recall with `#faq` · `/setrules` & `/rules` |
 | 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · **reaction karma** with `/karma` leaderboard · recurring `/announce` posts · `/donate` via Telegram Stars ⭐ (with owner `/refund`) · **`/subscription` monthly Stars subscription links for channels** |
@@ -183,12 +186,13 @@ src/
 │   ├── security.ts       # AES-256-GCM for stored keys
 │   ├── telegram.ts       # ephemeral replies w/ fallback, forum-safe thread ids
 │   ├── updater.ts        # hourly git update check, /update & AUTO_UPDATE
-│   └── jobs.ts           # durable at-least-once job runner (SQLite-backed)
+│   ├── nsfw.ts           # AI image classification (fail-open, cached)
+│   └── jobs.ts           # durable at-least-once job runner + night-mode reconciler
 └── modules/              # one file per capability
     ├── moderation.ts  modpanel.ts  onboarding.ts  antiflood.ts  settings.ts
-    ├── filters.ts  federation.ts  stats.ts  afk.ts  utility.ts  translate.ts
-    ├── ai.ts  inline.ts  notes.ts  fun.ts  stars.ts
-    └── channels.ts  business.ts  manager.ts
+    ├── filters.ts  commands.ts  nsfw.ts  federation.ts  stats.ts  topics.ts
+    ├── afk.ts  utility.ts  translate.ts  ai.ts  inline.ts  notes.ts  fun.ts
+    └── stars.ts  channels.ts  business.ts  manager.ts
 ```
 
 Design decisions are grounded in a full platform research pass —
@@ -211,16 +215,22 @@ timeline, framework comparison, platform pitfalls).
 - [x] Ephemeral `/mp` moderation panel (actions visible only to the acting admin)
 - [x] Keyword filters, word blocklist, invite-link deletion · `/afk` · utilities (`/ping` `/uptime` `/about` `/admins` `/invite`)
 - [x] AI self-knowledge (live capability card in every prompt) · self-update (`/update`, `AUTO_UPDATE=true`)
+- [x] Night mode (`/night`) with per-chat timezones (`/settz`) · goodbye messages & full welcome placeholders
+- [x] NSFW media screening via the chat's own multimodal model (opt-in, fail-open)
+- [x] `/warnmode` (mute/kick/ban) · `/promote` `/demote` `/title` · “@admin” trigger · `/tagall`
+- [x] `/antilink off|invites|all` + `/allowlink` allowlist · quoted multi-word filters with placeholders
+- [x] Per-chat command management (`/disable` `/enable` `/disabled`)
+- [x] Forum-topic management (`/newtopic` `/closetopic` `/reopentopic` `/renametopic`) · auto-pin of linked-channel posts
 
 **Next**
 
 - [ ] Semantic (vector) search over long-term memory and the ambient log
-- [ ] Scheduled messages & one-off timers managed from `/settings`
-- [ ] Night mode: auto-lockdown on a daily schedule per group
-- [ ] Media moderation: NSFW/spam image screening via multimodal models
+- [ ] Scheduled one-off messages (`/schedule 18:00 <text>`) in chat-local time
+- [ ] Locks by media type (Rose-style `/lock stickers|gifs|forwards`)
 - [ ] Fed admin roles (promote co-owners) & fed ban export/import
 - [ ] Web dashboard-free backup/restore: `/import` to restore an `/export` file
 - [ ] Voice: transcribe voice notes and answer with the chat's AI model
+- [ ] Per-user notes & reputation history in `/info`
 
 ## 🤝 Contributing
 

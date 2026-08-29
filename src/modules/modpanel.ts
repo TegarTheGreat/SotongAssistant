@@ -1,5 +1,6 @@
 import { Composer, InlineKeyboard, type Context } from "grammy";
 import { addWarn, clearWarns, getSettings } from "../db/repo.js";
+import { applyWarnAction } from "./moderation.js";
 import { senderIsAdmin, isAdmin, isProtectedTarget } from "../util/admin.js";
 import { MUTED_PERMISSIONS } from "../util/permissions.js";
 import { escapeHtml } from "../util/format.js";
@@ -73,11 +74,8 @@ modpanel.callbackQuery(/^mp:(\w+):(-?\d+):(\d+)$/, async (ctx) => {
         const limit = getSettings(chatId).warnLimit;
         const count = addWarn(chatId, userId);
         if (count >= limit) {
-          // Same escalation as /warn: at the limit → 24h mute, counter reset.
-          await ctx.api.restrictChatMember(chatId, userId, MUTED_PERMISSIONS, {
-            until_date: Math.floor(Date.now() / 1000) + 24 * 3600,
-          });
-          clearWarns(chatId, userId);
+          // Same escalation as /warn: the configured warn mode, counter reset.
+          if (await applyWarnAction(ctx, chatId, userId)) clearWarns(chatId, userId);
         }
         break;
       }

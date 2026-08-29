@@ -11,6 +11,8 @@ export interface AiRequest {
   userText: string;
   userName?: string;
   maxTokens?: number;
+  /** Images attached to the user message (multimodal models only). */
+  images?: Array<{ mediaType: string; dataBase64: string }>;
   /** Abort generation early (e.g. Telegram's native "stop generating" button). */
   signal?: AbortSignal;
 }

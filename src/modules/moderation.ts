@@ -1,10 +1,11 @@
 import { Composer, type Context } from "grammy";
-import { addWarn, clearWarns, getWarns, getSettings, updateSettings } from "../db/repo.js";
+import { addWarn, clearWarns, getWarns, getSettings, updateSettings, recentMemberIds } from "../db/repo.js";
 import { senderIsAdmin, isProtectedTarget } from "../util/admin.js";
 import { parseDuration, humanDuration, escapeHtml } from "../util/format.js";
 import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
-import { tc } from "../i18n/index.js";
+import { tc, type LocaleKey } from "../i18n/index.js";
 import { threadIdOf } from "../services/telegram.js";
+import { invalidateAdminCache } from "../util/admin.js";
 
 export const moderation = new Composer<Context>();
 
@@ -57,6 +58,32 @@ async function withRights(ctx: Context, right: string, fn: () => Promise<unknown
 
 // ---------- warnings ----------
 
+/**
+ * Apply the configured warn-limit penalty (Rose-style warn mode).
+ * Returns the action taken, or undefined when the bot lacked rights.
+ * Shared with the /mp mod panel so both paths behave identically.
+ */
+export async function applyWarnAction(
+  ctx: Context,
+  chatId: number,
+  userId: number,
+): Promise<"mute" | "kick" | "ban" | undefined> {
+  const action = getSettings(chatId).warnAction;
+  const ok = await withRights(ctx, "can_restrict_members", async () => {
+    if (action === "ban") {
+      await ctx.api.banChatMember(chatId, userId);
+    } else if (action === "kick") {
+      await ctx.api.banChatMember(chatId, userId);
+      await ctx.api.unbanChatMember(chatId, userId, { only_if_banned: true });
+    } else {
+      await ctx.api.restrictChatMember(chatId, userId, MUTED_PERMISSIONS, {
+        until_date: Math.floor(Date.now() / 1000) + 24 * 3600,
+      });
+    }
+  });
+  return ok ? action : undefined;
+}
+
 moderation.command("warn", async (ctx) => {
   const target = await guard(ctx);
   if (!target) return;
@@ -69,17 +96,35 @@ moderation.command("warn", async (ctx) => {
     });
     return;
   }
-  // Escalate: mute first, and only clear the counter after the mute succeeded —
+  // Escalate: penalize first, and only clear the counter after it succeeded —
   // otherwise a rights failure would silently reset the offender to zero warns.
-  const until = Math.floor(Date.now() / 1000) + 24 * 3600;
-  const ok = await withRights(ctx, "can_restrict_members", () =>
-    ctx.api.restrictChatMember(chatId, target.id, MUTED_PERMISSIONS, { until_date: until }),
-  );
-  if (!ok) return;
+  const action = await applyWarnAction(ctx, chatId, target.id);
+  if (!action) return;
   clearWarns(chatId, target.id);
-  await ctx.reply(tc(ctx, "mod.warnEscalated", { name: target.name, count, limit: warnLimit }), {
-    parse_mode: "HTML",
-  });
+  await ctx.reply(
+    tc(ctx, "mod.warnEscalatedAction", {
+      name: target.name,
+      count,
+      limit: warnLimit,
+      action: tc(ctx, `warnmode.${action}` as LocaleKey),
+    }),
+    { parse_mode: "HTML" },
+  );
+});
+
+// /warnmode mute|kick|ban — what the warn limit does.
+moderation.command("warnmode", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const arg = ctx.match.trim().toLowerCase();
+  if (arg !== "mute" && arg !== "kick" && arg !== "ban") {
+    await ctx.reply(tc(ctx, "warnmode.usage", { current: getSettings(ctx.chat!.id).warnAction }));
+    return;
+  }
+  updateSettings(ctx.chat!.id, { warnAction: arg });
+  await ctx.reply(tc(ctx, "warnmode.set", { action: tc(ctx, `warnmode.${arg}` as LocaleKey) }));
 });
 
 moderation.command("unwarn", async (ctx) => {
@@ -146,6 +191,119 @@ moderation.command("kick", async (ctx) => {
     await ctx.api.unbanChatMember(ctx.chat!.id, target.id, { only_if_banned: true });
   });
   if (ok) await ctx.reply(tc(ctx, "mod.kicked", { name: target.name }), { parse_mode: "HTML" });
+});
+
+// ---------- admin management (promote / demote / title) ----------
+
+// /promote [custom title] — grant a sensible moderator right set (by reply).
+moderation.command("promote", async (ctx) => {
+  const target = await guard(ctx);
+  if (!target) return;
+  const chatId = ctx.chat!.id;
+  const ok = await withRights(ctx, "can_promote_members", () =>
+    ctx.api.promoteChatMember(chatId, target.id, {
+      can_delete_messages: true,
+      can_restrict_members: true,
+      can_invite_users: true,
+      can_pin_messages: true,
+      can_manage_video_chats: true,
+      can_manage_topics: true,
+    }),
+  );
+  if (!ok) return;
+  invalidateAdminCache(chatId);
+  const title = ctx.match.trim().slice(0, 16);
+  if (title) {
+    await ctx.api.setChatAdministratorCustomTitle(chatId, target.id, title).catch(() => undefined);
+  }
+  await ctx.reply(tc(ctx, "mod.promoted", { name: target.name }), { parse_mode: "HTML" });
+});
+
+// /demote — remove all admin rights (by reply). Targets ARE admins, so the
+// protected-target guard is skipped; Telegram itself refuses when the bot
+// didn't promote them or the sender lacks the right.
+moderation.command("demote", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const target = targetFromReply(ctx);
+  if (!target) {
+    await ctx.reply(tc(ctx, "error.replyRequired"));
+    return;
+  }
+  if (target.id === ctx.me.id) return;
+  const ok = await withRights(ctx, "can_promote_members", () =>
+    ctx.api.promoteChatMember(ctx.chat!.id, target.id, {
+      is_anonymous: false,
+      can_manage_chat: false,
+      can_delete_messages: false,
+      can_restrict_members: false,
+      can_invite_users: false,
+      can_pin_messages: false,
+      can_manage_video_chats: false,
+      can_manage_topics: false,
+      can_promote_members: false,
+      can_change_info: false,
+      can_post_stories: false,
+      can_edit_stories: false,
+      can_delete_stories: false,
+    }),
+  );
+  if (!ok) return;
+  invalidateAdminCache(ctx.chat!.id);
+  await ctx.reply(tc(ctx, "mod.demoted", { name: target.name }), { parse_mode: "HTML" });
+});
+
+// /title <text> — custom admin title for the replied admin.
+moderation.command("title", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const target = targetFromReply(ctx);
+  const title = ctx.match.trim().slice(0, 16);
+  if (!target || !title) {
+    await ctx.reply(tc(ctx, "mod.titleUsage"));
+    return;
+  }
+  const ok = await withRights(ctx, "can_promote_members", () =>
+    ctx.api.setChatAdministratorCustomTitle(ctx.chat!.id, target.id, title),
+  );
+  if (ok) {
+    await ctx.reply(tc(ctx, "mod.titleSet", { name: target.name, title: escapeHtml(title) }), {
+      parse_mode: "HTML",
+    });
+  }
+});
+
+// ---------- tag / mention ----------
+
+// /tagall [text] — mention recently-active members in small batches.
+// Bots cannot enumerate members, so this draws on the ambient log (opt-in).
+moderation.command("tagall", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const members = recentMemberIds(ctx.chat!.id, 30).filter((m) => m.user_id !== ctx.from?.id);
+  if (!members.length) {
+    await ctx.reply(tc(ctx, "tagall.empty"));
+    return;
+  }
+  const note = ctx.match.trim();
+  const header = note ? `📢 ${escapeHtml(note)}` : tc(ctx, "tagall.header");
+  for (let i = 0; i < members.length; i += 5) {
+    const mentions = members
+      .slice(i, i + 5)
+      .map((m) => `<a href="tg://user?id=${m.user_id}">${escapeHtml(m.name ?? "•")}</a>`)
+      .join(" ");
+    await ctx
+      .reply(i === 0 ? `${header}\n${mentions}` : mentions, {
+        parse_mode: "HTML",
+        message_thread_id: threadIdOf(ctx),
+      })
+      .catch(() => undefined);
+    // Stay inside Telegram's per-chat rate budget.
+    await new Promise((r) => setTimeout(r, 1100));
+  }
 });
 
 // ---------- cleanup / pin ----------
@@ -219,8 +377,8 @@ moderation.command("info", async (ctx) => {
   );
 });
 
-moderation.command("report", async (ctx) => {
-  if (!isGroup(ctx) || !ctx.from) return;
+async function notifyAdmins(ctx: Context): Promise<void> {
+  if (!ctx.from) return;
   const admins = await ctx.api.getChatAdministrators(ctx.chat!.id);
   // Silent mentions: text links notify without cluttering the message.
   const mentions = admins
@@ -234,6 +392,26 @@ moderation.command("report", async (ctx) => {
       ? { message_id: ctx.message.reply_to_message.message_id }
       : undefined,
   });
+}
+
+moderation.command("report", async (ctx) => {
+  if (!isGroup(ctx)) return;
+  await notifyAdmins(ctx);
+});
+
+// Writing "@admin" / "@admins" anywhere in a message calls the admins too —
+// the phrasing every Telegram user tries first. Throttled per chat.
+const adminCallThrottle = new Map<number, number>();
+
+moderation.on("message:text", async (ctx, next) => {
+  if (isGroup(ctx) && ctx.from && !ctx.from.is_bot && /(^|\s)@admins?\b/i.test(ctx.message.text)) {
+    const last = adminCallThrottle.get(ctx.chat.id) ?? 0;
+    if (Date.now() - last > 60_000) {
+      adminCallThrottle.set(ctx.chat.id, Date.now());
+      await notifyAdmins(ctx).catch(() => undefined);
+    }
+  }
+  await next();
 });
 
 // ---------- channel-persona spam ----------

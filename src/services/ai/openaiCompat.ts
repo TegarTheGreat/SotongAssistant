@@ -10,13 +10,24 @@ export async function streamOpenAiCompat(
   baseUrl: string,
   onDelta: (full: string) => void,
 ): Promise<string> {
+  const finalText = req.userName ? `${req.userName}: ${req.userText}` : req.userText;
+  // Multimodal: the OpenAI-compatible shape uses content parts with data URIs.
+  const finalContent: unknown = req.images?.length
+    ? [
+        ...req.images.map((img) => ({
+          type: "image_url",
+          image_url: { url: `data:${img.mediaType};base64,${img.dataBase64}` },
+        })),
+        { type: "text", text: finalText },
+      ]
+    : finalText;
   const messages = [
     { role: "system", content: req.system },
     ...req.history.map((m) => ({
       role: m.role,
       content: m.name ? `${m.name}: ${m.text}` : m.text,
     })),
-    { role: "user", content: req.userName ? `${req.userName}: ${req.userText}` : req.userText },
+    { role: "user", content: finalContent },
   ];
 
   const url = `${baseUrl.replace(/\/$/, "")}/chat/completions`;

@@ -31,6 +31,9 @@ Bütün ayarlar Telegram'ın içinde. Web paneli yok.**
 | 🌍 | **Çeviri** | `/tr` (yanıtla) mesajı çevirir · `/bridge de` çok dilli gruplarda yabancı mesajları otomatik çevirir |
 | 📊 | **İstatistik ve temeller** | `/stats` etkinlik grafiği ve en aktifler · `/recall` mesaj arama · `/afk` · `/ping` `/uptime` `/about` `/admins` `/invite` |
 | 🔎 | **Inline ve dahası** | `@botname soru` — **herhangi bir sohbetten** YZ'ye sorun · YZ **kendini bilir** (sürüm, komutlar, sohbet ayarları) · **kendi kendine güncelleme** (`/update`, `AUTO_UPDATE=true`) · kanallar için `/subscription` Stars abonelikleri |
+| 🌙 | **Gece modu ve saat dilimi** | `/night 23:00-06:00` grubu sohbetin yerel saatinde (`/settz Europe/Istanbul`) her gün kilitler; duyurular ve izinlerin birebir geri yüklenmesiyle |
+| 🔞 | **NSFW filtresi** | Sohbetin çok modlu modeliyle fotoğraflar ve çıkartma/video küçük resimleri için isteğe bağlı YZ taraması — NSFW silinir ve uyarı eskalasyonuna girer; fail-open |
+| 👑 | **Yönetici araçları** | `/promote` `/demote` `/title` · `/warnmode` (sustur/at/yasakla) · “@admin” yöneticileri çağırır · `/tagall` · `/disable` ile komut kapatma · `/antilink off\|invites\|all` + `/allowlink` · forum konuları (`/newtopic` vb.) · `{mention}` `{count}` yer tutuculu welcome/goodbye |
 | 🌐 | **10 dil** | Kullanıcının Telegram'ından otomatik algılama, `/lang` ile sohbet başına değiştirilebilir |
 
 **Her şey Telegram içinde yapılandırılır**: `/settings` her grubun satır içi

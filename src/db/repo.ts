@@ -10,8 +10,13 @@ export interface ChatSettings {
   language?: string;
   welcome: boolean;
   welcomeText?: string;
+  /** Farewell message when a member leaves (off by default — most groups skip it). */
+  goodbye: boolean;
+  goodbyeText?: string;
   captcha: boolean;
   warnLimit: number;
+  /** What happens when the warn limit is reached (Rose-style warn mode). */
+  warnAction: "mute" | "kick" | "ban";
   ai: boolean;
   aiProvider?: string;
   aiModel?: string;
@@ -26,6 +31,24 @@ export interface ChatSettings {
   antiraid: boolean;
   /** Delete Telegram invite links posted by non-admins. */
   antilink: boolean;
+  /** "invites" (default) deletes t.me invites only; "all" deletes every URL. */
+  antilinkMode: "invites" | "all";
+  /** Domains exempt from the "all" link filter (suffix match). */
+  linkAllowlist?: string[];
+  /** Commands non-admins may not use here (Rose-style /disable). */
+  disabledCommands?: string[];
+  /** AI screening of photos/video thumbnails for NSFW content (opt-in). */
+  antiNsfw: boolean;
+  /** Pin the linked channel's auto-forwarded posts in the discussion group. */
+  autoPinChannelPosts: boolean;
+  /** IANA timezone for night mode and time displays (e.g. Asia/Jakarta). */
+  timezone?: string;
+  /** Daily lockdown window in chat-local time, e.g. { start: "23:00", end: "06:00" }. */
+  night?: { start: string; end: string };
+  /** Whether night mode is currently holding the group locked (runner-managed). */
+  nightActive?: boolean;
+  /** Permissions snapshot taken when night mode locks (separate from /lockdown). */
+  nightSnapshot?: ChatPermissions;
   /** Auto-translation bridge target language (undefined = off). */
   autoTranslate?: string;
   rules?: string;
@@ -35,8 +58,10 @@ export interface ChatSettings {
 
 export const DEFAULT_SETTINGS: ChatSettings = {
   welcome: true,
+  goodbye: false,
   captcha: false,
   warnLimit: 3,
+  warnAction: "mute",
   ai: true,
   aiEphemeral: false,
   antiChannelSpam: false,
@@ -44,6 +69,9 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   ambient: false,
   antiraid: false,
   antilink: false,
+  antilinkMode: "invites",
+  antiNsfw: false,
+  autoPinChannelPosts: false,
 };
 
 export function getSettings(chatId: number): ChatSettings {
@@ -411,6 +439,23 @@ export function messageStats(chatId: number) {
     )
     .all(chatId, t7d) as Array<{ name: string; count: number }>;
   return { total24h, total7d, perDay, topUsers };
+}
+
+/** Distinct recently-active members (for /tagall mentions), newest first. */
+export function recentMemberIds(chatId: number, limit = 30) {
+  return db
+    .prepare(
+      `SELECT user_id, name, MAX(ts) AS last FROM message_log
+       WHERE chat_id = ? AND user_id IS NOT NULL GROUP BY user_id ORDER BY last DESC LIMIT ?`,
+    )
+    .all(chatId, limit) as Array<{ user_id: number; name: string | null }>;
+}
+
+/** Chats that have a night-mode window configured (cheap JSON LIKE scan). */
+export function chatsWithNight(): number[] {
+  return (
+    db.prepare(`SELECT chat_id FROM chats WHERE settings LIKE '%"night":%'`).all() as Array<{ chat_id: number }>
+  ).map((r) => r.chat_id);
 }
 
 /** Full ambient log rows for lexical /recall search (bounded by LOG_CAP). */

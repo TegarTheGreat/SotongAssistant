@@ -7,6 +7,7 @@ import {
   removeBlockedWord,
   listBlockedWords,
   getSettings,
+  updateSettings,
 } from "../db/repo.js";
 import { senderIsAdmin, isAdmin } from "../util/admin.js";
 import { escapeHtml } from "../util/format.js";
@@ -22,20 +23,48 @@ import { threadIdOf } from "../services/telegram.js";
 export const filters = new Composer<Context>();
 
 const INVITE_LINK_RE = /(?:t\.me\/(?:joinchat\/|\+)|t\.me\/[a-zA-Z]\w{3,})/i;
+const URL_RE = /\b(?:https?:\/\/|www\.)\S+/gi;
 
 function isGroup(ctx: Context): boolean {
   return ctx.chat?.type === "group" || ctx.chat?.type === "supergroup";
 }
 
+/** Hostname of a matched URL, lowercased, without a leading "www.". */
+function hostOf(url: string): string {
+  return url
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split(/[/?#]/)[0]!
+    .toLowerCase();
+}
+
+/** "example.com" allows "example.com" and any subdomain of it. */
+function isAllowedHost(host: string, allowlist: string[]): boolean {
+  return allowlist.some((d) => host === d || host.endsWith(`.${d}`));
+}
+
 // ---------- admin commands ----------
 
+// /filter <trigger> <reply>. Multi-word triggers go in quotes:
+//   /filter "office hours" We're open 9-17 · placeholders: {name} {chat}
 filters.command("filter", async (ctx) => {
   if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
     await ctx.reply(tc(ctx, "error.adminOnly"));
     return;
   }
-  const [trigger, ...rest] = ctx.match.trim().split(/\s+/);
-  const response = rest.join(" ") || ctx.message?.reply_to_message?.text;
+  const input = ctx.match.trim();
+  let trigger: string | undefined;
+  let response: string | undefined;
+  const quoted = /^"([^"]+)"\s*([\s\S]*)$/.exec(input);
+  if (quoted) {
+    trigger = quoted[1]!.trim();
+    response = quoted[2]!.trim() || undefined;
+  } else {
+    const [head, ...rest] = input.split(/\s+/);
+    trigger = head;
+    response = rest.join(" ") || undefined;
+  }
+  response ??= ctx.message?.reply_to_message?.text ?? ctx.message?.reply_to_message?.caption;
   if (!trigger || !response) {
     await ctx.reply(tc(ctx, "filter.usage"));
     return;
@@ -48,7 +77,7 @@ filters.command("filter", async (ctx) => {
 
 filters.command("unfilter", async (ctx) => {
   if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
-  const trigger = ctx.match.trim().toLowerCase();
+  const trigger = ctx.match.trim().replace(/^"|"$/g, "").toLowerCase();
   const ok = trigger && deleteFilter(ctx.chat.id, trigger);
   await ctx.reply(tc(ctx, ok ? "filter.deleted" : "filter.usage", { trigger: escapeHtml(trigger) }), {
     parse_mode: "HTML",
@@ -103,6 +132,57 @@ filters.command("blocklist", async (ctx) => {
   });
 });
 
+// ---------- link policy ----------
+
+// /antilink off|invites|all — how aggressively links are removed.
+filters.command("antilink", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const arg = ctx.match.trim().toLowerCase();
+  const s = getSettings(ctx.chat.id);
+  if (arg === "off") {
+    updateSettings(ctx.chat.id, { antilink: false });
+  } else if (arg === "invites" || arg === "all") {
+    updateSettings(ctx.chat.id, { antilink: true, antilinkMode: arg });
+  } else {
+    await ctx.reply(
+      tc(ctx, "antilink.usage", { current: s.antilink ? s.antilinkMode : "off" }),
+    );
+    return;
+  }
+  await ctx.reply(tc(ctx, "antilink.set", { mode: arg }));
+});
+
+// /allowlink <domain> toggles a domain on the link allowlist; bare /allowlink lists it.
+filters.command("allowlink", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const s = getSettings(ctx.chat.id);
+  const domain = ctx.match.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]!;
+  if (!domain) {
+    const list = s.linkAllowlist ?? [];
+    await ctx.reply(
+      list.length
+        ? tc(ctx, "allowlink.list", { domains: list.map((d) => `<code>${escapeHtml(d)}</code>`).join(" ") })
+        : tc(ctx, "allowlink.empty"),
+      { parse_mode: "HTML" },
+    );
+    return;
+  }
+  const list = s.linkAllowlist ?? [];
+  const removed = list.includes(domain);
+  updateSettings(ctx.chat.id, {
+    linkAllowlist: removed ? list.filter((d) => d !== domain) : [...list, domain].slice(0, 50),
+  });
+  await ctx.reply(tc(ctx, removed ? "allowlink.removed" : "allowlink.added", { domain: escapeHtml(domain) }), {
+    parse_mode: "HTML",
+  });
+});
+
 // ---------- enforcement + auto-replies (must pass through to later modules) ----------
 
 filters.on("message:text", async (ctx, next) => {
@@ -114,10 +194,23 @@ filters.on("message:text", async (ctx, next) => {
 
   if (!lower.startsWith("/")) {
     const blocked = listBlockedWords(chatId);
+    // Link policy: invite links always count; in "all" mode every URL counts
+    // unless its host is on the allowlist.
+    let linkHit = false;
+    if (settings.antilink) {
+      linkHit = INVITE_LINK_RE.test(text);
+      if (!linkHit && settings.antilinkMode === "all") {
+        const allow = settings.linkAllowlist ?? [];
+        for (const url of text.match(URL_RE) ?? []) {
+          if (!isAllowedHost(hostOf(url), allow)) {
+            linkHit = true;
+            break;
+          }
+        }
+      }
+    }
+    const hit = linkHit || (blocked.length > 0 && blocked.some((w) => lower.includes(w)));
     // Only pay for the (cached) admin lookup when something is enforceable.
-    const hit =
-      (settings.antilink && INVITE_LINK_RE.test(text)) ||
-      (blocked.length > 0 && blocked.some((w) => lower.includes(w)));
     if (hit && !(await isAdmin(ctx, ctx.from.id))) {
       await ctx.deleteMessage().catch(() => undefined);
       return;
@@ -129,7 +222,11 @@ filters.on("message:text", async (ctx, next) => {
     for (const f of listFilters(chatId)) {
       const re = new RegExp(`(^|\\W)${f.trigger.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|\\W)`, "i");
       if (re.test(lower)) {
-        await ctx.reply(escapeHtml(f.response), {
+        // Simple placeholders in the canned reply (escaped, so injection-safe).
+        const reply = escapeHtml(f.response)
+          .replaceAll("{name}", escapeHtml(ctx.from.first_name))
+          .replaceAll("{chat}", escapeHtml("title" in ctx.chat ? (ctx.chat.title ?? "") : ""));
+        await ctx.reply(reply, {
           parse_mode: "HTML",
           message_thread_id: threadIdOf(ctx),
           reply_parameters: { message_id: ctx.message.message_id },

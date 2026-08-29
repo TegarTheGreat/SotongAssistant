@@ -2,6 +2,7 @@ import { Composer, InlineKeyboard, type Context } from "grammy";
 import { config } from "../config.js";
 import { getSettings, updateSettings, scheduleJob, savePendingJoinQuery } from "../db/repo.js";
 import { escapeHtml, humanDuration } from "../util/format.js";
+import { renderMemberTemplate, templateNeedsCount } from "../util/placeholders.js";
 import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
 import { isCasBanned } from "../services/cas.js";
 import { tc } from "../i18n/index.js";
@@ -63,6 +64,21 @@ onboarding.on("chat_member", async (ctx) => {
     ["member", "administrator", "creator"].includes(oldM.status) ||
     (oldM.status === "restricted" && oldM.is_member);
   const isIn = newM.status === "member" || (newM.status === "restricted" && newM.is_member);
+
+  // Farewell: only for voluntary leaves — never announce kicks or bans.
+  if (wasIn && !isIn && newM.status === "left" && !newM.user.is_bot) {
+    const s = getSettings(upd.chat.id);
+    if (s.goodbye) {
+      const text = s.goodbyeText
+        ? renderMemberTemplate(s.goodbyeText, newM.user, upd.chat)
+        : tc(ctx, "goodbye.default", { name: escapeHtml(newM.user.first_name) });
+      const msg = await ctx.api
+        .sendMessage(upd.chat.id, text, { parse_mode: "HTML" })
+        .catch(() => undefined);
+      if (msg) scheduleJob("delete_message", { chatId: upd.chat.id, messageId: msg.message_id }, 300);
+    }
+    return;
+  }
   if (wasIn || !isIn) return;
 
   const user = newM.user;
@@ -109,11 +125,17 @@ onboarding.on("chat_member", async (ctx) => {
   }
 
   if (settings.welcome) {
-    // The member name is escaped; custom text is escaped too, so neither can
-    // inject HTML. A malformed message still falls back to plain text.
-    const text = settings.welcomeText
-      ? escapeHtml(settings.welcomeText).replaceAll("{name}", `<b>${safeName}</b>`)
-      : tc(ctx, "welcome.default", { name: safeName });
+    // Templates support the full Rose-style placeholder set; everything is
+    // escaped inside renderMemberTemplate, so user text can't inject HTML.
+    let text: string;
+    if (settings.welcomeText) {
+      const count = templateNeedsCount(settings.welcomeText)
+        ? await ctx.api.getChatMemberCount(upd.chat.id).catch(() => undefined)
+        : undefined;
+      text = renderMemberTemplate(settings.welcomeText, user, upd.chat, count);
+    } else {
+      text = tc(ctx, "welcome.default", { name: safeName });
+    }
     const msg = await ctx.api
       .sendMessage(upd.chat.id, text, { parse_mode: "HTML" })
       .catch(() => ctx.api.sendMessage(upd.chat.id, text.replace(/<[^>]+>/g, "")));

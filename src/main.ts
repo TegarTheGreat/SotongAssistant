@@ -15,6 +15,9 @@ import { karma } from "./modules/karma.js";
 import { announce } from "./modules/announce.js";
 import { channels } from "./modules/channels.js";
 import { business } from "./modules/business.js";
+import { commands } from "./modules/commands.js";
+import { topics } from "./modules/topics.js";
+import { nsfw } from "./modules/nsfw.js";
 import { filters } from "./modules/filters.js";
 import { afk } from "./modules/afk.js";
 import { utility } from "./modules/utility.js";
@@ -30,17 +33,22 @@ import { startAutoUpdater } from "./services/updater.js";
 
 const bot = new Bot(config.botToken);
 
-// Order matters: anti-flood first; federation BEFORE onboarding so fed-banned
-// joiners are removed before any welcome/captcha; filters (blocklist/antilink)
-// before notes & fun so deleted messages trigger nothing else; AI goes last
-// because its message:text handler consumes messages addressed to the bot.
+// Order matters: the command gate (/disable) runs first so a disabled command
+// never reaches its module; anti-flood next; federation BEFORE onboarding so
+// fed-banned joiners are removed before any welcome/captcha; nsfw & filters
+// (blocklist/antilink) before notes & fun so deleted messages trigger nothing
+// else; AI goes last because its message:text handler consumes messages
+// addressed to the bot.
+bot.use(commands);
 bot.use(manager);
 bot.use(antiflood);
 bot.use(federation);
 bot.use(settings);
 bot.use(moderation);
 bot.use(modpanel);
+bot.use(topics);
 bot.use(onboarding);
+bot.use(nsfw);
 bot.use(filters);
 bot.use(notes);
 bot.use(fun);
@@ -92,24 +100,39 @@ async function registerCommands() {
     { command: "settings", description: "Group settings" },
     { command: "mp", description: "(reply) Moderation panel" },
     { command: "warn", description: "(reply) Warn a user" },
+    { command: "warnmode", description: "Warn penalty: mute|kick|ban" },
     { command: "mute", description: "(reply) Mute — /mute 1h" },
     { command: "unmute", description: "(reply) Unmute" },
     { command: "ban", description: "(reply) Ban + wipe messages" },
     { command: "unban", description: "Unban a user" },
     { command: "kick", description: "(reply) Kick" },
+    { command: "promote", description: "(reply) Make admin" },
+    { command: "demote", description: "(reply) Remove admin" },
+    { command: "title", description: "(reply) Custom admin title" },
     { command: "purge", description: "(reply) Bulk delete" },
     { command: "pin", description: "(reply) Pin message" },
     { command: "del", description: "(reply) Delete a message" },
     { command: "lockdown", description: "Freeze the group" },
     { command: "unlock", description: "Unfreeze the group" },
+    { command: "night", description: "Nightly auto-lockdown window" },
+    { command: "settz", description: "Set the chat timezone" },
+    { command: "antilink", description: "Link filter: off|invites|all" },
+    { command: "allowlink", description: "Allowlist a domain" },
     { command: "filter", description: "Auto-reply: /filter hi Hello!" },
     { command: "filters", description: "List auto-replies" },
     { command: "block", description: "Block a word" },
     { command: "blocklist", description: "List blocked words" },
+    { command: "disable", description: "Disable a command here" },
+    { command: "enable", description: "Re-enable a command" },
+    { command: "disabled", description: "List disabled commands" },
+    { command: "tagall", description: "Mention active members" },
     { command: "bridge", description: "Auto-translate the group" },
     { command: "welcome", description: "Set welcome text" },
+    { command: "goodbye", description: "Set farewell text" },
     { command: "setrules", description: "Set group rules" },
     { command: "invite", description: "Create an invite link" },
+    { command: "newtopic", description: "(forum) Create a topic" },
+    { command: "closetopic", description: "(forum) Close this topic" },
     { command: "announce", description: "Recurring announcement" },
     { command: "announcements", description: "List announcements" },
     { command: "digest", description: "Toggle recurring AI digest" },

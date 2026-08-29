@@ -1,7 +1,16 @@
 import type { Api } from "grammy";
 import { config } from "../config.js";
-import { claimDueJobs, completeJob, scheduleJob, getSettings, updateSettings, recentMessages } from "../db/repo.js";
-import { UNMUTED_PERMISSIONS } from "../util/permissions.js";
+import {
+  claimDueJobs,
+  completeJob,
+  scheduleJob,
+  getSettings,
+  updateSettings,
+  recentMessages,
+  chatsWithNight,
+} from "../db/repo.js";
+import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
+import { localMinutes, parseHHMM, inWindow } from "../util/time.js";
 import { escapeHtml, markdownToTelegramHtml } from "../util/format.js";
 import { t } from "../i18n/index.js";
 import { getCatalog } from "./catalog.js";
@@ -16,8 +25,49 @@ import { streamCompletion } from "./ai/index.js";
  * Kinds: delete_message · kick_unverified · reminder · raid_unlock ·
  * announcement (self-rescheduling when payload.repeatSeconds is set).
  */
+/**
+ * Night mode: once a minute, reconcile every configured chat against its
+ * window. State lives in settings (nightActive/nightSnapshot), so the check
+ * is idempotent and survives restarts; a kept snapshot prevents a crash
+ * between locking and persisting from "snapshotting" the locked state.
+ */
+async function reconcileNightMode(api: Api): Promise<void> {
+  for (const chatId of chatsWithNight()) {
+    try {
+      const s = getSettings(chatId);
+      if (!s.night) continue;
+      const start = parseHHMM(s.night.start);
+      const end = parseHHMM(s.night.end);
+      if (start === undefined || end === undefined) continue;
+      const shouldLock = inWindow(start, end, localMinutes(s.timezone));
+      const lang = s.language ?? "en";
+      if (shouldLock && !s.nightActive) {
+        const info = await api.getChat(chatId);
+        const snapshot = s.nightSnapshot ?? info.permissions ?? UNMUTED_PERMISSIONS;
+        await api.setChatPermissions(chatId, MUTED_PERMISSIONS);
+        updateSettings(chatId, { nightActive: true, nightSnapshot: snapshot });
+        await api
+          .sendMessage(chatId, t(lang, "night.begin", { end: s.night.end }))
+          .catch(() => undefined);
+      } else if (!shouldLock && s.nightActive) {
+        await api.setChatPermissions(chatId, s.nightSnapshot ?? UNMUTED_PERMISSIONS);
+        updateSettings(chatId, { nightActive: undefined, nightSnapshot: undefined });
+        await api.sendMessage(chatId, t(lang, "night.done")).catch(() => undefined);
+      }
+    } catch (err) {
+      // Missing rights or a kicked bot — try again next minute.
+      console.warn(`night mode for chat ${chatId}:`, (err as Error).message);
+    }
+  }
+}
+
 export function startJobRunner(api: Api): () => void {
+  let lastNightCheck = 0;
   const timer = setInterval(async () => {
+    if (Date.now() - lastNightCheck >= 60_000) {
+      lastNightCheck = Date.now();
+      await reconcileNightMode(api).catch(() => undefined);
+    }
     for (const job of claimDueJobs()) {
       const payload = JSON.parse(job.payload) as Record<string, unknown>;
       try {

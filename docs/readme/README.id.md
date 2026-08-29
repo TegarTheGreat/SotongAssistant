@@ -31,6 +31,9 @@ Semua pengaturan ada di dalam Telegram. Tanpa dashboard web.**
 | 🌍 | **Terjemahan** | `/tr` (reply) menerjemahkan pesan · `/bridge de` menerjemahkan otomatis pesan berbahasa asing untuk grup multibahasa |
 | 📊 | **Statistik & dasar** | `/stats` grafik aktivitas & anggota teraktif · `/recall` cari pesan · `/afk` · `/ping` `/uptime` `/about` `/admins` `/invite` |
 | 🔎 | **Inline & lainnya** | `@botname pertanyaan` bertanya ke AI **dari chat mana pun** · AI **mengenal dirinya sendiri** (versi, perintah, pengaturan chat) · **self-update** (`/update`, `AUTO_UPDATE=true`) · `/subscription` langganan Stars untuk channel |
+| 🌙 | **Mode malam & zona waktu** | `/night 23:00-06:00` mengunci grup terjadwal harian dalam waktu lokal chat (`/settz Asia/Jakarta`), dengan pengumuman tutup/buka dan pemulihan izin persis |
+| 🔞 | **Filter NSFW** | Saringan AI opt-in untuk foto & thumbnail stiker/video memakai model multimodal milik chat — NSFW dihapus dan masuk eskalasi warn; fail-open dan hemat kuota |
+| 👑 | **Perkakas admin** | `/promote` `/demote` `/title` · `/warnmode` (mute/kick/ban) · “@admin” memanggil admin · `/tagall` · `/disable` matikan perintah per chat · `/antilink off\|invites\|all` + `/allowlink` · topik forum (`/newtopic` dll.) · welcome & goodbye dengan placeholder `{mention}` `{count}` |
 | 🌐 | **10 bahasa** | Deteksi otomatis dari Telegram user, bisa dioverride per chat via `/lang` |
 
 **Semua konfigurasi di dalam Telegram**: `/settings` membuka menu inline per grup

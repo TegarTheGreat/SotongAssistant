@@ -12,6 +12,8 @@ import {
 import { t, LOCALES } from "../src/i18n/index.js";
 import { encryptSecret, decryptSecret } from "../src/services/security.js";
 import { chunkText, parseDuration, markdownToTelegramHtml } from "../src/util/format.js";
+import { renderMemberTemplate } from "../src/util/placeholders.js";
+import { inWindow, parseHHMM, isValidTimezone, localMinutes } from "../src/util/time.js";
 import { validateInitData } from "../src/services/webapp.js";
 import { createHmac } from "node:crypto";
 
@@ -99,6 +101,32 @@ const st = messageStats(-100999);
 if (st.total24h !== 2 || st.total7d !== 2 || st.topUsers.length !== 2) throw new Error("stats");
 const hits = allLoggedMessages(-100999).filter((m) => m.text.includes("fox"));
 if (hits.length !== 1 || hits[0]!.name !== "Alice") throw new Error("recall source");
+
+// welcome/goodbye placeholders: substitution + injection safety
+{
+  const user = { id: 5, is_bot: false, first_name: "<Eve>", username: "eve" } as never;
+  const chat = { id: -1, type: "supergroup", title: "My <Group>" } as never;
+  const out = renderMemberTemplate("Hi {mention} ({username}) welcome to {chat}, member #{count}", user, chat, 42);
+  if (!out.includes('<a href="tg://user?id=5">&lt;Eve&gt;</a>')) throw new Error("placeholder mention");
+  if (!out.includes("@eve") || !out.includes("My &lt;Group&gt;") || !out.includes("#42")) throw new Error("placeholders");
+  if (out.includes("<Group>")) throw new Error("placeholder escaping");
+}
+
+// night-mode window math (incl. crossing midnight)
+if (!inWindow(parseHHMM("23:00")!, parseHHMM("06:00")!, parseHHMM("01:30")!)) throw new Error("night cross");
+if (inWindow(parseHHMM("23:00")!, parseHHMM("06:00")!, parseHHMM("12:00")!)) throw new Error("night day");
+if (!inWindow(parseHHMM("09:00")!, parseHHMM("17:00")!, parseHHMM("12:00")!)) throw new Error("night simple");
+if (parseHHMM("24:00") !== undefined || parseHHMM("nope") !== undefined) throw new Error("hhmm validate");
+if (!isValidTimezone("Asia/Jakarta") || isValidTimezone("Not/AZone")) throw new Error("tz validate");
+if (localMinutes("UTC") < 0 || localMinutes("UTC") >= 1440) throw new Error("local minutes");
+
+// disabled-commands & link-allowlist settings round-trip
+updateSettings(-100999, { disabledCommands: ["dice"], linkAllowlist: ["example.com"], warnAction: "kick" });
+{
+  const s2 = getSettings(-100999);
+  if (s2.disabledCommands?.[0] !== "dice" || s2.linkAllowlist?.[0] !== "example.com" || s2.warnAction !== "kick")
+    throw new Error("new settings");
+}
 
 // Mini App initData HMAC validation (forge a valid signature with the test token)
 {

@@ -17,12 +17,29 @@ export async function streamAnthropic(
   apiKey: string,
   onDelta: (full: string) => void,
 ): Promise<string> {
+  const finalText = req.userName ? `${req.userName}: ${req.userText}` : req.userText;
+  // Multimodal: attach images as base64 blocks ahead of the text.
+  const finalContent: Anthropic.MessageParam["content"] = req.images?.length
+    ? [
+        ...req.images.map(
+          (img): Anthropic.ImageBlockParam => ({
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: img.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+              data: img.dataBase64,
+            },
+          }),
+        ),
+        { type: "text", text: finalText },
+      ]
+    : finalText;
   const messages: Anthropic.MessageParam[] = [
     ...req.history.map((m): Anthropic.MessageParam => ({
       role: m.role,
       content: m.name ? `${m.name}: ${m.text}` : m.text,
     })),
-    { role: "user", content: req.userName ? `${req.userName}: ${req.userText}` : req.userText },
+    { role: "user", content: finalContent },
   ];
 
   // Telegram replies are capped at 4096 chars per message — short output is intentional.

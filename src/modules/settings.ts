@@ -1,6 +1,9 @@
 import { Composer, InlineKeyboard, type Context } from "grammy";
 import { getSettings, updateSettings, type ChatSettings } from "../db/repo.js";
 import { senderIsAdmin } from "../util/admin.js";
+import { isValidTimezone, localHHMM, parseHHMM } from "../util/time.js";
+import { UNMUTED_PERMISSIONS } from "../util/permissions.js";
+import { escapeHtml } from "../util/format.js";
 import { langOf, t, tc, LANGUAGE_NAMES, type LocaleKey } from "../i18n/index.js";
 
 /** All configuration happens INSIDE Telegram — an inline menu per chat. */
@@ -8,11 +11,23 @@ export const settings = new Composer<Context>();
 
 type ToggleKey = keyof Pick<
   ChatSettings,
-  "welcome" | "captcha" | "ai" | "aiEphemeral" | "antiChannelSpam" | "antiflood" | "ambient" | "antiraid" | "antilink"
+  | "welcome"
+  | "goodbye"
+  | "captcha"
+  | "ai"
+  | "aiEphemeral"
+  | "antiChannelSpam"
+  | "antiflood"
+  | "ambient"
+  | "antiraid"
+  | "antilink"
+  | "antiNsfw"
+  | "autoPinChannelPosts"
 >;
 
 const TOGGLES: Array<{ key: ToggleKey; label: LocaleKey }> = [
   { key: "welcome", label: "settings.welcome" },
+  { key: "goodbye", label: "settings.goodbye" },
   { key: "captcha", label: "settings.captcha" },
   { key: "ai", label: "settings.ai" },
   { key: "aiEphemeral", label: "settings.aiEphemeral" },
@@ -20,6 +35,8 @@ const TOGGLES: Array<{ key: ToggleKey; label: LocaleKey }> = [
   { key: "antiflood", label: "settings.antiflood" },
   { key: "antiraid", label: "settings.antiraid" },
   { key: "antilink", label: "settings.antilink" },
+  { key: "antiNsfw", label: "settings.antiNsfw" },
+  { key: "autoPinChannelPosts", label: "settings.autopin" },
   { key: "ambient", label: "settings.ambient" },
 ];
 
@@ -119,14 +136,76 @@ settings.callbackQuery(/^set:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
 });
 
-// /welcome <text> — {name} is replaced with the member's name.
+// /welcome <text> — full Rose-style placeholder set (see settings.placeholders).
 settings.command("welcome", async (ctx) => {
   if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) return;
   const text = ctx.match.trim();
   if (!text) {
-    await ctx.reply(tc(ctx, "settings.welcomeUsage"));
+    await ctx.reply(`${tc(ctx, "settings.welcomeUsage")}\n${tc(ctx, "settings.placeholders")}`);
     return;
   }
   updateSettings(ctx.chat.id, { welcomeText: text === "-" ? undefined : text });
   await ctx.reply(tc(ctx, "settings.welcomeSet"));
+});
+
+// /goodbye <text|-> — farewell message; same placeholders as /welcome.
+settings.command("goodbye", async (ctx) => {
+  if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) return;
+  const text = ctx.match.trim();
+  if (!text) {
+    await ctx.reply(`${tc(ctx, "settings.goodbyeUsage")}\n${tc(ctx, "settings.placeholders")}`);
+    return;
+  }
+  updateSettings(ctx.chat.id, { goodbye: true, goodbyeText: text === "-" ? undefined : text });
+  await ctx.reply(tc(ctx, "settings.goodbyeSet"));
+});
+
+// ---------- timezone & night mode ----------
+
+// /settz Asia/Jakarta — chat-local timezone for night mode & time displays.
+settings.command("settz", async (ctx) => {
+  if (ctx.chat.type !== "private" && !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const tz = ctx.match.trim();
+  if (!tz || !isValidTimezone(tz)) {
+    await ctx.reply(tc(ctx, "tz.usage", { now: localHHMM(getSettings(ctx.chat.id).timezone) }));
+    return;
+  }
+  updateSettings(ctx.chat.id, { timezone: tz });
+  await ctx.reply(tc(ctx, "tz.set", { tz: escapeHtml(tz), now: localHHMM(tz) }), { parse_mode: "HTML" });
+});
+
+// /night 23:00-06:00 | /night off — daily auto-lockdown window (chat-local time).
+settings.command("night", async (ctx) => {
+  if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const arg = ctx.match.trim().toLowerCase();
+  const s = getSettings(ctx.chat.id);
+  if (arg === "off") {
+    // If night mode is currently holding the lock, release it right away —
+    // otherwise the group would stay frozen with nothing left to unlock it.
+    if (s.nightActive) {
+      await ctx.api
+        .setChatPermissions(ctx.chat.id, s.nightSnapshot ?? UNMUTED_PERMISSIONS)
+        .catch(() => undefined);
+    }
+    updateSettings(ctx.chat.id, { night: undefined, nightActive: undefined, nightSnapshot: undefined });
+    await ctx.reply(tc(ctx, "night.off"));
+    return;
+  }
+  const m = /^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/.exec(arg);
+  const start = m ? parseHHMM(m[1]!) : undefined;
+  const end = m ? parseHHMM(m[2]!) : undefined;
+  if (!m || start === undefined || end === undefined || start === end) {
+    await ctx.reply(tc(ctx, "night.usage", { tz: s.timezone ?? "UTC" }));
+    return;
+  }
+  updateSettings(ctx.chat.id, { night: { start: m[1]!, end: m[2]! } });
+  await ctx.reply(
+    tc(ctx, "night.set", { start: m[1]!, end: m[2]!, tz: s.timezone ?? "UTC (set one with /settz)" }),
+  );
 });
