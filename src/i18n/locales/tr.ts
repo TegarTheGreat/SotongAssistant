@@ -1,0 +1,121 @@
+import type { en } from "./en.js";
+
+/** Turkish. */
+export const tr = {
+  "error.adminOnly": "🔒 Bunu yalnızca yöneticiler kullanabilir.",
+  "error.ownerOnly": "🔒 Bunu yalnızca botun sahibi kullanabilir.",
+  "error.groupOnly": "Bu komut yalnızca gruplarda çalışır.",
+  "error.dmOnly": "Güvenlik için bunu bana özel mesajla gönder.",
+  "error.replyRequired": "↩️ Kişinin mesajını yanıtla, sonra komutu gönder.",
+  "error.targetProtected": "🛡 O bir yönetici ya da benim — işlem yapılmadı.",
+  "error.generic": "⚠️ Bir şeyler ters gitti: {reason}",
+
+  "start.body":
+    "🦑 <b>SotongAssistant</b>\n\nTelegram için hepsi-bir-arada asistanın: grup yönetimi, akıllı karşılama, kanallar, Telegram Business ve <b>models.dev</b> kataloğundaki her modelle yapay zekâ.\n\nTüm yeteneklerim için /help yaz.",
+  "help.title": "🦑 <b>Neler yapabilirim</b>",
+  "help.ai":
+    "🤖 <b>Yapay zekâ</b>\n/ask &lt;soru&gt; — yapay zekâya sor (ya da beni yanıtla / etiketle)\n/summarize — son konuşmaların özeti\n/aimodel — sağlayıcı ve model seç (models.dev)\n/aiprompt &lt;metin&gt; — bu sohbete özel kişilik\n/memory — neleri hatırlıyorum\n/forget — bu sohbetin hafızasını sil",
+  "help.moderation":
+    "🛡 <b>Moderasyon</b> (yöneticiler, yanıtlayarak)\n/warn /unwarn — otomatik tırmanan uyarılar\n/mute [30m|2h|1d] /unmute — süreli susturma\n/ban /unban /kick — yasaklama ve atma\n/purge — yanıtlanan mesaja kadar toplu silme\n/pin — mesaj sabitle\n/lockdown /unlock — grubu dondur\n/info — kullanıcı bilgisi",
+  "help.group":
+    "👥 <b>Grup araçları</b>\n/settings — tüm ayarlar, Telegram içinde\n/welcome &lt;metin&gt; — özel karşılama ({name})\n/setrules ve /rules — grup kuralları\n/save &lt;ad&gt; ve #ad — hazır notlar\n/notes /clear — notları listele ve sil\n/report — yöneticileri çağır\n/lang — dilimi değiştir",
+  "help.fun":
+    "🎲 <b>Eğlence</b>\n/dice /darts /slot — animasyonlu oyunlar\n/coin — yazı tura\n/poll &lt;soru&gt; | &lt;seçenek1&gt; | &lt;seçenek2&gt; — hızlı anket\n/quiz &lt;soru&gt; | &lt;doğru&gt; | &lt;yanlış&gt;… — bilgi yarışması\n/remind &lt;10m|2h&gt; &lt;metin&gt; — hatırlatıcı\n/donate [miktar] — Telegram Stars ⭐ ile destek ol",
+  "help.footer": "Beni bir gruba ekle ve <b>yönetici</b> yap — her şey açılsın.",
+
+  "welcome.default": "👋 Hoş geldin, <b>{name}</b>!",
+  "captcha.prompt": "👋 Selam <b>{name}</b>! Sohbete başlamak için 5 dakika içinde aşağıdaki düğmeye bas.",
+  "captcha.button": "✅ İnsanım",
+  "captcha.notForYou": "Bu düğme senin için değil 🙂",
+  "captcha.passed": "Aramıza hoş geldin! 🎉",
+  "join.dmPrompt": "<b>{chat}</b> grubuna katılmak istedin.\nDoğrulamak için düğmeye bas:",
+  "join.dmButton": "✅ Doğrula ve katıl",
+  "join.approved": "✅ Onaylandı — hoş geldin!",
+  "join.expired": "Bu katılma isteği artık geçerli değil.",
+
+  "mod.warned": "⚠️ <b>{name}</b> uyarıldı ({count}/{limit}).",
+  "mod.warnEscalated": "🔇 <b>{name}</b> {count}/{limit} uyarıya ulaştı → 24 saat susturuldu.",
+  "mod.warnsCleared": "✅ {name} kullanıcısının uyarıları silindi.",
+  "mod.muted": "🔇 {name}, {duration} susturuldu. Telegram otomatik kaldırır.",
+  "mod.unmuted": "🔊 {name} yeniden konuşabilir.",
+  "mod.banned": "🔨 {name} yasaklandı; tüm mesajları silindi.",
+  "mod.unbanned": "✅ Yasak kaldırıldı (yasaklıysa).",
+  "mod.kicked": "👢 {name} atıldı (geri dönebilir).",
+  "mod.unbanUsage": "Kullanım: /unban <user_id> veya mesajını yanıtla.",
+  "mod.purgeUsage": "Silinecek ilk mesajı yanıtla, sonra /purge gönder.",
+  "mod.pinUsage": "Sabitlenecek mesajı yanıtla.",
+  "mod.noRights": "🙁 Bunun için <b>{right}</b> yönetici yetkisine ihtiyacım var.",
+  "mod.lockdownOn": "🔒 Grup kilitlendi: yalnızca yöneticiler yazabilir. /unlock ile geri al.",
+  "mod.lockdownOff": "🔓 Grup açıldı — önceki izinler geri geldi.",
+  "mod.infoTitle": "👤 <b>{name}</b>",
+  "mod.infoLine": "id: <code>{id}</code> · durum: {status} · uyarılar: {warns}",
+  "report.sent": "🚨 Yöneticilere haber verildi.",
+  "report.body": "🚨 {name} kişisinden <b>şikâyet</b>: yanıtlanan mesaja bakın.",
+
+  "flood.muted": "🌊 {name} sohbeti boğuyordu; {duration} susturuldu.",
+
+  "settings.title": "⚙️ <b>Bu sohbetin ayarları</b>",
+  "settings.dmHint": "Bu menü gruplar için. Özelde her şey açık — /aimodel dene.",
+  "settings.welcome": "Yeni üyeleri karşıla",
+  "settings.captcha": "Katılırken düğme captcha",
+  "settings.ai": "Yapay zekâ asistanı",
+  "settings.aiEphemeral": "Yapay zekâ yanıtlarını yalnızca soran görsün",
+  "settings.antiChannelSpam": "Kanal kimliğiyle spamı engelle",
+  "settings.antiflood": "Anti-flood (otomatik susturma)",
+  "settings.ambient": "Tüm mesajları oku (bağlam ve /summarize)",
+  "settings.warnLimit": "⚠️ Uyarı sınırı: {n}",
+  "settings.language": "🌐 Dil: {lang}",
+  "settings.aimodelBtn": "🤖 Yapay zekâ modeli seç → /aimodel",
+  "settings.welcomeSet": "✅ Karşılama mesajı kaydedildi.",
+  "settings.welcomeUsage": 'Kullanım: /welcome <metin>. {name} = üyenin adı. Sıfırla: "/welcome -".',
+  "language.pick": "🌐 Bu sohbet için bir dil seç:",
+  "language.saved": "✅ Dil {lang} olarak ayarlandı.",
+
+  "notes.usage": "Kullanım: /save <ad> <metin> (veya bir mesajı yanıtlayıp /save <ad>).",
+  "notes.saved": "📝 Not <code>#{name}</code> kaydedildi.",
+  "notes.deleted": "🗑 Not <code>#{name}</code> silindi.",
+  "notes.notFound": "<code>#{name}</code> adında not yok.",
+  "notes.empty": "Henüz not yok. /save <ad> <metin> ile kaydet.",
+  "notes.list": "📒 <b>Notlar:</b> {names}",
+  "rules.set": "📜 Kurallar kaydedildi. Herkes /rules ile okuyabilir.",
+  "rules.none": "Henüz kural yok. Yöneticiler: /setrules <metin>.",
+
+  "ai.askUsage": "Kullanım: /ask <soru>",
+  "ai.disabled": "Yapay zekâ burada kapalı. Yöneticiler /settings ile açabilir.",
+  "ai.forgot": "🧠 Bu sohbetin hafızası silindi.",
+  "ai.memoryTitle": "🧠 <b>Burada hatırladıklarım</b>\n\n{summary}",
+  "ai.memoryEmpty": "🧠 Bu sohbet için henüz uzun süreli hafıza yok.",
+  "ai.modelTitle":
+    "🤖 <b>Bu sohbetin yapay zekâ modeli</b>\nSağlayıcı: <code>{provider}</code>\nModel: <code>{model}</code>\n\nBir sağlayıcı seç (veri: models.dev):",
+  "ai.providerMissing": "Bu sağlayıcı katalogda yok.",
+  "ai.pickModel": "Sağlayıcı <b>{provider}</b> — {keyState}\nModel seç:",
+  "ai.keyOk": "✅ API anahtarı mevcut",
+  "ai.keyMissing": "⚠️ henüz API anahtarı yok (sahip: DM /setkey {provider} …)",
+  "ai.modelSaved": "✅ Bu sohbetin modeli: <code>{provider}/{model}</code>",
+  "ai.promptSaved": "✅ Bu sohbete özel yapay zekâ kişiliği kaydedildi.",
+  "ai.promptReset": "Yapay zekâ kişiliği varsayılana döndü.",
+  "ai.setkeyUsage": "Kullanım: /setkey <sağlayıcı> <api-key>\nÖrnek: /setkey anthropic sk-ant-…",
+  "ai.keySaved": "✅ <code>{provider}</code> anahtarı kaydedildi (şifreli). Güvenlik için mesajını sildim.",
+  "ai.noKey":
+    "<code>{provider}</code> için API anahtarı yok. Botun sahibi bana özelden /setkey {provider} <key> göndererek ayarlayabilir.",
+  "ai.summarizeOff":
+    "Özet için /settings'te “Tüm mesajları oku” açık olmalı (ve yönetici olmalıyım).",
+  "ai.summarizeEmpty": "Özetlenecek bir şey yok henüz.",
+  "ai.prevNext.prev": "« Önceki",
+  "ai.prevNext.next": "Sonraki »",
+
+  "fun.pollUsage": "Kullanım: /poll Soru | Seçenek 1 | Seçenek 2 …",
+  "fun.quizUsage": "Kullanım: /quiz Soru | Doğru | Yanlış 1 …",
+  "stars.donateTitle": "{bot}'a destek ol",
+  "stars.donateDesc": "Bu asistanı yaşattığın için teşekkürler! ⭐",
+  "stars.thanks": "💖 {name} {amount} ⭐ bağışladı — teşekkürler!",
+  "stars.usage": "Kullanım: /donate [Stars miktarı, örn. /donate 50]",
+  "remind.usage": "Kullanım: /remind <10m|2h|1d> <metin>",
+  "remind.set": "⏰ Tamam! {duration} sonra hatırlatacağım.",
+  "remind.fire": "⏰ <b>Hatırlatma</b> {mention}: {text}",
+
+  "status.title": "📋 <b>Bildiğim sohbetler</b>",
+  "status.empty": "Henüz kayıtlı sohbet yok. Önce beni bir gruba ya da kanala ekle.",
+  "manager.needAdmin":
+    "👋 Selam! Ben SotongAssistant.\nModerasyon ve yapay zekâ için beni <b>yönetici</b> yap (mesaj silme, kısıtlama, davet, sabitleme). Sonra /settings'i aç.",
+} satisfies Partial<Record<keyof typeof en, string>>;

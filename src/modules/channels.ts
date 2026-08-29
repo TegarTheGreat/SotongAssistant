@@ -1,10 +1,9 @@
 import { Composer, type Context } from "grammy";
-import { upsertChat } from "../db/index.js";
+import { upsertChat } from "../db/repo.js";
 
 /**
- * Dukungan channel: bot sebagai admin channel bisa memposting,
- * mengedit, dan melacak postingan. ctx.from TIDAK ADA di channel_post —
- * jangan pernah menyentuhnya di handler channel.
+ * Channel support: as a channel admin the bot can post, edit and track posts.
+ * NOTE: ctx.from does NOT exist on channel_post updates — never touch it here.
  */
 export const channels = new Composer<Context>();
 
@@ -13,9 +12,11 @@ channels.on("channel_post", async (ctx, next) => {
   await next();
 });
 
-// /ping di channel — bukti bot hidup & punya hak posting
+// /ping in a channel — proof of life and posting rights.
 channels.on("channel_post:text", async (ctx) => {
   if (ctx.channelPost.text.trim() === "/ping") {
-    await ctx.api.editMessageText(ctx.chat.id, ctx.channelPost.message_id, "🏓 pong — SotongAssistant aktif di channel ini.");
+    await ctx.api
+      .editMessageText(ctx.chat.id, ctx.channelPost.message_id, "🏓 pong — SotongAssistant is active in this channel.")
+      .catch(() => undefined);
   }
 });

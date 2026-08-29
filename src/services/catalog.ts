@@ -3,8 +3,8 @@ import path from "node:path";
 import { config } from "../config.js";
 
 /**
- * Katalog model dari models.dev — database open-source berisi provider,
- * model, harga, dan limit. https://models.dev/api.json
+ * Model catalog from models.dev — an open-source database of AI providers,
+ * models, pricing and limits. https://models.dev/api.json
  */
 
 export interface CatalogModel {
@@ -19,11 +19,11 @@ export interface CatalogModel {
 export interface CatalogProvider {
   id: string;
   name?: string;
-  /** Paket AI SDK — menentukan protokol wire (mis. @ai-sdk/anthropic, @ai-sdk/openai-compatible). */
+  /** AI SDK package name — determines the wire protocol (e.g. @ai-sdk/anthropic). */
   npm?: string;
-  /** Base URL untuk provider OpenAI-compatible. */
+  /** Base URL for OpenAI-compatible providers. */
   api?: string;
-  /** Nama env var API key, mis. ["ANTHROPIC_API_KEY"]. */
+  /** Env var names holding the API key, e.g. ["ANTHROPIC_API_KEY"]. */
   env?: string[];
   doc?: string;
   models: Record<string, CatalogModel>;
@@ -32,9 +32,11 @@ export interface CatalogProvider {
 export type Catalog = Record<string, CatalogProvider>;
 
 const CACHE_FILE = () => path.join(config.dataDir, "models-cache.json");
-const TTL_MS = 24 * 3600_000;
+const FRESH_TTL_MS = 24 * 3600_000;
+/** After a failed fetch, retry soon instead of pinning the fallback for a day. */
+const FAILURE_RETRY_MS = 5 * 60_000;
 
-/** Fallback minimal bila models.dev tak terjangkau dan belum ada cache. */
+/** Minimal fallback so the bot still works if models.dev is unreachable on first boot. */
 const FALLBACK: Catalog = {
   anthropic: {
     id: "anthropic",
@@ -56,55 +58,60 @@ const FALLBACK: Catalog = {
   },
 };
 
-let mem: { catalog: Catalog; at: number } | undefined;
+let mem: { catalog: Catalog; at: number; ttl: number } | undefined;
+
+function normalize(data: Catalog): Catalog {
+  for (const [pid, p] of Object.entries(data)) {
+    p.id = pid;
+    p.models = p.models ?? {}; // some entries may lack models — never let consumers crash
+    for (const [mid, m] of Object.entries(p.models)) m.id = mid;
+  }
+  return data;
+}
 
 export async function getCatalog(): Promise<Catalog> {
-  if (mem && Date.now() - mem.at < TTL_MS) return mem.catalog;
+  if (mem && Date.now() - mem.at < mem.ttl) return mem.catalog;
 
-  // 1. cache file yang masih segar
+  // 1. fresh file cache
   if (existsSync(CACHE_FILE())) {
     try {
       const raw = JSON.parse(readFileSync(CACHE_FILE(), "utf8")) as { at: number; catalog: Catalog };
-      if (Date.now() - raw.at < TTL_MS) {
-        mem = { catalog: raw.catalog, at: raw.at };
-        return raw.catalog;
+      if (Date.now() - raw.at < FRESH_TTL_MS) {
+        mem = { catalog: normalize(raw.catalog), at: raw.at, ttl: FRESH_TTL_MS };
+        return mem.catalog;
       }
     } catch {
-      /* cache rusak — abaikan */
+      /* corrupted cache — ignore */
     }
   }
 
-  // 2. fetch live
+  // 2. live fetch
   try {
     const res = await fetch("https://models.dev/api.json", { signal: AbortSignal.timeout(15_000) });
     if (!res.ok) throw new Error(`models.dev HTTP ${res.status}`);
-    const data = (await res.json()) as Catalog;
-    for (const [pid, p] of Object.entries(data)) {
-      p.id = pid;
-      for (const [mid, m] of Object.entries(p.models ?? {})) m.id = mid;
-    }
-    mem = { catalog: data, at: Date.now() };
+    const data = normalize((await res.json()) as Catalog);
+    mem = { catalog: data, at: Date.now(), ttl: FRESH_TTL_MS };
     writeFileSync(CACHE_FILE(), JSON.stringify({ at: mem.at, catalog: data }));
     return data;
   } catch (err) {
-    console.warn("Gagal fetch models.dev, pakai cache lama/fallback:", (err as Error).message);
+    console.warn("models.dev fetch failed, using stale cache/fallback:", (err as Error).message);
   }
 
-  // 3. cache basi lebih baik daripada tidak ada
+  // 3. stale cache beats nothing; retry soon either way
   if (existsSync(CACHE_FILE())) {
     try {
       const raw = JSON.parse(readFileSync(CACHE_FILE(), "utf8")) as { at: number; catalog: Catalog };
-      mem = { catalog: raw.catalog, at: Date.now() };
-      return raw.catalog;
+      mem = { catalog: normalize(raw.catalog), at: Date.now(), ttl: FAILURE_RETRY_MS };
+      return mem.catalog;
     } catch {
-      /* jatuh ke fallback */
+      /* fall through to FALLBACK */
     }
   }
-  mem = { catalog: FALLBACK, at: Date.now() };
+  mem = { catalog: FALLBACK, at: Date.now(), ttl: FAILURE_RETRY_MS };
   return FALLBACK;
 }
 
-/** Provider populer ditampilkan duluan di menu pemilihan. */
+/** Popular providers are listed first in the picker menu. */
 export const POPULAR_PROVIDERS = [
   "anthropic",
   "openai",
@@ -117,7 +124,7 @@ export const POPULAR_PROVIDERS = [
 ];
 
 export function sortProviders(catalog: Catalog): CatalogProvider[] {
-  const all = Object.values(catalog);
+  const all = Object.values(catalog).filter((p) => Object.keys(p.models ?? {}).length > 0);
   const rank = (p: CatalogProvider) => {
     const i = POPULAR_PROVIDERS.indexOf(p.id);
     return i === -1 ? POPULAR_PROVIDERS.length : i;

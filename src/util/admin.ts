@@ -12,7 +12,7 @@ export function invalidateAdminCache(chatId: number) {
   cache.delete(chatId);
 }
 
-/** Apakah user admin/creator di chat ini? Hasil getChatAdministrators di-cache 5 menit. */
+/** Is the user an admin/creator of this chat? getChatAdministrators is cached for 5 minutes. */
 export async function isAdmin(ctx: Context, userId: number): Promise<boolean> {
   const chatId = ctx.chat?.id;
   if (!chatId) return false;
@@ -26,8 +26,8 @@ export async function isAdmin(ctx: Context, userId: number): Promise<boolean> {
 }
 
 /**
- * Guard perintah moderasi: pengirim harus admin, atau admin anonim
- * (sender_chat == chat itu sendiri — user asli tak bisa di-resolve).
+ * Moderation-command guard: the sender must be an admin, or an anonymous admin
+ * (sender_chat == the chat itself — the real user cannot be resolved for those).
  */
 export async function senderIsAdmin(ctx: Context): Promise<boolean> {
   if (ctx.message?.sender_chat && ctx.message.sender_chat.id === ctx.chat?.id) return true;
@@ -35,7 +35,7 @@ export async function senderIsAdmin(ctx: Context): Promise<boolean> {
   return isAdmin(ctx, ctx.from.id);
 }
 
-/** Target moderasi tidak boleh admin, bot sendiri, atau persona channel. */
+/** Moderation targets must never be an admin or the bot itself. */
 export async function isProtectedTarget(ctx: Context, userId: number): Promise<boolean> {
   if (userId === ctx.me.id) return true;
   return isAdmin(ctx, userId);

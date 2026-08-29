@@ -1,0 +1,121 @@
+import type { en } from "./en.js";
+
+/** Hindi. */
+export const hi = {
+  "error.adminOnly": "🔒 इसे केवल एडमिन इस्तेमाल कर सकते हैं।",
+  "error.ownerOnly": "🔒 इसे केवल बॉट का मालिक इस्तेमाल कर सकता है।",
+  "error.groupOnly": "यह कमांड केवल ग्रुप में काम करती है।",
+  "error.dmOnly": "सुरक्षा के लिए इसे मुझे प्राइवेट चैट में भेजें।",
+  "error.replyRequired": "↩️ उस व्यक्ति के संदेश का reply करें, फिर कमांड भेजें।",
+  "error.targetProtected": "🛡 वह एडमिन है या मैं खुद हूँ — कोई कार्रवाई नहीं।",
+  "error.generic": "⚠️ कुछ गलत हुआ: {reason}",
+
+  "start.body":
+    "🦑 <b>SotongAssistant</b>\n\nटेलीग्राम के लिए आपका ऑल-इन-वन असिस्टेंट: ग्रुप मॉडरेशन, स्मार्ट स्वागत, चैनल, Telegram Business और <b>models.dev</b> के किसी भी मॉडल से AI।\n\nसब कुछ देखने के लिए /help दबाएँ।",
+  "help.title": "🦑 <b>मैं क्या कर सकता हूँ</b>",
+  "help.ai":
+    "🤖 <b>AI</b>\n/ask &lt;सवाल&gt; — AI से पूछें (या मुझे reply/mention करें)\n/summarize — हाल की बातचीत का सार\n/aimodel — प्रोवाइडर और मॉडल चुनें (models.dev)\n/aiprompt &lt;टेक्स्ट&gt; — इस चैट के लिए व्यक्तित्व\n/memory — मुझे क्या याद है\n/forget — इस चैट की याददाश्त मिटाएँ",
+  "help.moderation":
+    "🛡 <b>मॉडरेशन</b> (एडमिन, reply करके)\n/warn /unwarn — चेतावनियाँ, स्वतः सख़्ती\n/mute [30m|2h|1d] /unmute — समयबद्ध म्यूट\n/ban /unban /kick — बैन और निष्कासन\n/purge — reply किए संदेश तक थोक डिलीट\n/pin — संदेश पिन करें\n/lockdown /unlock — पूरा ग्रुप फ़्रीज़ करें\n/info — किसी सदस्य की जानकारी",
+  "help.group":
+    "👥 <b>ग्रुप टूल्स</b>\n/settings — सारी सेटिंग्स, टेलीग्राम के अंदर\n/welcome &lt;टेक्स्ट&gt; — कस्टम स्वागत ({name})\n/setrules और /rules — ग्रुप नियम\n/save &lt;नाम&gt; और #नाम — नोट्स\n/notes /clear — नोट्स सूची और हटाना\n/report — एडमिन बुलाएँ\n/lang — मेरी भाषा बदलें",
+  "help.fun":
+    "🎲 <b>मनोरंजन</b>\n/dice /darts /slot — एनिमेटेड खेल\n/coin — सिक्का उछालें\n/poll &lt;सवाल&gt; | &lt;विकल्प1&gt; | &lt;विकल्प2&gt; — पोल\n/quiz &lt;सवाल&gt; | &lt;सही&gt; | &lt;गलत&gt;… — क्विज़\n/remind &lt;10m|2h&gt; &lt;टेक्स्ट&gt; — रिमाइंडर\n/donate [राशि] — Telegram Stars ⭐ से सपोर्ट करें",
+  "help.footer": "मुझे किसी ग्रुप में जोड़ें और <b>एडमिन</b> बनाएं — सब कुछ खुल जाएगा।",
+
+  "welcome.default": "👋 स्वागत है, <b>{name}</b>!",
+  "captcha.prompt": "👋 नमस्ते <b>{name}</b>! बातचीत शुरू करने के लिए 5 मिनट में नीचे का बटन दबाएँ।",
+  "captcha.button": "✅ मैं इंसान हूँ",
+  "captcha.notForYou": "यह बटन आपके लिए नहीं है 🙂",
+  "captcha.passed": "स्वागत है! 🎉",
+  "join.dmPrompt": "आपने <b>{chat}</b> में शामिल होने का अनुरोध किया।\nसत्यापन के लिए बटन दबाएँ:",
+  "join.dmButton": "✅ सत्यापित करें और शामिल हों",
+  "join.approved": "✅ स्वीकृत — स्वागत है!",
+  "join.expired": "यह अनुरोध अब मान्य नहीं है।",
+
+  "mod.warned": "⚠️ <b>{name}</b> को चेतावनी मिली ({count}/{limit})।",
+  "mod.warnEscalated": "🔇 <b>{name}</b> {count}/{limit} चेतावनियों पर पहुँचा → 24 घंटे म्यूट।",
+  "mod.warnsCleared": "✅ {name} की चेतावनियाँ हटाई गईं।",
+  "mod.muted": "🔇 {name} को {duration} के लिए म्यूट किया गया। Telegram इसे अपने आप हटाएगा।",
+  "mod.unmuted": "🔊 {name} फिर से बोल सकता है।",
+  "mod.banned": "🔨 {name} बैन; उसके सभी संदेश हटा दिए गए।",
+  "mod.unbanned": "✅ अनबैन (यदि बैन था)।",
+  "mod.kicked": "👢 {name} को निकाला गया (फिर जुड़ सकता है)।",
+  "mod.unbanUsage": "उपयोग: /unban <user_id>, या उसके संदेश का reply करें।",
+  "mod.purgeUsage": "जो पहला संदेश हटाना है उसका reply करें, फिर /purge भेजें।",
+  "mod.pinUsage": "जिस संदेश को पिन करना है उसका reply करें।",
+  "mod.noRights": "🙁 इसके लिए मुझे <b>{right}</b> एडमिन अधिकार चाहिए।",
+  "mod.lockdownOn": "🔒 ग्रुप बंद: केवल एडमिन बोल सकते हैं। बहाल करने के लिए /unlock।",
+  "mod.lockdownOff": "🔓 ग्रुप खुला — पिछली अनुमतियाँ बहाल।",
+  "mod.infoTitle": "👤 <b>{name}</b>",
+  "mod.infoLine": "id: <code>{id}</code> · स्थिति: {status} · चेतावनियाँ: {warns}",
+  "report.sent": "🚨 एडमिन को सूचित कर दिया गया।",
+  "report.body": "🚨 {name} की <b>रिपोर्ट</b>: reply किया गया संदेश देखें।",
+
+  "flood.muted": "🌊 {name} फ्लड कर रहा था — {duration} के लिए म्यूट।",
+
+  "settings.title": "⚙️ <b>इस चैट की सेटिंग्स</b>",
+  "settings.dmHint": "यह मेनू ग्रुप के लिए है। DM में सब चालू है — /aimodel आज़माएँ।",
+  "settings.welcome": "नए सदस्यों का स्वागत",
+  "settings.captcha": "जॉइन पर बटन कैप्चा",
+  "settings.ai": "AI असिस्टेंट",
+  "settings.aiEphemeral": "AI उत्तर केवल पूछने वाले को दिखें",
+  "settings.antiChannelSpam": "चैनल-स्पैम ब्लॉक करें",
+  "settings.antiflood": "एंटी-फ्लड (स्वतः म्यूट)",
+  "settings.ambient": "सभी संदेश पढ़ें (संदर्भ और /summarize)",
+  "settings.warnLimit": "⚠️ चेतावनी सीमा: {n}",
+  "settings.language": "🌐 भाषा: {lang}",
+  "settings.aimodelBtn": "🤖 AI मॉडल चुनें → /aimodel",
+  "settings.welcomeSet": "✅ स्वागत संदेश सहेजा गया।",
+  "settings.welcomeUsage": 'उपयोग: /welcome <टेक्स्ट>। {name} = सदस्य का नाम। रीसेट: "/welcome -"।',
+  "language.pick": "🌐 इस चैट के लिए भाषा चुनें:",
+  "language.saved": "✅ भाषा {lang} सेट की गई।",
+
+  "notes.usage": "उपयोग: /save <नाम> <टेक्स्ट> (या किसी संदेश का reply करके /save <नाम>)।",
+  "notes.saved": "📝 नोट <code>#{name}</code> सहेजा गया।",
+  "notes.deleted": "🗑 नोट <code>#{name}</code> हटाया गया।",
+  "notes.notFound": "<code>#{name}</code> नाम का कोई नोट नहीं है।",
+  "notes.empty": "अभी कोई नोट नहीं। /save <नाम> <टेक्स्ट> से सहेजें।",
+  "notes.list": "📒 <b>नोट्स:</b> {names}",
+  "rules.set": "📜 नियम सहेजे गए। सब /rules से पढ़ सकते हैं।",
+  "rules.none": "अभी नियम नहीं बने। एडमिन: /setrules <टेक्स्ट>।",
+
+  "ai.askUsage": "उपयोग: /ask <सवाल>",
+  "ai.disabled": "यहाँ AI बंद है। एडमिन /settings से चालू कर सकते हैं।",
+  "ai.forgot": "🧠 इस चैट की याददाश्त मिटा दी गई।",
+  "ai.memoryTitle": "🧠 <b>मुझे यहाँ क्या याद है</b>\n\n{summary}",
+  "ai.memoryEmpty": "🧠 इस चैट के लिए अभी कोई दीर्घकालिक स्मृति नहीं है।",
+  "ai.modelTitle":
+    "🤖 <b>इस चैट का AI मॉडल</b>\nप्रोवाइडर: <code>{provider}</code>\nमॉडल: <code>{model}</code>\n\nप्रोवाइडर चुनें (डेटा: models.dev):",
+  "ai.providerMissing": "वह प्रोवाइडर कैटलॉग में नहीं है।",
+  "ai.pickModel": "प्रोवाइडर <b>{provider}</b> — {keyState}\nमॉडल चुनें:",
+  "ai.keyOk": "✅ API key उपलब्ध",
+  "ai.keyMissing": "⚠️ अभी API key नहीं (मालिक: DM /setkey {provider} …)",
+  "ai.modelSaved": "✅ इस चैट का AI मॉडल: <code>{provider}/{model}</code>",
+  "ai.promptSaved": "✅ इस चैट के लिए AI का व्यक्तित्व सहेजा गया।",
+  "ai.promptReset": "AI व्यक्तित्व डिफ़ॉल्ट पर वापस।",
+  "ai.setkeyUsage": "उपयोग: /setkey <provider-id> <api-key>\nउदाहरण: /setkey anthropic sk-ant-…",
+  "ai.keySaved": "✅ <code>{provider}</code> की API key सहेजी गई (एन्क्रिप्टेड)। सुरक्षा के लिए आपका संदेश हटा दिया।",
+  "ai.noKey":
+    "<code>{provider}</code> के लिए API key नहीं है। बॉट का मालिक मुझे DM में /setkey {provider} <key> भेजकर सेट कर सकता है।",
+  "ai.summarizeOff":
+    "सार तभी बना सकता हूँ जब /settings में “सभी संदेश पढ़ें” चालू हो (और मैं एडमिन हूँ)।",
+  "ai.summarizeEmpty": "अभी सार बनाने के लिए कुछ नहीं है।",
+  "ai.prevNext.prev": "« पिछला",
+  "ai.prevNext.next": "अगला »",
+
+  "fun.pollUsage": "उपयोग: /poll सवाल | विकल्प 1 | विकल्प 2 …",
+  "fun.quizUsage": "उपयोग: /quiz सवाल | सही जवाब | गलत 1 …",
+  "stars.donateTitle": "{bot} को सपोर्ट करें",
+  "stars.donateDesc": "इस असिस्टेंट को ज़िंदा रखने के लिए धन्यवाद! ⭐",
+  "stars.thanks": "💖 {name} ने {amount} ⭐ दान किए — धन्यवाद!",
+  "stars.usage": "उपयोग: /donate [Stars की संख्या, जैसे /donate 50]",
+  "remind.usage": "उपयोग: /remind <10m|2h|1d> <टेक्स्ट>",
+  "remind.set": "⏰ ठीक है! {duration} में याद दिलाऊँगा।",
+  "remind.fire": "⏰ <b>रिमाइंडर</b> {mention}: {text}",
+
+  "status.title": "📋 <b>मेरे ज्ञात चैट</b>",
+  "status.empty": "अभी कोई चैट दर्ज नहीं। पहले मुझे किसी ग्रुप/चैनल में जोड़ें।",
+  "manager.needAdmin":
+    "👋 नमस्ते! मैं SotongAssistant हूँ।\nमॉडरेशन और AI के लिए मुझे <b>एडमिन</b> बनाएं (संदेश हटाना, प्रतिबंध, आमंत्रण, पिन)। फिर /settings खोलें।",
+} satisfies Partial<Record<keyof typeof en, string>>;

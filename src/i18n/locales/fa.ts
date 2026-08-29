@@ -1,0 +1,121 @@
+import type { en } from "./en.js";
+
+/** Persian (Farsi). */
+export const fa = {
+  "error.adminOnly": "🔒 فقط ادمین‌ها می‌توانند از این استفاده کنند.",
+  "error.ownerOnly": "🔒 فقط مالک ربات می‌تواند از این استفاده کند.",
+  "error.groupOnly": "این دستور فقط در گروه‌ها کار می‌کند.",
+  "error.dmOnly": "برای امنیت، این را در چت خصوصی برایم بفرست.",
+  "error.replyRequired": "↩️ روی پیام آن شخص ریپلای کن و بعد دستور را بفرست.",
+  "error.targetProtected": "🛡 او ادمین است یا خود من — اقدامی انجام نشد.",
+  "error.generic": "⚠️ مشکلی پیش آمد: {reason}",
+
+  "start.body":
+    "🦑 <b>SotongAssistant</b>\n\nدستیار همه‌کارهٔ تلگرام: مدیریت گروه، خوش‌آمدگویی هوشمند، کانال‌ها، Telegram Business و هوش مصنوعی با هر مدلی از <b>models.dev</b>.\n\nبرای دیدن همهٔ امکانات /help را بزن.",
+  "help.title": "🦑 <b>چه کارهایی بلدم</b>",
+  "help.ai":
+    "🤖 <b>هوش مصنوعی</b>\n/ask &lt;سؤال&gt; — از هوش مصنوعی بپرس (یا به من ریپلای/منشن کن)\n/summarize — خلاصهٔ گفتگوهای اخیر\n/aimodel — انتخاب ارائه‌دهنده و مدل (models.dev)\n/aiprompt &lt;متن&gt; — شخصیت مخصوص این چت\n/memory — چه چیزهایی یادم است\n/forget — حافظهٔ این چت را پاک کن",
+  "help.moderation":
+    "🛡 <b>مدیریت</b> (ادمین‌ها، با ریپلای)\n/warn /unwarn — اخطار با تشدید خودکار\n/mute [30m|2h|1d] /unmute — سکوت زمان‌دار\n/ban /unban /kick — مسدودسازی و اخراج\n/purge — حذف گروهی تا پیام ریپلای‌شده\n/pin — سنجاق پیام\n/lockdown /unlock — قفل کل گروه\n/info — اطلاعات یک کاربر",
+  "help.group":
+    "👥 <b>ابزارهای گروه</b>\n/settings — همهٔ تنظیمات، داخل خود تلگرام\n/welcome &lt;متن&gt; — خوش‌آمد سفارشی ({name})\n/setrules و /rules — قوانین گروه\n/save &lt;نام&gt; و #نام — یادداشت‌های آماده\n/notes /clear — فهرست و حذف یادداشت‌ها\n/report — صدا زدن ادمین‌ها\n/lang — تغییر زبان من",
+  "help.fun":
+    "🎲 <b>سرگرمی</b>\n/dice /darts /slot — بازی‌های متحرک\n/coin — شیر یا خط\n/poll &lt;سؤال&gt; | &lt;گزینه۱&gt; | &lt;گزینه۲&gt; — نظرسنجی سریع\n/quiz &lt;سؤال&gt; | &lt;درست&gt; | &lt;غلط&gt;… — کوییز\n/remind &lt;10m|2h&gt; &lt;متن&gt; — یادآوری\n/donate [مبلغ] — حمایت با Telegram Stars ⭐",
+  "help.footer": "من را به گروه اضافه کن و <b>ادمین</b> کن تا همه چیز فعال شود.",
+
+  "welcome.default": "👋 خوش آمدی، <b>{name}</b>!",
+  "captcha.prompt": "👋 سلام <b>{name}</b>! برای شروع گفتگو تا ۵ دقیقه دکمهٔ زیر را بزن.",
+  "captcha.button": "✅ من انسانم",
+  "captcha.notForYou": "این دکمه برای تو نیست 🙂",
+  "captcha.passed": "خوش آمدی! 🎉",
+  "join.dmPrompt": "درخواست عضویت در <b>{chat}</b> دادی.\nبرای تأیید دکمه را بزن:",
+  "join.dmButton": "✅ تأیید و عضویت",
+  "join.approved": "✅ تأیید شد — خوش آمدی!",
+  "join.expired": "این درخواست عضویت دیگر معتبر نیست.",
+
+  "mod.warned": "⚠️ به <b>{name}</b> اخطار داده شد ({count}/{limit}).",
+  "mod.warnEscalated": "🔇 <b>{name}</b> به {count}/{limit} اخطار رسید ← ۲۴ ساعت سکوت.",
+  "mod.warnsCleared": "✅ اخطارهای {name} پاک شد.",
+  "mod.muted": "🔇 {name} برای {duration} ساکت شد. تلگرام خودش آن را برمی‌دارد.",
+  "mod.unmuted": "🔊 {name} دوباره می‌تواند صحبت کند.",
+  "mod.banned": "🔨 {name} مسدود شد؛ همهٔ پیام‌هایش حذف شد.",
+  "mod.unbanned": "✅ رفع مسدودیت شد (اگر مسدود بود).",
+  "mod.kicked": "👢 {name} اخراج شد (می‌تواند برگردد).",
+  "mod.unbanUsage": "استفاده: /unban <user_id> یا ریپلای روی پیام او.",
+  "mod.purgeUsage": "روی اولین پیامی که باید حذف شود ریپلای کن و /purge بفرست.",
+  "mod.pinUsage": "روی پیامی که باید سنجاق شود ریپلای کن.",
+  "mod.noRights": "🙁 برای این کار به دسترسی ادمین <b>{right}</b> نیاز دارم.",
+  "mod.lockdownOn": "🔒 گروه قفل شد: فقط ادمین‌ها می‌توانند صحبت کنند. /unlock برای بازگردانی.",
+  "mod.lockdownOff": "🔓 گروه باز شد — دسترسی‌های قبلی برگشت.",
+  "mod.infoTitle": "👤 <b>{name}</b>",
+  "mod.infoLine": "id: <code>{id}</code> · وضعیت: {status} · اخطارها: {warns}",
+  "report.sent": "🚨 ادمین‌ها باخبر شدند.",
+  "report.body": "🚨 <b>گزارش</b> از {name}: پیام ریپلای‌شده را ببینید.",
+
+  "flood.muted": "🌊 {name} چت را اسپم می‌کرد و {duration} ساکت شد.",
+
+  "settings.title": "⚙️ <b>تنظیمات این چت</b>",
+  "settings.dmHint": "این منو برای گروه‌هاست. در خصوصی همه چیز فعال است — /aimodel را امتحان کن.",
+  "settings.welcome": "خوش‌آمدگویی به اعضای جدید",
+  "settings.captcha": "کپچای دکمه‌ای هنگام ورود",
+  "settings.ai": "دستیار هوش مصنوعی",
+  "settings.aiEphemeral": "پاسخ‌های هوش فقط برای پرسنده دیده شود",
+  "settings.antiChannelSpam": "مسدودسازی اسپم با هویت کانال",
+  "settings.antiflood": "ضد سیل پیام (سکوت خودکار)",
+  "settings.ambient": "خواندن همهٔ پیام‌ها (برای زمینه و /summarize)",
+  "settings.warnLimit": "⚠️ سقف اخطار: {n}",
+  "settings.language": "🌐 زبان: {lang}",
+  "settings.aimodelBtn": "🤖 انتخاب مدل هوش → /aimodel",
+  "settings.welcomeSet": "✅ پیام خوش‌آمد ذخیره شد.",
+  "settings.welcomeUsage": 'استفاده: /welcome <متن>. {name} = نام عضو. بازنشانی: "/welcome -".',
+  "language.pick": "🌐 زبانی برای این چت انتخاب کن:",
+  "language.saved": "✅ زبان روی {lang} تنظیم شد.",
+
+  "notes.usage": "استفاده: /save <نام> <متن> (یا ریپلای روی یک پیام با /save <نام>).",
+  "notes.saved": "📝 یادداشت <code>#{name}</code> ذخیره شد.",
+  "notes.deleted": "🗑 یادداشت <code>#{name}</code> حذف شد.",
+  "notes.notFound": "یادداشتی به نام <code>#{name}</code> نیست.",
+  "notes.empty": "هنوز یادداشتی نیست. با /save <نام> <متن> ذخیره کن.",
+  "notes.list": "📒 <b>یادداشت‌ها:</b> {names}",
+  "rules.set": "📜 قوانین ذخیره شد. همه با /rules می‌خوانند.",
+  "rules.none": "هنوز قانونی تنظیم نشده. ادمین‌ها: /setrules <متن>.",
+
+  "ai.askUsage": "استفاده: /ask <سؤال>",
+  "ai.disabled": "هوش مصنوعی اینجا خاموش است. ادمین‌ها از /settings روشنش می‌کنند.",
+  "ai.forgot": "🧠 حافظهٔ این چت پاک شد.",
+  "ai.memoryTitle": "🧠 <b>چیزهایی که اینجا یادم است</b>\n\n{summary}",
+  "ai.memoryEmpty": "🧠 هنوز حافظهٔ بلندمدتی برای این چت نیست.",
+  "ai.modelTitle":
+    "🤖 <b>مدل هوش این چت</b>\nارائه‌دهنده: <code>{provider}</code>\nمدل: <code>{model}</code>\n\nارائه‌دهنده را انتخاب کن (داده: models.dev):",
+  "ai.providerMissing": "این ارائه‌دهنده در کاتالوگ نیست.",
+  "ai.pickModel": "ارائه‌دهنده <b>{provider}</b> — {keyState}\nمدل را انتخاب کن:",
+  "ai.keyOk": "✅ کلید API موجود است",
+  "ai.keyMissing": "⚠️ هنوز کلید API نیست (مالک: در خصوصی /setkey {provider} …)",
+  "ai.modelSaved": "✅ مدل هوش این چت: <code>{provider}/{model}</code>",
+  "ai.promptSaved": "✅ شخصیت هوش برای این چت ذخیره شد.",
+  "ai.promptReset": "شخصیت هوش به پیش‌فرض برگشت.",
+  "ai.setkeyUsage": "استفاده: /setkey <ارائه‌دهنده> <api-key>\nمثال: /setkey anthropic sk-ant-…",
+  "ai.keySaved": "✅ کلید <code>{provider}</code> ذخیره شد (رمزنگاری‌شده). پیامت را برای امنیت حذف کردم.",
+  "ai.noKey":
+    "کلید API برای <code>{provider}</code> نیست. مالک ربات می‌تواند با فرستادن /setkey {provider} <key> در خصوصی تنظیمش کند.",
+  "ai.summarizeOff":
+    "فقط وقتی می‌توانم خلاصه کنم که «خواندن همهٔ پیام‌ها» در /settings روشن باشد (و ادمین باشم).",
+  "ai.summarizeEmpty": "هنوز چیزی برای خلاصه کردن نیست.",
+  "ai.prevNext.prev": "« قبلی",
+  "ai.prevNext.next": "بعدی »",
+
+  "fun.pollUsage": "استفاده: /poll سؤال | گزینه ۱ | گزینه ۲ …",
+  "fun.quizUsage": "استفاده: /quiz سؤال | پاسخ درست | غلط ۱ …",
+  "stars.donateTitle": "از {bot} حمایت کن",
+  "stars.donateDesc": "ممنون که این دستیار را زنده نگه می‌داری! ⭐",
+  "stars.thanks": "💖 {name} مبلغ {amount} ⭐ اهدا کرد — سپاس!",
+  "stars.usage": "استفاده: /donate [تعداد استارز، مثلاً /donate 50]",
+  "remind.usage": "استفاده: /remind <10m|2h|1d> <متن>",
+  "remind.set": "⏰ باشه! تا {duration} دیگر یادآوری می‌کنم.",
+  "remind.fire": "⏰ <b>یادآوری</b> {mention}: {text}",
+
+  "status.title": "📋 <b>چت‌هایی که می‌شناسم</b>",
+  "status.empty": "هنوز چتی ثبت نشده. اول من را به گروه یا کانالی اضافه کن.",
+  "manager.needAdmin":
+    "👋 سلام! من SotongAssistant هستم.\nبرای مدیریت و هوش مصنوعی من را <b>ادمین</b> کن (حذف پیام، محدودسازی، دعوت، سنجاق). بعد /settings را باز کن.",
+} satisfies Partial<Record<keyof typeof en, string>>;

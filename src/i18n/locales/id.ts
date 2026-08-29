@@ -1,0 +1,122 @@
+import type { en } from "./en.js";
+
+/** Indonesian. */
+export const id = {
+  "error.adminOnly": "🔒 Hanya admin yang bisa memakai ini.",
+  "error.ownerOnly": "🔒 Hanya pemilik bot yang bisa memakai ini.",
+  "error.groupOnly": "Perintah ini hanya untuk grup.",
+  "error.dmOnly": "Demi keamanan, kirim lewat chat pribadi denganku.",
+  "error.replyRequired": "↩️ Balas (reply) pesan orangnya, lalu kirim perintahnya.",
+  "error.targetProtected": "🛡 Dia admin atau aku sendiri — tidak ada aksi.",
+  "error.generic": "⚠️ Ada yang salah: {reason}",
+
+  "start.body":
+    "🦑 <b>SotongAssistant</b>\n\nAsisten Telegram serba-bisa: moderasi grup, onboarding pintar, channel, Telegram Business, dan AI dengan model apa pun dari <b>models.dev</b>.\n\nKetuk /help untuk melihat semua kemampuanku.",
+  "help.title": "🦑 <b>Yang bisa kulakukan</b>",
+  "help.ai":
+    "🤖 <b>AI</b>\n/ask &lt;pertanyaan&gt; — tanya AI (atau reply/mention aku)\n/summarize — ringkas obrolan grup terakhir\n/aimodel — pilih provider &amp; model (models.dev)\n/aiprompt &lt;teks&gt; — kepribadian khusus chat ini\n/memory — lihat yang kuingat\n/forget — hapus memori chat ini",
+  "help.moderation":
+    "🛡 <b>Moderasi</b> (admin, via reply)\n/warn /unwarn — peringatan + eskalasi otomatis\n/mute [30m|2h|1d] /unmute — bisukan berbatas waktu\n/ban /unban /kick — ban &amp; keluarkan\n/purge — hapus massal sampai pesan yang di-reply\n/pin — sematkan pesan\n/lockdown /unlock — bekukan seluruh grup\n/info — detail seorang user",
+  "help.group":
+    "👥 <b>Perkakas grup</b>\n/settings — semua pengaturan, langsung di Telegram\n/welcome &lt;teks&gt; — sambutan kustom (placeholder {name})\n/setrules &lt;teks&gt; dan /rules — aturan grup\n/save &lt;nama&gt; dan #nama — catatan siap pakai\n/notes /clear — daftar &amp; hapus catatan\n/report — panggil admin\n/lang — ganti bahasaku",
+  "help.fun":
+    "🎲 <b>Seru-seruan</b>\n/dice /darts /slot — permainan animasi\n/coin — lempar koin\n/poll &lt;tanya&gt; | &lt;opsi1&gt; | &lt;opsi2&gt; — polling cepat\n/quiz &lt;tanya&gt; | &lt;benar&gt; | &lt;salah&gt;… — kuis\n/remind &lt;10m|2h&gt; &lt;teks&gt; — pengingat\n/donate [jumlah] — dukung via Telegram Stars ⭐",
+  "help.footer": "Tambahkan aku ke grup dan jadikan <b>admin</b> untuk membuka semua fitur.",
+
+  "welcome.default": "👋 Selamat datang, <b>{name}</b>!",
+  "captcha.prompt": "👋 Halo <b>{name}</b>! Tekan tombol di bawah dalam 5 menit untuk mulai mengobrol.",
+  "captcha.button": "✅ Saya manusia",
+  "captcha.notForYou": "Tombol ini bukan untukmu 🙂",
+  "captcha.passed": "Selamat bergabung! 🎉",
+  "join.dmPrompt": "Kamu meminta bergabung ke <b>{chat}</b>.\nTekan tombol untuk verifikasi:",
+  "join.dmButton": "✅ Verifikasi & gabung",
+  "join.approved": "✅ Diterima — selamat datang!",
+  "join.expired": "Permintaan join ini sudah tidak berlaku.",
+
+  "mod.warned": "⚠️ <b>{name}</b> diberi peringatan ({count}/{limit}).",
+  "mod.warnEscalated": "🔇 <b>{name}</b> mencapai {count}/{limit} peringatan → dibisukan 24 jam.",
+  "mod.warnsCleared": "✅ Peringatan {name} dihapus.",
+  "mod.muted": "🔇 {name} dibisukan {duration}. Telegram mengangkatnya otomatis.",
+  "mod.unmuted": "🔊 {name} bisa bicara lagi.",
+  "mod.banned": "🔨 {name} diban; semua pesannya dihapus.",
+  "mod.unbanned": "✅ Unban selesai (kalau memang diban).",
+  "mod.kicked": "👢 {name} dikeluarkan (boleh bergabung lagi).",
+  "mod.unbanUsage": "Pakai: /unban <user_id>, atau reply pesan lamanya.",
+  "mod.purgeUsage": "Reply pesan awal yang mau dihapus, lalu kirim /purge.",
+  "mod.pinUsage": "Reply pesan yang mau disematkan.",
+  "mod.noRights": "🙁 Aku butuh hak admin <b>{right}</b> untuk itu.",
+  "mod.lockdownOn": "🔒 Grup dikunci: hanya admin yang bisa bicara. /unlock untuk memulihkan.",
+  "mod.lockdownOff": "🔓 Grup dibuka — izin sebelumnya dipulihkan.",
+  "mod.infoTitle": "👤 <b>{name}</b>",
+  "mod.infoLine": "id: <code>{id}</code> · status: {status} · peringatan: {warns}",
+  "report.sent": "🚨 Admin sudah diberi tahu.",
+  "report.body": "🚨 <b>Laporan</b> dari {name}: periksa pesan yang di-reply.",
+
+  "flood.muted": "🌊 {name} membanjiri chat dan dibisukan {duration}.",
+
+  "settings.title": "⚙️ <b>Pengaturan chat ini</b>",
+  "settings.dmHint": "Menu ini untuk grup. Di DM semua sudah aktif — coba /aimodel.",
+  "settings.welcome": "Sambut member baru",
+  "settings.captcha": "Captcha tombol saat join",
+  "settings.ai": "Asisten AI",
+  "settings.aiEphemeral": "Jawaban AI hanya terlihat penanya",
+  "settings.antiChannelSpam": "Blokir spam persona channel",
+  "settings.antiflood": "Anti-banjir (mute otomatis)",
+  "settings.ambient": "Baca semua pesan (konteks & /summarize)",
+  "settings.warnLimit": "⚠️ Batas warn: {n}",
+  "settings.language": "🌐 Bahasa: {lang}",
+  "settings.aimodelBtn": "🤖 Pilih model AI → /aimodel",
+  "settings.welcomeSet": "✅ Pesan sambutan disimpan.",
+  "settings.welcomeUsage":
+    'Pakai: /welcome <teks>. Placeholder {name} = nama member. Reset dengan "/welcome -".',
+  "language.pick": "🌐 Pilih bahasa untuk chat ini:",
+  "language.saved": "✅ Bahasa diset ke {lang}.",
+
+  "notes.usage": "Pakai: /save <nama> <teks> (atau reply pesan dengan /save <nama>).",
+  "notes.saved": "📝 Catatan <code>#{name}</code> disimpan.",
+  "notes.deleted": "🗑 Catatan <code>#{name}</code> dihapus.",
+  "notes.notFound": "Tidak ada catatan <code>#{name}</code>.",
+  "notes.empty": "Belum ada catatan. Simpan dengan /save <nama> <teks>.",
+  "notes.list": "📒 <b>Catatan:</b> {names}",
+  "rules.set": "📜 Aturan disimpan. Semua bisa membacanya lewat /rules.",
+  "rules.none": "Belum ada aturan. Admin: /setrules <teks>.",
+
+  "ai.askUsage": "Pakai: /ask <pertanyaan>",
+  "ai.disabled": "AI dimatikan di sini. Admin bisa mengaktifkan lewat /settings.",
+  "ai.forgot": "🧠 Memori chat ini sudah dihapus.",
+  "ai.memoryTitle": "🧠 <b>Yang kuingat di sini</b>\n\n{summary}",
+  "ai.memoryEmpty": "🧠 Belum ada memori jangka panjang untuk chat ini.",
+  "ai.modelTitle":
+    "🤖 <b>Model AI chat ini</b>\nProvider: <code>{provider}</code>\nModel: <code>{model}</code>\n\nPilih provider (data: models.dev):",
+  "ai.providerMissing": "Provider itu tidak ada di katalog.",
+  "ai.pickModel": "Provider <b>{provider}</b> — {keyState}\nPilih model:",
+  "ai.keyOk": "✅ API key tersedia",
+  "ai.keyMissing": "⚠️ belum ada API key (owner: DM /setkey {provider} …)",
+  "ai.modelSaved": "✅ Model AI chat ini: <code>{provider}/{model}</code>",
+  "ai.promptSaved": "✅ Kepribadian AI khusus chat ini disimpan.",
+  "ai.promptReset": "Kepribadian AI dikembalikan ke default.",
+  "ai.setkeyUsage": "Pakai: /setkey <provider-id> <api-key>\nContoh: /setkey anthropic sk-ant-…",
+  "ai.keySaved": "✅ API key <code>{provider}</code> disimpan (terenkripsi). Pesanmu kuhapus demi keamanan.",
+  "ai.noKey":
+    "Belum ada API key untuk <code>{provider}</code>. Pemilik bot bisa menyetelnya dengan mengirim /setkey {provider} <key> lewat DM kepadaku.",
+  "ai.summarizeOff":
+    "Aku hanya bisa merangkum bila “Baca semua pesan” diaktifkan di /settings (dan aku admin).",
+  "ai.summarizeEmpty": "Belum ada yang bisa dirangkum.",
+  "ai.prevNext.prev": "« Sebelumnya",
+  "ai.prevNext.next": "Berikutnya »",
+
+  "fun.pollUsage": "Pakai: /poll Pertanyaan | Opsi 1 | Opsi 2 …",
+  "fun.quizUsage": "Pakai: /quiz Pertanyaan | Jawaban benar | Salah 1 | Salah 2 …",
+  "stars.donateTitle": "Dukung {bot}",
+  "stars.donateDesc": "Terima kasih sudah menghidupi asisten ini! ⭐",
+  "stars.thanks": "💖 {name} berdonasi {amount} ⭐ — terima kasih!",
+  "stars.usage": "Pakai: /donate [jumlah Stars, mis. /donate 50]",
+  "remind.usage": "Pakai: /remind <10m|2h|1d> <teks>",
+  "remind.set": "⏰ Siap! Kuingatkan dalam {duration}.",
+  "remind.fire": "⏰ <b>Pengingat</b> {mention}: {text}",
+
+  "status.title": "📋 <b>Chat yang kuketahui</b>",
+  "status.empty": "Belum ada chat tercatat. Tambahkan aku ke grup/channel dulu.",
+  "manager.needAdmin":
+    "👋 Halo! Aku SotongAssistant.\nJadikan aku <b>admin</b> (hapus pesan, restrict, undang, pin) agar moderasi & AI aktif. Lalu buka /settings.",
+} satisfies Partial<Record<keyof typeof en, string>>;

@@ -1,0 +1,121 @@
+import type { en } from "./en.js";
+
+/** Spanish. */
+export const es = {
+  "error.adminOnly": "🔒 Solo los administradores pueden usar esto.",
+  "error.ownerOnly": "🔒 Solo el dueño del bot puede usar esto.",
+  "error.groupOnly": "Este comando solo funciona en grupos.",
+  "error.dmOnly": "Por seguridad, envíamelo por chat privado.",
+  "error.replyRequired": "↩️ Responde al mensaje de la persona y envía el comando.",
+  "error.targetProtected": "🛡 Es un admin o yo mismo — sin acción.",
+  "error.generic": "⚠️ Algo salió mal: {reason}",
+
+  "start.body":
+    "🦑 <b>SotongAssistant</b>\n\nTu asistente todo-en-uno para Telegram: moderación de grupos, bienvenida inteligente, canales, Telegram Business e IA con cualquier modelo de <b>models.dev</b>.\n\nToca /help para ver todo lo que puedo hacer.",
+  "help.title": "🦑 <b>Lo que puedo hacer</b>",
+  "help.ai":
+    "🤖 <b>IA</b>\n/ask &lt;pregunta&gt; — pregunta a la IA (o respóndeme / mencióname)\n/summarize — resume la actividad reciente\n/aimodel — elige proveedor y modelo (models.dev)\n/aiprompt &lt;texto&gt; — personalidad para este chat\n/memory — qué recuerdo\n/forget — borra la memoria de este chat",
+  "help.moderation":
+    "🛡 <b>Moderación</b> (admins, respondiendo a un mensaje)\n/warn /unwarn — avisos con escalada automática\n/mute [30m|2h|1d] /unmute — silencios temporales\n/ban /unban /kick — baneos y expulsiones\n/purge — borrado masivo hasta el mensaje respondido\n/pin — fijar mensaje\n/lockdown /unlock — congelar el grupo\n/info — detalles de un usuario",
+  "help.group":
+    "👥 <b>Herramientas de grupo</b>\n/settings — todos los ajustes, dentro de Telegram\n/welcome &lt;texto&gt; — bienvenida personalizada ({name})\n/setrules y /rules — reglas del grupo\n/save &lt;nombre&gt; y #nombre — notas reutilizables\n/notes /clear — listar y borrar notas\n/report — llamar a los admins\n/lang — cambiar mi idioma",
+  "help.fun":
+    "🎲 <b>Diversión</b>\n/dice /darts /slot — juegos animados\n/coin — cara o cruz\n/poll &lt;pregunta&gt; | &lt;op1&gt; | &lt;op2&gt; — encuesta rápida\n/quiz &lt;pregunta&gt; | &lt;correcta&gt; | &lt;incorrecta&gt;… — quiz\n/remind &lt;10m|2h&gt; &lt;texto&gt; — recordatorios\n/donate [cantidad] — apóyanos con Telegram Stars ⭐",
+  "help.footer": "Agrégame a un grupo y hazme <b>admin</b> para desbloquear todo.",
+
+  "welcome.default": "👋 ¡Bienvenido, <b>{name}</b>!",
+  "captcha.prompt": "👋 ¡Hola <b>{name}</b>! Pulsa el botón en menos de 5 minutos para empezar a chatear.",
+  "captcha.button": "✅ Soy humano",
+  "captcha.notForYou": "Este botón no es para ti 🙂",
+  "captcha.passed": "¡Bienvenido a bordo! 🎉",
+  "join.dmPrompt": "Pediste unirte a <b>{chat}</b>.\nPulsa el botón para verificarte:",
+  "join.dmButton": "✅ Verificar y unirme",
+  "join.approved": "✅ Aprobado — ¡bienvenido!",
+  "join.expired": "Esta solicitud ya no es válida.",
+
+  "mod.warned": "⚠️ <b>{name}</b> ha sido advertido ({count}/{limit}).",
+  "mod.warnEscalated": "🔇 <b>{name}</b> llegó a {count}/{limit} avisos → silenciado 24 h.",
+  "mod.warnsCleared": "✅ Avisos de {name} borrados.",
+  "mod.muted": "🔇 {name} silenciado por {duration}. Telegram lo levanta automáticamente.",
+  "mod.unmuted": "🔊 {name} puede hablar de nuevo.",
+  "mod.banned": "🔨 {name} baneado; todos sus mensajes fueron eliminados.",
+  "mod.unbanned": "✅ Desbaneado (si estaba baneado).",
+  "mod.kicked": "👢 {name} fue expulsado (puede volver).",
+  "mod.unbanUsage": "Uso: /unban <user_id>, o responde a uno de sus mensajes.",
+  "mod.purgeUsage": "Responde al primer mensaje a borrar y envía /purge.",
+  "mod.pinUsage": "Responde al mensaje que quieres fijar.",
+  "mod.noRights": "🙁 Necesito el permiso de admin <b>{right}</b> para eso.",
+  "mod.lockdownOn": "🔒 Grupo bloqueado: solo hablan los admins. /unlock para restaurar.",
+  "mod.lockdownOff": "🔓 Grupo desbloqueado — permisos restaurados.",
+  "mod.infoTitle": "👤 <b>{name}</b>",
+  "mod.infoLine": "id: <code>{id}</code> · estado: {status} · avisos: {warns}",
+  "report.sent": "🚨 Los admins han sido avisados.",
+  "report.body": "🚨 <b>Reporte</b> de {name}: revisa el mensaje respondido.",
+
+  "flood.muted": "🌊 {name} estaba inundando el chat y fue silenciado {duration}.",
+
+  "settings.title": "⚙️ <b>Ajustes de este chat</b>",
+  "settings.dmHint": "Este menú es para grupos. En privado todo está activo — prueba /aimodel.",
+  "settings.welcome": "Dar la bienvenida a nuevos miembros",
+  "settings.captcha": "Captcha con botón al entrar",
+  "settings.ai": "Asistente de IA",
+  "settings.aiEphemeral": "Respuestas de IA visibles solo para quien pregunta",
+  "settings.antiChannelSpam": "Bloquear spam de canales",
+  "settings.antiflood": "Anti-flood (silencio automático)",
+  "settings.ambient": "Leer todos los mensajes (contexto y /summarize)",
+  "settings.warnLimit": "⚠️ Límite de avisos: {n}",
+  "settings.language": "🌐 Idioma: {lang}",
+  "settings.aimodelBtn": "🤖 Elegir modelo de IA → /aimodel",
+  "settings.welcomeSet": "✅ Mensaje de bienvenida guardado.",
+  "settings.welcomeUsage": 'Uso: /welcome <texto>. {name} = nombre del miembro. Restablecer: "/welcome -".',
+  "language.pick": "🌐 Elige un idioma para este chat:",
+  "language.saved": "✅ Idioma cambiado a {lang}.",
+
+  "notes.usage": "Uso: /save <nombre> <texto> (o responde a un mensaje con /save <nombre>).",
+  "notes.saved": "📝 Nota <code>#{name}</code> guardada.",
+  "notes.deleted": "🗑 Nota <code>#{name}</code> eliminada.",
+  "notes.notFound": "No hay ninguna nota <code>#{name}</code>.",
+  "notes.empty": "Aún no hay notas. Guarda una con /save <nombre> <texto>.",
+  "notes.list": "📒 <b>Notas:</b> {names}",
+  "rules.set": "📜 Reglas guardadas. Léelas con /rules.",
+  "rules.none": "Aún no hay reglas. Admins: /setrules <texto>.",
+
+  "ai.askUsage": "Uso: /ask <pregunta>",
+  "ai.disabled": "La IA está apagada aquí. Los admins pueden activarla en /settings.",
+  "ai.forgot": "🧠 Memoria de este chat borrada.",
+  "ai.memoryTitle": "🧠 <b>Lo que recuerdo aquí</b>\n\n{summary}",
+  "ai.memoryEmpty": "🧠 Aún no hay memoria a largo plazo en este chat.",
+  "ai.modelTitle":
+    "🤖 <b>Modelo de IA de este chat</b>\nProveedor: <code>{provider}</code>\nModelo: <code>{model}</code>\n\nElige un proveedor (datos: models.dev):",
+  "ai.providerMissing": "Ese proveedor no está en el catálogo.",
+  "ai.pickModel": "Proveedor <b>{provider}</b> — {keyState}\nElige un modelo:",
+  "ai.keyOk": "✅ API key disponible",
+  "ai.keyMissing": "⚠️ sin API key aún (dueño: DM /setkey {provider} …)",
+  "ai.modelSaved": "✅ Modelo de IA de este chat: <code>{provider}/{model}</code>",
+  "ai.promptSaved": "✅ Personalidad de IA guardada para este chat.",
+  "ai.promptReset": "Personalidad de IA restablecida.",
+  "ai.setkeyUsage": "Uso: /setkey <proveedor> <api-key>\nEjemplo: /setkey anthropic sk-ant-…",
+  "ai.keySaved": "✅ API key de <code>{provider}</code> guardada (cifrada). Borré tu mensaje por seguridad.",
+  "ai.noKey":
+    "No hay API key para <code>{provider}</code>. El dueño del bot puede configurarla enviándome /setkey {provider} <key> por privado.",
+  "ai.summarizeOff":
+    "Solo puedo resumir si «Leer todos los mensajes» está activo en /settings (y soy admin).",
+  "ai.summarizeEmpty": "Nada que resumir todavía.",
+  "ai.prevNext.prev": "« Anterior",
+  "ai.prevNext.next": "Siguiente »",
+
+  "fun.pollUsage": "Uso: /poll Pregunta | Opción 1 | Opción 2 …",
+  "fun.quizUsage": "Uso: /quiz Pregunta | Correcta | Incorrecta 1 …",
+  "stars.donateTitle": "Apoya a {bot}",
+  "stars.donateDesc": "¡Gracias por mantener vivo a este asistente! ⭐",
+  "stars.thanks": "💖 {name} donó {amount} ⭐ — ¡gracias!",
+  "stars.usage": "Uso: /donate [cantidad de Stars, p. ej. /donate 50]",
+  "remind.usage": "Uso: /remind <10m|2h|1d> <texto>",
+  "remind.set": "⏰ ¡Listo! Te lo recordaré en {duration}.",
+  "remind.fire": "⏰ <b>Recordatorio</b> {mention}: {text}",
+
+  "status.title": "📋 <b>Chats que conozco</b>",
+  "status.empty": "Aún no hay chats registrados. Agrégame a un grupo o canal primero.",
+  "manager.needAdmin":
+    "👋 ¡Hola! Soy SotongAssistant.\nHazme <b>admin</b> (borrar mensajes, restringir, invitar, fijar) para activar moderación e IA. Luego abre /settings.",
+} satisfies Partial<Record<keyof typeof en, string>>;

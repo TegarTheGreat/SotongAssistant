@@ -1,0 +1,122 @@
+import type { en } from "./en.js";
+
+/** Russian. */
+export const ru = {
+  "error.adminOnly": "🔒 Это могут делать только админы.",
+  "error.ownerOnly": "🔒 Это может делать только владелец бота.",
+  "error.groupOnly": "Эта команда работает только в группах.",
+  "error.dmOnly": "В целях безопасности отправьте это мне в личные сообщения.",
+  "error.replyRequired": "↩️ Ответьте на сообщение пользователя и отправьте команду.",
+  "error.targetProtected": "🛡 Это админ или я сам — действие отменено.",
+  "error.generic": "⚠️ Что-то пошло не так: {reason}",
+
+  "start.body":
+    "🦑 <b>SotongAssistant</b>\n\nУниверсальный помощник для Telegram: модерация групп, умный онбординг, каналы, Telegram Business и ИИ с любой моделью из каталога <b>models.dev</b>.\n\nНажмите /help, чтобы увидеть все возможности.",
+  "help.title": "🦑 <b>Что я умею</b>",
+  "help.ai":
+    "🤖 <b>ИИ</b>\n/ask &lt;вопрос&gt; — спросить ИИ (или ответьте мне / упомяните меня)\n/summarize — краткая сводка последних сообщений\n/aimodel — выбрать провайдера и модель (models.dev)\n/aiprompt &lt;текст&gt; — характер бота для этого чата\n/memory — что я помню\n/forget — стереть память этого чата",
+  "help.moderation":
+    "🛡 <b>Модерация</b> (для админов, ответом на сообщение)\n/warn /unwarn — предупреждения с автоэскалацией\n/mute [30m|2h|1d] /unmute — мут на время\n/ban /unban /kick — баны и кики\n/purge — массовое удаление до отвеченного сообщения\n/pin — закрепить сообщение\n/lockdown /unlock — заморозить группу\n/info — сведения о пользователе",
+  "help.group":
+    "👥 <b>Инструменты группы</b>\n/settings — все настройки прямо в Telegram\n/welcome &lt;текст&gt; — приветствие ({name} — имя)\n/setrules и /rules — правила группы\n/save &lt;имя&gt; и #имя — заметки\n/notes /clear — список и удаление заметок\n/report — позвать админов\n/lang — сменить язык",
+  "help.fun":
+    "🎲 <b>Развлечения</b>\n/dice /darts /slot — анимированные игры\n/coin — подбросить монету\n/poll &lt;вопрос&gt; | &lt;вариант1&gt; | &lt;вариант2&gt; — опрос\n/quiz &lt;вопрос&gt; | &lt;верный&gt; | &lt;неверный&gt;… — викторина\n/remind &lt;10m|2h&gt; &lt;текст&gt; — напоминания\n/donate [сумма] — поддержать через Telegram Stars ⭐",
+  "help.footer": "Добавьте меня в группу и сделайте <b>админом</b>, чтобы открыть все функции.",
+
+  "welcome.default": "👋 Добро пожаловать, <b>{name}</b>!",
+  "captcha.prompt": "👋 Привет, <b>{name}</b>! Нажмите кнопку ниже в течение 5 минут, чтобы начать общение.",
+  "captcha.button": "✅ Я человек",
+  "captcha.notForYou": "Эта кнопка не для вас 🙂",
+  "captcha.passed": "Добро пожаловать! 🎉",
+  "join.dmPrompt": "Вы подали заявку на вступление в <b>{chat}</b>.\nНажмите кнопку для проверки:",
+  "join.dmButton": "✅ Проверить и вступить",
+  "join.approved": "✅ Одобрено — добро пожаловать!",
+  "join.expired": "Эта заявка больше недействительна.",
+
+  "mod.warned": "⚠️ <b>{name}</b> получил предупреждение ({count}/{limit}).",
+  "mod.warnEscalated": "🔇 <b>{name}</b> набрал {count}/{limit} предупреждений → мут на 24 часа.",
+  "mod.warnsCleared": "✅ Предупреждения {name} сняты.",
+  "mod.muted": "🔇 {name} в муте на {duration}. Telegram снимет его автоматически.",
+  "mod.unmuted": "🔊 {name} снова может писать.",
+  "mod.banned": "🔨 {name} забанен; все его сообщения удалены.",
+  "mod.unbanned": "✅ Разбанен (если был в бане).",
+  "mod.kicked": "👢 {name} исключён (может вернуться).",
+  "mod.unbanUsage": "Использование: /unban <user_id> или ответом на его сообщение.",
+  "mod.purgeUsage": "Ответьте на первое сообщение для удаления и отправьте /purge.",
+  "mod.pinUsage": "Ответьте на сообщение, которое нужно закрепить.",
+  "mod.noRights": "🙁 Мне нужно право админа <b>{right}</b> для этого.",
+  "mod.lockdownOn": "🔒 Группа закрыта: писать могут только админы. /unlock — вернуть.",
+  "mod.lockdownOff": "🔓 Группа открыта — прежние разрешения восстановлены.",
+  "mod.infoTitle": "👤 <b>{name}</b>",
+  "mod.infoLine": "id: <code>{id}</code> · статус: {status} · предупреждений: {warns}",
+  "report.sent": "🚨 Админы уведомлены.",
+  "report.body": "🚨 <b>Жалоба</b> от {name}: проверьте отвеченное сообщение.",
+
+  "flood.muted": "🌊 {name} флудил и получил мут на {duration}.",
+
+  "settings.title": "⚙️ <b>Настройки этого чата</b>",
+  "settings.dmHint": "Это меню для групп. В личке всё уже включено — попробуйте /aimodel.",
+  "settings.welcome": "Приветствовать новых участников",
+  "settings.captcha": "Кнопка-капча при входе",
+  "settings.ai": "ИИ-ассистент",
+  "settings.aiEphemeral": "Ответы ИИ видит только автор вопроса",
+  "settings.antiChannelSpam": "Блокировать спам от имени каналов",
+  "settings.antiflood": "Антифлуд (авто-мут)",
+  "settings.ambient": "Читать все сообщения (контекст и /summarize)",
+  "settings.warnLimit": "⚠️ Лимит предупреждений: {n}",
+  "settings.language": "🌐 Язык: {lang}",
+  "settings.aimodelBtn": "🤖 Выбрать модель ИИ → /aimodel",
+  "settings.welcomeSet": "✅ Приветствие сохранено.",
+  "settings.welcomeUsage":
+    'Использование: /welcome <текст>. {name} — имя участника. Сброс: "/welcome -".',
+  "language.pick": "🌐 Выберите язык для этого чата:",
+  "language.saved": "✅ Язык установлен: {lang}.",
+
+  "notes.usage": "Использование: /save <имя> <текст> (или ответом на сообщение: /save <имя>).",
+  "notes.saved": "📝 Заметка <code>#{name}</code> сохранена.",
+  "notes.deleted": "🗑 Заметка <code>#{name}</code> удалена.",
+  "notes.notFound": "Заметки <code>#{name}</code> нет.",
+  "notes.empty": "Заметок пока нет. Сохраните: /save <имя> <текст>.",
+  "notes.list": "📒 <b>Заметки:</b> {names}",
+  "rules.set": "📜 Правила сохранены. Читать: /rules.",
+  "rules.none": "Правила ещё не заданы. Админы: /setrules <текст>.",
+
+  "ai.askUsage": "Использование: /ask <вопрос>",
+  "ai.disabled": "ИИ здесь выключен. Админы могут включить его в /settings.",
+  "ai.forgot": "🧠 Память этого чата стёрта.",
+  "ai.memoryTitle": "🧠 <b>Что я здесь помню</b>\n\n{summary}",
+  "ai.memoryEmpty": "🧠 Долгосрочной памяти для этого чата пока нет.",
+  "ai.modelTitle":
+    "🤖 <b>Модель ИИ этого чата</b>\nПровайдер: <code>{provider}</code>\nМодель: <code>{model}</code>\n\nВыберите провайдера (данные: models.dev):",
+  "ai.providerMissing": "Такого провайдера нет в каталоге.",
+  "ai.pickModel": "Провайдер <b>{provider}</b> — {keyState}\nВыберите модель:",
+  "ai.keyOk": "✅ API-ключ есть",
+  "ai.keyMissing": "⚠️ нет API-ключа (владелец: в личку /setkey {provider} …)",
+  "ai.modelSaved": "✅ Модель ИИ этого чата: <code>{provider}/{model}</code>",
+  "ai.promptSaved": "✅ Характер ИИ для этого чата сохранён.",
+  "ai.promptReset": "Характер ИИ сброшен к настройкам по умолчанию.",
+  "ai.setkeyUsage": "Использование: /setkey <провайдер> <api-key>\nПример: /setkey anthropic sk-ant-…",
+  "ai.keySaved": "✅ API-ключ <code>{provider}</code> сохранён (зашифрован). Ваше сообщение удалено ради безопасности.",
+  "ai.noKey":
+    "Нет API-ключа для <code>{provider}</code>. Владелец бота может задать его командой /setkey {provider} <key> в личке со мной.",
+  "ai.summarizeOff":
+    "Сводка работает, только если в /settings включено «Читать все сообщения» (и я админ).",
+  "ai.summarizeEmpty": "Пока нечего резюмировать.",
+  "ai.prevNext.prev": "« Назад",
+  "ai.prevNext.next": "Далее »",
+
+  "fun.pollUsage": "Использование: /poll Вопрос | Вариант 1 | Вариант 2 …",
+  "fun.quizUsage": "Использование: /quiz Вопрос | Верный ответ | Неверный 1 …",
+  "stars.donateTitle": "Поддержать {bot}",
+  "stars.donateDesc": "Спасибо, что поддерживаете этого помощника! ⭐",
+  "stars.thanks": "💖 {name} задонатил {amount} ⭐ — спасибо!",
+  "stars.usage": "Использование: /donate [число Stars, напр. /donate 50]",
+  "remind.usage": "Использование: /remind <10m|2h|1d> <текст>",
+  "remind.set": "⏰ Хорошо! Напомню через {duration}.",
+  "remind.fire": "⏰ <b>Напоминание</b> {mention}: {text}",
+
+  "status.title": "📋 <b>Чаты, которые я знаю</b>",
+  "status.empty": "Чатов пока нет. Сначала добавьте меня в группу или канал.",
+  "manager.needAdmin":
+    "👋 Привет! Я SotongAssistant.\nСделайте меня <b>админом</b> (удаление сообщений, ограничения, приглашения, закрепы), чтобы включить модерацию и ИИ. Затем откройте /settings.",
+} satisfies Partial<Record<keyof typeof en, string>>;

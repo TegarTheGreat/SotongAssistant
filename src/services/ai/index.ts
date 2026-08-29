@@ -1,4 +1,4 @@
-import { getProviderKey, type MemoryMessage } from "../../db/index.js";
+import { getProviderKey, type MemoryMessage } from "../../db/repo.js";
 import type { CatalogProvider } from "../catalog.js";
 import { streamAnthropic } from "./anthropic.js";
 import { streamOpenAiCompat } from "./openaiCompat.js";
@@ -13,7 +13,17 @@ export interface AiRequest {
   maxTokens?: number;
 }
 
-/** Base URL untuk provider besar yang TOML-nya tidak mencantumkan field `api`. */
+/** Error carrying a machine-readable code so callers can localize the message. */
+export class AiError extends Error {
+  constructor(
+    public code: "no_key" | "unsupported_provider" | "refused" | "provider_error",
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/** Base URLs for major providers whose models.dev entry has no `api` field. */
 const KNOWN_BASE_URLS: Record<string, string> = {
   openai: "https://api.openai.com/v1",
   groq: "https://api.groq.com/openai/v1",
@@ -36,17 +46,12 @@ export function resolveApiKey(provider: CatalogProvider): string | undefined {
 }
 
 /**
- * Streaming completion. onDelta dipanggil per potongan teks;
- * mengembalikan teks lengkap saat selesai.
+ * Streaming completion. `onDelta` receives the accumulated text on every chunk;
+ * resolves with the full text when generation finishes.
  */
 export async function streamCompletion(req: AiRequest, onDelta: (full: string) => void): Promise<string> {
   const apiKey = resolveApiKey(req.provider);
-  if (!apiKey) {
-    throw new Error(
-      `API key untuk provider "${req.provider.id}" belum disetel. ` +
-        `Owner bot: kirim /setkey ${req.provider.id} <api-key> lewat DM ke bot.`,
-    );
-  }
+  if (!apiKey) throw new AiError("no_key", `missing API key for ${req.provider.id}`);
 
   if (req.provider.npm === "@ai-sdk/anthropic") {
     return streamAnthropic(req, apiKey, onDelta);
@@ -54,9 +59,9 @@ export async function streamCompletion(req: AiRequest, onDelta: (full: string) =
 
   const baseUrl = req.provider.api ?? KNOWN_BASE_URLS[req.provider.id];
   if (!baseUrl) {
-    throw new Error(
-      `Provider "${req.provider.id}" belum didukung adapter bot ini ` +
-        `(tidak ada endpoint OpenAI-compatible yang diketahui).`,
+    throw new AiError(
+      "unsupported_provider",
+      `provider "${req.provider.id}" has no known OpenAI-compatible endpoint`,
     );
   }
   return streamOpenAiCompat(req, apiKey, baseUrl, onDelta);

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AiRequest } from "./index.js";
+import { AiError, type AiRequest } from "./index.js";
 
 const clients = new Map<string, Anthropic>();
 
@@ -25,7 +25,7 @@ export async function streamAnthropic(
     { role: "user", content: req.userName ? `${req.userName}: ${req.userText}` : req.userText },
   ];
 
-  // Balasan Telegram dibatasi 4096 karakter per pesan — output pendek memang disengaja.
+  // Telegram replies are capped at 4096 chars per message — short output is intentional.
   const stream = client(apiKey).messages.stream({
     model: req.model,
     max_tokens: req.maxTokens ?? 4096,
@@ -39,9 +39,14 @@ export async function streamAnthropic(
     onDelta(full);
   });
 
-  const final = await stream.finalMessage();
-  if (final.stop_reason === "refusal") {
-    throw new Error("Model menolak menjawab permintaan ini.");
+  try {
+    const final = await stream.finalMessage();
+    if (final.stop_reason === "refusal") {
+      throw new AiError("refused", "the model declined this request");
+    }
+    return full;
+  } catch (err) {
+    if (err instanceof AiError) throw err;
+    throw new AiError("provider_error", (err as Error).message);
   }
-  return full;
 }
