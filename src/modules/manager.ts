@@ -46,6 +46,31 @@ manager.command("status", async (ctx) => {
   await ctx.reply(`${tc(ctx, "status.title")}\n${lines.join("\n")}`, { parse_mode: "HTML" });
 });
 
+// /broadcast <text> — owner only, DM only: deliver to every managed group/channel.
+manager.command("broadcast", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  const text = ctx.match.trim();
+  if (!text) {
+    await ctx.reply(tc(ctx, "broadcast.usage"));
+    return;
+  }
+  const targets = listKnownChats().filter(
+    (c) => c.type !== "private" && (c.status === "member" || c.status === "administrator"),
+  );
+  let sent = 0;
+  for (const chat of targets) {
+    try {
+      await ctx.api.sendMessage(chat.chat_id, `📣 ${escapeHtml(text)}`, { parse_mode: "HTML" });
+      sent++;
+    } catch {
+      /* kicked or restricted there — skip */
+    }
+    // Stay well inside the ~30 msg/s global budget.
+    await new Promise((r) => setTimeout(r, 1200));
+  }
+  await ctx.reply(tc(ctx, "broadcast.done", { count: sent }));
+});
+
 manager.command("id", async (ctx) => {
   await ctx.reply(
     `chat_id: <code>${ctx.chat.id}</code>` + (ctx.from ? `\nuser_id: <code>${ctx.from.id}</code>` : ""),

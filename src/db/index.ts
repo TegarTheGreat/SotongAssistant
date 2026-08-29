@@ -62,6 +62,13 @@ CREATE TABLE IF NOT EXISTS message_log (
   PRIMARY KEY (chat_id, message_id)
 );
 CREATE INDEX IF NOT EXISTS message_log_ts ON message_log (chat_id, ts);
+CREATE TABLE IF NOT EXISTS karma (
+  chat_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  name TEXT,
+  score INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (chat_id, user_id)
+);
 CREATE TABLE IF NOT EXISTS business_connections (
   connection_id TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL,

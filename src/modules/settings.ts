@@ -8,7 +8,7 @@ export const settings = new Composer<Context>();
 
 type ToggleKey = keyof Pick<
   ChatSettings,
-  "welcome" | "captcha" | "ai" | "aiEphemeral" | "antiChannelSpam" | "antiflood" | "ambient"
+  "welcome" | "captcha" | "ai" | "aiEphemeral" | "antiChannelSpam" | "antiflood" | "ambient" | "antiraid"
 >;
 
 const TOGGLES: Array<{ key: ToggleKey; label: LocaleKey }> = [
@@ -18,6 +18,7 @@ const TOGGLES: Array<{ key: ToggleKey; label: LocaleKey }> = [
   { key: "aiEphemeral", label: "settings.aiEphemeral" },
   { key: "antiChannelSpam", label: "settings.antiChannelSpam" },
   { key: "antiflood", label: "settings.antiflood" },
+  { key: "antiraid", label: "settings.antiraid" },
   { key: "ambient", label: "settings.ambient" },
 ];
 

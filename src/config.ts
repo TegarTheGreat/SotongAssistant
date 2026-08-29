@@ -4,7 +4,7 @@ import path from "node:path";
 function required(name: string): string {
   const v = process.env[name];
   if (!v) {
-    console.error(`Konfigurasi kurang: env ${name} belum disetel. Lihat .env.example`);
+    console.error(`Missing configuration: env ${name} is not set. See .env.example`);
     process.exit(1);
   }
   return v;
@@ -14,9 +14,16 @@ export const config = {
   botToken: required("BOT_TOKEN"),
   ownerId: Number(process.env.OWNER_ID ?? 0),
   dataDir: process.env.DATA_DIR ?? path.resolve("data"),
-  /** Default AI bila chat belum memilih model sendiri. */
+  /** Default AI model when a chat has not picked its own. */
   defaultProvider: process.env.DEFAULT_AI_PROVIDER ?? "anthropic",
   defaultModel: process.env.DEFAULT_AI_MODEL ?? "claude-opus-5",
+  /**
+   * Webhook mode: set WEBHOOK_URL (public HTTPS URL Telegram will POST to)
+   * to switch from long polling — required for multiple replicas.
+   */
+  webhookUrl: process.env.WEBHOOK_URL,
+  port: Number(process.env.PORT ?? 8080),
+  webhookSecret: process.env.WEBHOOK_SECRET,
 };
 
 mkdirSync(config.dataDir, { recursive: true });

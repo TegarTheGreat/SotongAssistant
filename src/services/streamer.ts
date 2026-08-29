@@ -67,7 +67,28 @@ export class TelegramStreamer {
     }
   }
 
-  /** Final edit: render HTML, split if > 4096, plain-text fallback if parsing fails. */
+  /**
+   * Try upgrading the final answer to a Telegram Rich Message (Bot API 10.1):
+   * the model's raw Markdown renders natively (tables, code, lists) with no
+   * escaping. Only attempted for single-chunk answers that actually contain
+   * Markdown structure; any failure falls back to the HTML path.
+   */
+  private async tryRichEdit(text: string): Promise<boolean> {
+    if (!/```|\*\*|^#{1,3} |\n\|.+\|/m.test(text)) return false;
+    try {
+      const raw = this.api.raw as unknown as Record<string, (p: unknown) => Promise<unknown>>;
+      await raw.editMessageText!({
+        chat_id: this.chatId,
+        message_id: this.messageId,
+        rich_message: { markdown: text },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Final edit: Rich Message when possible, else HTML; split if > 4096. */
   async finish(fullText: string): Promise<void> {
     if (this.timer) clearTimeout(this.timer);
     this.timer = undefined;
@@ -77,6 +98,7 @@ export class TelegramStreamer {
 
     const chunks = chunkText(fullText.trim() || "—");
     const first = chunks[0]!;
+    if (chunks.length === 1 && (await this.tryRichEdit(first))) return;
     try {
       await this.api.editMessageText(this.chatId, this.messageId, markdownToTelegramHtml(first), {
         parse_mode: "HTML",

@@ -35,12 +35,14 @@ Every setting lives inside Telegram. No web dashboard.**
 | 🧠 | **Layered memory** | Rolling short-term transcript **plus** a model-maintained long-term summary (OpenClaw/Hermes-style compaction) · per group *and* per forum topic · `/memory` to inspect, `/forget` to wipe |
 | 🛡 | **Moderation** | `/warn` with auto-escalation · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` |
 | 👋 | **Onboarding** | Reliable join detection via `chat_member` · welcome messages (auto-cleanup) · button captcha with timeout-kick · join-request gate verified in DM |
-| 🌊 | **Anti-abuse** | Anti-flood auto-mute · channel-persona spam blocking (linked channel whitelisted) · anonymous-admin & auto-forward aware |
+| 🌊 | **Anti-abuse** | Anti-flood auto-mute · **auto raid protection** (join-spike lockdown with timed restore) · **CAS anti-spam screening** on joins & join requests · **guard-bot join queries** (Bot API 10.1) · channel-persona spam blocking (linked channel whitelisted) · anonymous-admin & auto-forward aware |
 | 📒 | **Notes & rules** | `/save faq` → recall with `#faq` · `/setrules` & `/rules` |
-| 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · `/donate` via Telegram Stars ⭐ (with owner `/refund`) |
+| 🎲 | **Engagement** | Dice/darts/slot games · `/poll` & multi-answer `/quiz` · `/remind 10m …` · **reaction karma** with `/karma` leaderboard · recurring `/announce` posts · `/donate` via Telegram Stars ⭐ (with owner `/refund`) |
 | 📣 | **Channels** | Tracks channels it administers, `/ping` health check |
 | 💼 | **Telegram Business** | Answers incoming customer chats with AI on the owner's behalf (rate-limited & concurrency-capped) |
-| 📋 | **Bot manager** | `/status` shows every chat it manages + its admin rights in each · group→supergroup migration handled automatically |
+| 📋 | **Bot manager** | `/status` shows every chat it manages + its admin rights in each · owner `/broadcast` to all managed chats · group→supergroup migration handled automatically |
+| 🤖 | **Rich Messages** | Final AI answers upgrade to native Rich Messages (tables, code, lists — Bot API 10.1) with automatic HTML fallback |
+| 🌐 | **Webhook mode** | Set `WEBHOOK_URL` for instant delivery and multi-replica deployments; long polling stays the zero-config default |
 | 🌐 | **10 languages** | Auto-detected from each user's Telegram, overridable per chat via `/lang`: EN · ID · RU · ES · PT · HI · AR · FA · TR · UK |
 
 **Everything is configured inside Telegram**: `/settings` opens an inline menu
@@ -81,6 +83,9 @@ Then, in Telegram:
 | `DATA_DIR` | – | SQLite + cache directory (default `./data`) |
 | `DEFAULT_AI_PROVIDER` / `DEFAULT_AI_MODEL` | – | Fallback AI model (default `anthropic` / `claude-opus-5`) |
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, … | – | Env fallback for provider keys (names follow models.dev) |
+| `WEBHOOK_URL` | – | Public HTTPS URL → switches to webhook mode (multi-replica safe) |
+| `PORT` | – | HTTP port for webhook mode (default `8080`, non-POST requests answer a health check) |
+| `WEBHOOK_SECRET` | – | Webhook secret token (defaults to a value derived from `BOT_TOKEN`) |
 
 ## 📦 Deployment
 
@@ -174,11 +179,13 @@ timeline, framework comparison, platform pitfalls).
 
 ## 🗺 Roadmap
 
-- [ ] Guard-bot join queries with Mini App captcha (Bot API 10.1)
-- [ ] Rich Messages for AI answers (`sendRichMessage`, Bot API 10.1)
-- [ ] Reaction-based karma & reaction moderation (Bot API 10.0)
-- [ ] Webhook mode with multi-replica support
-- [ ] Scheduled announcements & auto-slowmode raid detection
+- [x] Guard-bot join queries (Bot API 10.1) — CAS-listed users declined, others queued for admins
+- [x] Rich Messages for AI answers (`rich_message` edits, Bot API 10.1)
+- [x] Reaction-based karma (Bot API 10.0)
+- [x] Webhook mode with multi-replica support
+- [x] Recurring announcements & auto raid protection
+- [ ] Mini App captcha UI for guard-bot join queries (needs a hosted web app)
+- [ ] Streamed drafts in private chats (`sendMessageDraft`)
 
 ## 🤝 Contributing
 

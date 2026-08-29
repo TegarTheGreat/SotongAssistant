@@ -22,6 +22,8 @@ export interface ChatSettings {
   antiflood: boolean;
   /** Log all group messages for context & /summarize (requires bot admin; explicit opt-in). */
   ambient: boolean;
+  /** Auto-lockdown when a join spike (raid) is detected. */
+  antiraid: boolean;
   rules?: string;
   /** Default permissions snapshot taken before /lockdown, used by /unlock. */
   lockSnapshot?: ChatPermissions;
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   antiChannelSpam: false,
   antiflood: false,
   ambient: false,
+  antiraid: false,
 };
 
 export function getSettings(chatId: number): ChatSettings {
@@ -172,6 +175,12 @@ export function logMessage(chatId: number, messageId: number, userId: number | u
   ).run(chatId, chatId, LOG_CAP);
 }
 
+export function getLoggedMessage(chatId: number, messageId: number) {
+  return db
+    .prepare("SELECT user_id, name FROM message_log WHERE chat_id = ? AND message_id = ?")
+    .get(chatId, messageId) as { user_id: number | null; name: string | null } | undefined;
+}
+
 export function recentMessages(chatId: number, limit = 150) {
   return db
     .prepare("SELECT name, text FROM message_log WHERE chat_id = ? ORDER BY ts DESC LIMIT ?")
@@ -247,6 +256,35 @@ export function claimDueJobs(): Array<{ id: number; kind: string; payload: strin
 
 export function completeJob(id: number) {
   db.prepare("DELETE FROM jobs WHERE id = ?").run(id);
+}
+
+export function listJobsByKind(kind: string) {
+  return db
+    .prepare("SELECT id, payload, due_at FROM jobs WHERE kind = ? ORDER BY due_at")
+    .all(kind) as Array<{ id: number; payload: string; due_at: number }>;
+}
+
+export function deleteJob(id: number): boolean {
+  return db.prepare("DELETE FROM jobs WHERE id = ?").run(id).changes > 0;
+}
+
+// ---------- karma (atomic) ----------
+
+export function addKarma(chatId: number, userId: number, name: string | undefined, delta: number): number {
+  const row = db
+    .prepare(
+      `INSERT INTO karma (chat_id, user_id, name, score) VALUES (?, ?, ?, ?)
+       ON CONFLICT(chat_id, user_id) DO UPDATE SET score = score + ?, name = COALESCE(excluded.name, karma.name)
+       RETURNING score`,
+    )
+    .get(chatId, userId, name ?? null, delta, delta) as { score: number };
+  return row.score;
+}
+
+export function topKarma(chatId: number, limit = 10) {
+  return db
+    .prepare("SELECT user_id, name, score FROM karma WHERE chat_id = ? ORDER BY score DESC LIMIT ?")
+    .all(chatId, limit) as Array<{ user_id: number; name: string | null; score: number }>;
 }
 
 // ---------- business connections ----------

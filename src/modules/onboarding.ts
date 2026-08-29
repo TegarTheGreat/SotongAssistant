@@ -1,16 +1,51 @@
 import { Composer, InlineKeyboard, type Context } from "grammy";
-import { getSettings, scheduleJob } from "../db/repo.js";
-import { escapeHtml } from "../util/format.js";
+import { getSettings, updateSettings, scheduleJob } from "../db/repo.js";
+import { escapeHtml, humanDuration } from "../util/format.js";
 import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
+import { isCasBanned } from "../services/cas.js";
 import { tc } from "../i18n/index.js";
 
 /**
- * New-member onboarding: reliable join detection via chat_member updates,
- * welcome messages, an optional button captcha, and a join-request gate.
+ * New-member onboarding & anti-abuse gate:
+ *  - reliable join detection via chat_member updates
+ *  - CAS (Combot Anti-Spam) screening on joins and join requests
+ *  - welcome messages, optional button captcha with timeout-kick
+ *  - join-request gate verified in DM, incl. Bot API 10.1 guard-bot queries
+ *  - raid detection: a join spike auto-locks the group for a cool-down
  */
 export const onboarding = new Composer<Context>();
 
 const CAPTCHA_TIMEOUT_S = 5 * 60;
+const RAID_WINDOW_MS = 60_000;
+const RAID_JOIN_LIMIT = 8;
+const RAID_LOCK_S = 30 * 60;
+
+const joinWindow = new Map<number, number[]>();
+const raidActive = new Set<number>();
+
+async function maybeTriggerRaidMode(ctx: Context, chatId: number): Promise<void> {
+  const nowMs = Date.now();
+  const joins = (joinWindow.get(chatId) ?? []).filter((t) => nowMs - t < RAID_WINDOW_MS);
+  joins.push(nowMs);
+  joinWindow.set(chatId, joins);
+  if (joins.length <= RAID_JOIN_LIMIT || raidActive.has(chatId)) return;
+
+  raidActive.add(chatId);
+  try {
+    // Snapshot defaults BEFORE locking — there is no server-side undo.
+    const info = await ctx.api.getChat(chatId);
+    updateSettings(chatId, { lockSnapshot: info.permissions ?? UNMUTED_PERMISSIONS });
+    await ctx.api.setChatPermissions(chatId, MUTED_PERMISSIONS);
+    await ctx.api.sendMessage(chatId, tc(ctx, "raid.on", { duration: humanDuration(RAID_LOCK_S) }), {
+      parse_mode: "HTML",
+    });
+    scheduleJob("raid_unlock", { chatId }, RAID_LOCK_S);
+  } catch {
+    raidActive.delete(chatId); // missing rights — try again on the next spike
+  }
+  // Allow re-trigger after the lock window.
+  setTimeout(() => raidActive.delete(chatId), RAID_LOCK_S * 1000).unref?.();
+}
 
 onboarding.on("chat_member", async (ctx) => {
   const upd = ctx.chatMember;
@@ -26,14 +61,31 @@ onboarding.on("chat_member", async (ctx) => {
   const wasIn =
     ["member", "administrator", "creator"].includes(oldM.status) ||
     (oldM.status === "restricted" && oldM.is_member);
-  const isIn =
-    newM.status === "member" || (newM.status === "restricted" && newM.is_member);
+  const isIn = newM.status === "member" || (newM.status === "restricted" && newM.is_member);
   if (wasIn || !isIn) return;
 
   const user = newM.user;
   if (user.is_bot) return;
   const settings = getSettings(upd.chat.id);
   const safeName = escapeHtml(user.first_name);
+
+  if (settings.antiraid) void maybeTriggerRaidMode(ctx, upd.chat.id);
+
+  // CAS screening: known spammers are removed immediately (soft-ban → unban,
+  // so a false positive can still rejoin after appeal).
+  if (await isCasBanned(user.id)) {
+    try {
+      await ctx.api.banChatMember(upd.chat.id, user.id);
+      await ctx.api.unbanChatMember(upd.chat.id, user.id, { only_if_banned: true });
+      const msg = await ctx.api.sendMessage(upd.chat.id, tc(ctx, "cas.blocked", { name: safeName }), {
+        parse_mode: "HTML",
+      });
+      scheduleJob("delete_message", { chatId: upd.chat.id, messageId: msg.message_id }, 120);
+    } catch {
+      /* missing rights — fall through to normal flow */
+    }
+    return;
+  }
 
   if (settings.captcha) {
     // Mute until the button is pressed; the scheduled job kicks on timeout.
@@ -56,9 +108,8 @@ onboarding.on("chat_member", async (ctx) => {
   }
 
   if (settings.welcome) {
-    // Custom welcome text is admin-authored; the member name is escaped and the
-    // custom text is sent as-is only through OUR formatting (never raw HTML from
-    // the name). A malformed custom text falls back to plain text.
+    // The member name is escaped; custom text is escaped too, so neither can
+    // inject HTML. A malformed message still falls back to plain text.
     const text = settings.welcomeText
       ? escapeHtml(settings.welcomeText).replaceAll("{name}", `<b>${safeName}</b>`)
       : tc(ctx, "welcome.default", { name: safeName });
@@ -82,17 +133,41 @@ onboarding.callbackQuery(/^captcha:(\d+)$/, async (ctx) => {
   await ctx.answerCallbackQuery({ text: tc(ctx, "captcha.passed") });
 });
 
-// Join-request gate (join-by-request groups / creates_join_request links):
-// verify via DM inside the 5-minute user_chat_id window, approve on tap.
+/**
+ * Join-request gate. Two flows share this handler:
+ *  - classic: DM the applicant inside the 5-minute user_chat_id window,
+ *    approve when they tap the button;
+ *  - guard-bot (Bot API 10.1): the request carries a query_id that MUST be
+ *    answered within 10 seconds — decline CAS-listed users instantly,
+ *    otherwise 'queue' so human admins + the DM flow keep working.
+ */
 onboarding.on("chat_join_request", async (ctx) => {
   const req = ctx.chatJoinRequest;
+  const queryId = (req as { query_id?: string }).query_id;
+  const banned = await isCasBanned(req.from.id);
+
+  if (queryId) {
+    // grammY's raw API is a proxy: any method name is forwarded to the wire,
+    // so this stays valid even where local typings trail the live Bot API.
+    const raw = ctx.api.raw as unknown as Record<string, (p: unknown) => Promise<unknown>>;
+    await raw
+      .answerChatJoinRequestQuery!({
+        chat_join_request_query_id: queryId,
+        result: banned ? "decline" : "queue",
+      })
+      .catch(() => undefined);
+  }
+  if (banned) {
+    await ctx.api.declineChatJoinRequest(req.chat.id, req.from.id).catch(() => undefined);
+    return;
+  }
+
   const kb = new InlineKeyboard().text(tc(ctx, "join.dmButton"), `joinreq:${req.chat.id}`);
   await ctx.api
-    .sendMessage(
-      req.user_chat_id,
-      tc(ctx, "join.dmPrompt", { chat: escapeHtml(req.chat.title ?? "group") }),
-      { parse_mode: "HTML", reply_markup: kb },
-    )
+    .sendMessage(req.user_chat_id, tc(ctx, "join.dmPrompt", { chat: escapeHtml(req.chat.title ?? "group") }), {
+      parse_mode: "HTML",
+      reply_markup: kb,
+    })
     .catch(() => undefined); // the 5-minute DM window may have passed
 });
 
