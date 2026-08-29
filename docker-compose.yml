@@ -1,0 +1,11 @@
+services:
+  sotong:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    # Long polling needs no inbound ports. Run exactly ONE replica per bot
+    # token — Telegram rejects concurrent getUpdates consumers with 409.
+    deploy:
+      replicas: 1
