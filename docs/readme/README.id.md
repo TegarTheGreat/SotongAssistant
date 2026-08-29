@@ -36,6 +36,7 @@ Semua pengaturan ada di dalam Telegram. Tanpa dashboard web.**
 | 🔞 | **Filter NSFW** | Saringan AI opt-in untuk foto & thumbnail stiker/video memakai model multimodal milik chat — NSFW dihapus dan masuk eskalasi warn; fail-open dan hemat kuota |
 | 👑 | **Perkakas admin** | `/promote` `/demote` `/title` · `/warnmode` (mute/kick/ban) · “@admin” memanggil admin · `/tagall` · `/disable` matikan perintah per chat · `/antilink off\|invites\|all` + `/allowlink` · topik forum (`/newtopic` dll.) · welcome & goodbye dengan placeholder `{mention}` `{count}` |
 | 🧰 | **Serba lengkap & full inline** | `/lock` kunci 12 tipe media · `/schedule` pesan terjadwal waktu lokal · voice note di DM ditranskripsi (Whisper) & dijawab, `/transcribe` di grup · `/unote` dosir pengguna di `/info` · `/fexport`/`/fimport` + admin federasi · `/import` pulihkan backup · `/paidpost` media berbayar Stars · panel `/settings` sepenuhnya tombol inline (termasuk submenu kunci) |
+| 🧰 | **Ronde kapabilitas penuh** | `/aitask` posting AI terjadwal (teks selalu baru) · `/kang` kloning stiker ke pack sendiri · pengumuman video chat + pengingat otomatis · `/gifts` `/gift` `/balance` ekonomi Stars · `/tag` member tag · `/unpin` `/unpinall` `/revokeinvite` `/boosts` · owner atur identitas bot dari Telegram (`/setbotname` dll.) · `/recall` kini hybrid (leksikal + embedding semantik) · aksi AI owner di DM |
 | 🌐 | **10 bahasa** | Deteksi otomatis dari Telegram user, bisa dioverride per chat via `/lang` |
 
 **Semua konfigurasi di dalam Telegram**: `/settings` membuka menu inline per grup

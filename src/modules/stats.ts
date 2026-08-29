@@ -3,6 +3,7 @@ import { config } from "../config.js";
 import { getSettings, messageStats, allLoggedMessages, getMemory } from "../db/repo.js";
 import { getCatalog } from "../services/catalog.js";
 import { streamCompletion } from "../services/ai/index.js";
+import { semanticRerank } from "../services/embeddings.js";
 import { escapeHtml, markdownToTelegramHtml } from "../util/format.js";
 import { tc } from "../i18n/index.js";
 import { threadIdOf } from "../services/telegram.js";
@@ -10,7 +11,8 @@ import { threadIdOf } from "../services/telegram.js";
 /**
  * Activity analytics on top of the ambient message log (explicit opt-in):
  *  - /stats — 24h/7d counters, a per-day bar chart, most active members
- *  - /recall <words> — lexical search over recent messages ("who said that?")
+ *  - /recall <words> — hybrid search (lexical + embeddings) over recent
+ *    messages, followed by an AI answer grounded in the matches
  */
 export const stats = new Composer<Context>();
 
@@ -47,7 +49,8 @@ stats.command("stats", async (ctx) => {
   );
 });
 
-// /recall — cheap lexical retrieval: score = shared tokens, recency as tiebreak.
+// /recall — hybrid retrieval: lexical scoring, then semantic re-ranking when
+// embeddings are available, then an AI answer grounded in the top matches.
 stats.command("recall", async (ctx) => {
   if (!isGroup(ctx)) return;
   if (!getSettings(ctx.chat.id).ambient) {
@@ -64,15 +67,23 @@ stats.command("recall", async (ctx) => {
     await ctx.reply(tc(ctx, "recall.usage"));
     return;
   }
-  const scored = allLoggedMessages(ctx.chat.id)
+  const all = allLoggedMessages(ctx.chat.id);
+  const lexical = all
     .map((m) => {
       const hay = m.text.toLowerCase();
       const score = terms.reduce((n, term) => n + (hay.includes(term) ? 1 : 0), 0);
       return { ...m, score };
     })
     .filter((m) => m.score > 0)
-    .sort((a, b) => b.score - a.score || b.ts - a.ts)
-    .slice(0, 5);
+    .sort((a, b) => b.score - a.score || b.ts - a.ts);
+
+  // Semantic pass: the candidate pool deliberately includes recent messages
+  // that share NO words with the query, because that is exactly what meaning
+  // based search is for. Falls back to pure lexical when embeddings are
+  // unavailable (no OpenAI key, provider down).
+  const pool = [...lexical, ...all.filter((m) => !lexical.some((l) => l.ts === m.ts && l.text === m.text))].slice(0, 40);
+  const reranked = await semanticRerank(query, pool, (m) => m.text);
+  const scored = (reranked ?? lexical).slice(0, 5);
   if (!scored.length) {
     await ctx.reply(tc(ctx, "recall.empty"));
     return;

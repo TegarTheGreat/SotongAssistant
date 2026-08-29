@@ -4,7 +4,11 @@ import { Composer, InputFile, type Context } from "grammy";
 import { config } from "../config.js";
 import { checkpoint, restorePath } from "../db/index.js";
 import { listKnownChats, upsertChat, migrateChatId } from "../db/repo.js";
-import { isGitCheckout, checkForUpdates, applyUpdate } from "../services/updater.js";
+import {
+  isGitCheckout,
+  checkForUpdates,
+  applyUpdate,
+} from "../services/updater.js";
 import { invalidateAdminCache } from "../util/admin.js";
 import { escapeHtml } from "../util/format.js";
 import { tc } from "../i18n/index.js";
@@ -20,12 +24,23 @@ manager.on("my_chat_member", async (ctx) => {
   const upd = ctx.myChatMember;
   const me = upd.new_chat_member;
   const rights = me.status === "administrator" ? me : undefined;
-  upsertChat(upd.chat.id, upd.chat.type, "title" in upd.chat ? upd.chat.title : undefined, me.status, rights);
+  upsertChat(
+    upd.chat.id,
+    upd.chat.type,
+    "title" in upd.chat ? upd.chat.title : undefined,
+    me.status,
+    rights,
+  );
   invalidateAdminCache(upd.chat.id);
 
-  if (me.status === "member" && (upd.chat.type === "group" || upd.chat.type === "supergroup")) {
+  if (
+    me.status === "member" &&
+    (upd.chat.type === "group" || upd.chat.type === "supergroup")
+  ) {
     await ctx.api
-      .sendMessage(upd.chat.id, tc(ctx, "manager.needAdmin"), { parse_mode: "HTML" })
+      .sendMessage(upd.chat.id, tc(ctx, "manager.needAdmin"), {
+        parse_mode: "HTML",
+      })
       .catch(() => undefined);
   }
 });
@@ -47,7 +62,9 @@ manager.command("status", async (ctx) => {
     const admin = c.rights ? " · admin" : "";
     return `• <b>${escapeHtml(c.title ?? String(c.chat_id))}</b> (${c.type}) — ${c.status}${admin}`;
   });
-  await ctx.reply(`${tc(ctx, "status.title")}\n${lines.join("\n")}`, { parse_mode: "HTML" });
+  await ctx.reply(`${tc(ctx, "status.title")}\n${lines.join("\n")}`, {
+    parse_mode: "HTML",
+  });
 });
 
 // /export — owner only, DM only: send the SQLite database as a backup file.
@@ -55,8 +72,13 @@ manager.command("status", async (ctx) => {
 manager.command("export", async (ctx) => {
   if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
   checkpoint(); // flush the WAL so the file is a complete snapshot
-  const file = new InputFile(path.join(config.dataDir, "sotong.db"), "sotong-backup.db");
-  await ctx.replyWithDocument(file, { caption: `📦 ${new Date().toISOString().slice(0, 10)}` });
+  const file = new InputFile(
+    path.join(config.dataDir, "sotong.db"),
+    "sotong-backup.db",
+  );
+  await ctx.replyWithDocument(file, {
+    caption: `📦 ${new Date().toISOString().slice(0, 10)}`,
+  });
 });
 
 // /import — owner only, DM only: reply to an /export backup file to restore it.
@@ -71,9 +93,12 @@ manager.command("import", async (ctx) => {
   }
   try {
     const file = await ctx.api.getFile(doc.file_id);
-    const res = await fetch(`https://api.telegram.org/file/bot${config.botToken}/${file.file_path}`, {
-      signal: AbortSignal.timeout(60_000),
-    });
+    const res = await fetch(
+      `https://api.telegram.org/file/bot${config.botToken}/${file.file_path}`,
+      {
+        signal: AbortSignal.timeout(60_000),
+      },
+    );
     const buf = Buffer.from(await res.arrayBuffer());
     // A real SQLite database starts with this exact 16-byte header.
     if (!buf.subarray(0, 15).equals(Buffer.from("SQLite format 3"))) {
@@ -84,7 +109,11 @@ manager.command("import", async (ctx) => {
     await ctx.reply(tc(ctx, "import.done"));
     process.exit(0); // the supervisor restarts us; boot swaps the file in
   } catch (err) {
-    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 200) }));
+    await ctx.reply(
+      tc(ctx, "error.generic", {
+        reason: (err as Error).message.slice(0, 200),
+      }),
+    );
   }
 });
 
@@ -97,12 +126,16 @@ manager.command("broadcast", async (ctx) => {
     return;
   }
   const targets = listKnownChats().filter(
-    (c) => c.type !== "private" && (c.status === "member" || c.status === "administrator"),
+    (c) =>
+      c.type !== "private" &&
+      (c.status === "member" || c.status === "administrator"),
   );
   let sent = 0;
   for (const chat of targets) {
     try {
-      await ctx.api.sendMessage(chat.chat_id, `📣 ${escapeHtml(text)}`, { parse_mode: "HTML" });
+      await ctx.api.sendMessage(chat.chat_id, `📣 ${escapeHtml(text)}`, {
+        parse_mode: "HTML",
+      });
       sent++;
     } catch {
       /* kicked or restricted there — skip */
@@ -132,13 +165,114 @@ manager.command("update", async (ctx) => {
     await ctx.reply(tc(ctx, "update.done"));
     process.exit(0);
   } catch (err) {
-    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 300) }));
+    await ctx.reply(
+      tc(ctx, "error.generic", {
+        reason: (err as Error).message.slice(0, 300),
+      }),
+    );
+  }
+});
+
+/**
+ * Bot identity, editable from Telegram itself (owner, DM) — no BotFather trip:
+ *   /setbotname · /setbotdesc (the "what can this bot do" text) · /setbotabout
+ *   (the short bio on the profile) · /setrights (default admin rights asked
+ *   for when the bot is added to a group).
+ */
+manager.command("setbotname", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  const name = ctx.match.trim().slice(0, 64);
+  if (!name) {
+    await ctx.reply(tc(ctx, "botcfg.usage"));
+    return;
+  }
+  try {
+    await ctx.api.setMyName(name);
+    await ctx.reply(tc(ctx, "botcfg.saved", { what: "name" }));
+  } catch (err) {
+    await ctx.reply(
+      tc(ctx, "error.generic", {
+        reason: (err as Error).message.slice(0, 150),
+      }),
+    );
+  }
+});
+
+manager.command("setbotdesc", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  const text = ctx.match.trim().slice(0, 512);
+  if (!text) {
+    await ctx.reply(tc(ctx, "botcfg.usage"));
+    return;
+  }
+  try {
+    await ctx.api.setMyDescription(text);
+    await ctx.reply(tc(ctx, "botcfg.saved", { what: "description" }));
+  } catch (err) {
+    await ctx.reply(
+      tc(ctx, "error.generic", {
+        reason: (err as Error).message.slice(0, 150),
+      }),
+    );
+  }
+});
+
+manager.command("setbotabout", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  const text = ctx.match.trim().slice(0, 120);
+  if (!text) {
+    await ctx.reply(tc(ctx, "botcfg.usage"));
+    return;
+  }
+  try {
+    await ctx.api.setMyShortDescription(text);
+    await ctx.reply(tc(ctx, "botcfg.saved", { what: "about" }));
+  } catch (err) {
+    await ctx.reply(
+      tc(ctx, "error.generic", {
+        reason: (err as Error).message.slice(0, 150),
+      }),
+    );
+  }
+});
+
+// /setrights — ask Telegram to pre-tick the moderation rights when someone
+// adds the bot to a group, so admins stop forgetting them.
+manager.command("setrights", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  try {
+    await ctx.api.setMyDefaultAdministratorRights({
+      rights: {
+        can_delete_messages: true,
+        can_restrict_members: true,
+        can_invite_users: true,
+        can_pin_messages: true,
+        can_manage_topics: true,
+        can_manage_chat: true,
+        is_anonymous: false,
+        can_promote_members: false,
+        can_change_info: false,
+        can_manage_video_chats: false,
+        can_post_stories: false,
+        can_edit_stories: false,
+        can_delete_stories: false,
+        can_send_welcome_messages: false,
+      },
+    });
+    await ctx.reply(tc(ctx, "botcfg.rights"));
+  } catch (err) {
+    await ctx.reply(
+      tc(ctx, "error.generic", {
+        reason: (err as Error).message.slice(0, 150),
+      }),
+    );
   }
 });
 
 manager.command("id", async (ctx) => {
   await ctx.reply(
-    `chat_id: <code>${ctx.chat.id}</code>` + (ctx.from ? `\nuser_id: <code>${ctx.from.id}</code>` : ""),
+    `chat_id: <code>${ctx.chat.id}</code>` +
+      (ctx.from ? `\nuser_id: <code>${ctx.from.id}</code>` : ""),
     { parse_mode: "HTML" },
   );
 });

@@ -291,6 +291,31 @@ moderation.command("title", async (ctx) => {
   }
 });
 
+// /tag <label> — attach a visible member tag (Bot API 9.5); empty clears it.
+moderation.command("tag", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const target = targetFromReply(ctx);
+  if (!target) {
+    await ctx.reply(tc(ctx, "error.replyRequired"));
+    return;
+  }
+  const label = ctx.match.trim().slice(0, 32);
+  try {
+    await ctx.api.setChatMemberTag(ctx.chat!.id, target.id, label);
+    await ctx.reply(
+      label
+        ? tc(ctx, "tag.set", { name: target.name, tag: escapeHtml(label) })
+        : tc(ctx, "tag.cleared", { name: target.name }),
+      { parse_mode: "HTML" },
+    );
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 150) }));
+  }
+});
+
 // ---------- tag / mention ----------
 
 // /tagall [text] — mention recently-active members in small batches.
@@ -352,6 +377,23 @@ moderation.command("pin", async (ctx) => {
   );
 });
 
+// /unpin — unpin the replied message, or the most recent pinned one.
+moderation.command("unpin", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const target = ctx.message?.reply_to_message?.message_id;
+  const ok = await withRights(ctx, "can_pin_messages", () =>
+    ctx.api.unpinChatMessage(ctx.chat!.id, target),
+  );
+  if (ok) await ctx.reply(tc(ctx, "mod.unpinned"));
+});
+
+// /unpinall — clear every pinned message in the chat.
+moderation.command("unpinall", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const ok = await withRights(ctx, "can_pin_messages", () => ctx.api.unpinAllChatMessages(ctx.chat!.id));
+  if (ok) await ctx.reply(tc(ctx, "mod.unpinnedAll"));
+});
+
 // ---------- lockdown ----------
 // Shared with the AI-action executor so both paths snapshot/restore identically.
 
@@ -402,6 +444,11 @@ moderation.command("info", async (ctx) => {
     tc(ctx, "mod.infoKarma", { karma: getKarma(chatId, target.id) }),
   ];
   if (getAfk(target.id)) lines.push(tc(ctx, "mod.infoAfk"));
+  // Extra signals straight from Telegram: profile photos and chat boosts.
+  const photos = await ctx.api.getUserProfilePhotos(target.id, { limit: 1 }).catch(() => undefined);
+  if (photos?.total_count) lines.push(tc(ctx, "mod.infoPhotos", { n: photos.total_count }));
+  const boosts = await ctx.api.getUserChatBoosts(chatId, target.id).catch(() => undefined);
+  if (boosts?.boosts?.length) lines.push(tc(ctx, "mod.infoBoosts", { n: boosts.boosts.length }));
   const fed = fedOfChat(chatId);
   if (fed && getFedBan(fed.fed_id, target.id)) lines.push(tc(ctx, "mod.infoFedBanned", { fed: escapeHtml(fed.name) }));
   // Admin-written notes about this user (see /unote) — visible to admins only.

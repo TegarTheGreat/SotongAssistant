@@ -24,6 +24,7 @@ type ToggleKey = keyof Pick<
   | "antilink"
   | "antiNsfw"
   | "autoPinChannelPosts"
+  | "videoChatNotify"
 >;
 
 const TOGGLES: Array<{ key: ToggleKey; label: LocaleKey }> = [
@@ -38,6 +39,7 @@ const TOGGLES: Array<{ key: ToggleKey; label: LocaleKey }> = [
   { key: "antilink", label: "settings.antilink" },
   { key: "antiNsfw", label: "settings.antiNsfw" },
   { key: "autoPinChannelPosts", label: "settings.autopin" },
+  { key: "videoChatNotify", label: "settings.videochat" },
   { key: "ambient", label: "settings.ambient" },
 ];
 

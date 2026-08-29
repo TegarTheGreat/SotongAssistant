@@ -15,6 +15,7 @@ import { encryptSecret, decryptSecret } from "../src/services/security.js";
 import { chunkText, parseDuration, markdownToTelegramHtml } from "../src/util/format.js";
 import { renderMemberTemplate, extractButtons } from "../src/util/placeholders.js";
 import { extractActions } from "../src/services/actions.js";
+import { semanticRerank } from "../src/services/embeddings.js";
 import { approveUser, isApproved, unapproveUser, bumpAiUsage, getAiUsageToday } from "../src/db/repo.js";
 import { inWindow, parseHHMM, isValidTimezone, localMinutes } from "../src/util/time.js";
 import { validateInitData } from "../src/services/webapp.js";
@@ -196,6 +197,29 @@ approveUser(-100999, 55, "Trusty");
 if (!isApproved(-100999, 55) || isApproved(-100999, 56)) throw new Error("approve");
 if (!unapproveUser(-100999, 55) || isApproved(-100999, 55)) throw new Error("unapprove");
 if (bumpAiUsage(-100999) !== 1 || bumpAiUsage(-100999) !== 2) throw new Error("ai usage");
+
+// semantic rerank degrades safely: too few candidates, or no embeddings key
+{
+  const one = await semanticRerank("q", [{ text: "only" }], (m) => m.text);
+  if (one !== undefined) throw new Error("rerank should skip a single candidate");
+  // With a dummy token there is no OpenAI key configured, so it must fall back.
+  const many = await semanticRerank("q", [{ text: "a" }, { text: "b" }], (m) => m.text);
+  if (many !== undefined) throw new Error("rerank should fall back without a key");
+}
+
+// recurring AI task jobs are stored and cancellable like other kinds
+scheduleJob("ai_prompt", { chatId: -100999, prompt: "standup", repeatSeconds: 86400 }, 60);
+{
+  const jobs = listJobsByKind("ai_prompt");
+  if (jobs.length !== 1) throw new Error("ai_prompt job stored");
+  if ((JSON.parse(jobs[0]!.payload) as { prompt: string }).prompt !== "standup") throw new Error("ai_prompt payload");
+  if (!deleteJob(jobs[0]!.id)) throw new Error("ai_prompt cancel");
+}
+
+// new video-chat toggle defaults to off and round-trips
+if (getSettings(-100777).videoChatNotify !== false) throw new Error("videoChatNotify default");
+updateSettings(-100777, { videoChatNotify: true });
+if (!getSettings(-100777).videoChatNotify) throw new Error("videoChatNotify round-trip");
 
 // Mini App initData HMAC validation (forge a valid signature with the test token)
 {

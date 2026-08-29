@@ -65,6 +65,40 @@ utility.command("invite", async (ctx) => {
   }
 });
 
+// /revokeinvite <link> — kill an invite link (argument or from the reply).
+utility.command("revokeinvite", async (ctx) => {
+  if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const link =
+    ctx.match.trim().match(/https:\/\/t\.me\/\S+/)?.[0] ??
+    ctx.message?.reply_to_message?.text?.match(/https:\/\/t\.me\/\S+/)?.[0];
+  if (!link) {
+    await ctx.reply(tc(ctx, "invite.revokeUsage"));
+    return;
+  }
+  try {
+    await ctx.api.revokeChatInviteLink(ctx.chat.id, link);
+    await ctx.reply(tc(ctx, "invite.revoked"));
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 150) }));
+  }
+});
+
+// /boosts — how many boosts the sender (or the replied user) gave this chat.
+utility.command("boosts", async (ctx) => {
+  if (ctx.chat.type === "private") return;
+  const target = ctx.message?.reply_to_message?.from ?? ctx.from;
+  if (!target) return;
+  const res = await ctx.api.getUserChatBoosts(ctx.chat.id, target.id).catch(() => undefined);
+  const n = res?.boosts?.length ?? 0;
+  await ctx.reply(
+    tc(ctx, n ? "boost.has" : "boost.none", { name: escapeHtml(target.first_name), n }),
+    { parse_mode: "HTML", message_thread_id: threadIdOf(ctx) },
+  );
+});
+
 utility.command("about", async (ctx) => {
   const v = await getVersionInfo();
   const seconds = Math.floor((Date.now() - bootedAt) / 1000);

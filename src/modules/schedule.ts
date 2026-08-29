@@ -70,3 +70,67 @@ schedule.command("unschedule", async (ctx) => {
   );
   await ctx.reply(tc(ctx, mine && deleteJob(id) ? "schedule.removed" : "schedule.none"));
 });
+
+// ---------- recurring AI prompts ----------
+
+/**
+ * /aitask 09:00 Ask the team for a one-line standup update
+ * /aitask 6h Share a short productivity tip
+ * The model regenerates the text on every run, so the group never sees the
+ * same message twice. HH:MM anchors the first run to the chat's local time
+ * and then repeats daily; a duration repeats on that interval.
+ */
+schedule.command("aitask", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const [when, ...rest] = ctx.match.trim().split(/\s+/);
+  const prompt = rest.join(" ");
+  const tz = getSettings(ctx.chat.id).timezone;
+  const clock = when ? parseHHMM(when) : undefined;
+  const firstDelay =
+    clock !== undefined
+      ? ((clock - localMinutes(tz) + 1440) % 1440 || 1440) * 60
+      : parseDuration(when);
+  const repeat = clock !== undefined ? 86400 : firstDelay;
+  if (!firstDelay || !repeat || repeat < 3600 || prompt.length < 4) {
+    await ctx.reply(tc(ctx, "aitask.usage", { tz: tz ?? "UTC" }));
+    return;
+  }
+  scheduleJob(
+    "ai_prompt",
+    { chatId: ctx.chat.id, threadId: threadIdOf(ctx), prompt: prompt.slice(0, 1000), repeatSeconds: repeat },
+    firstDelay,
+  );
+  await ctx.reply(
+    tc(ctx, "aitask.set", { first: humanDuration(firstDelay), every: humanDuration(repeat) }),
+  );
+});
+
+schedule.command("aitasks", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const jobs = listJobsByKind("ai_prompt").filter(
+    (j) => (JSON.parse(j.payload) as { chatId: number }).chatId === ctx.chat.id,
+  );
+  if (!jobs.length) {
+    await ctx.reply(tc(ctx, "aitask.none"));
+    return;
+  }
+  const rows = jobs
+    .map((j) => {
+      const p = JSON.parse(j.payload) as { prompt: string; repeatSeconds?: number };
+      return `• <code>${j.id}</code> — ${humanDuration(p.repeatSeconds ?? 86400)}: ${escapeHtml(p.prompt.slice(0, 60))}`;
+    })
+    .join("\n");
+  await ctx.reply(`${tc(ctx, "aitask.list")}\n${rows}`, { parse_mode: "HTML" });
+});
+
+schedule.command("unaitask", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const id = Number(ctx.match.trim());
+  const mine = listJobsByKind("ai_prompt").some(
+    (j) => j.id === id && (JSON.parse(j.payload) as { chatId: number }).chatId === ctx.chat.id,
+  );
+  await ctx.reply(tc(ctx, mine && deleteJob(id) ? "aitask.removed" : "aitask.none"));
+});

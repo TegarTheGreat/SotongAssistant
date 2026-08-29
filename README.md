@@ -31,7 +31,7 @@ Every setting lives inside Telegram. No web dashboard.**
 
 | | Capability | Highlights |
 |---|---|---|
-| 🪄 | **AI that ACTS** | Admins just **tell the assistant what to do in natural language** — “mute him for 2h”, “turn captcha on”, “make a poll: lunch?”, “set night mode 23:00-06:00” — and it executes: 30+ whitelisted actions (moderation, settings, filters, locks, night mode, schedules, polls…), every one re-verified server-side (admin-only, protected targets, max 3 per message), with a receipt of what ran |
+| 🪄 | **AI that ACTS** | Admins just **tell the assistant what to do in natural language** — “mute him for 2h”, “turn captcha on”, “make a poll: lunch?”, “set night mode 23:00-06:00” — and it executes: 30+ whitelisted actions (moderation, settings, filters, locks, night mode, schedules, polls…), every one re-verified server-side (admin-only, protected targets, max 3 per message), with a receipt of what ran. In the **owner's DM** a separate owner-only set runs broadcasts, status, Star balance and update checks |
 | 🤖 | **AI assistant** | `/ask`, reply-to-bot, or @mention (mentioning while replying brings the replied message as context) · **`/imagine`** image generation · pick **any provider & model from models.dev** via inline menus · **native draft streaming in DMs** (Bot API 9.3, with Telegram's own “stop generating” button) and throttled-edit streaming in groups · per-chat personality (`/aiprompt`) · `/aiquota` daily cost cap · `/summarize` on demand and `/digest` on a schedule |
 | 🧠 | **Layered memory** | Rolling short-term transcript **plus** a model-maintained long-term summary (OpenClaw/Hermes-style compaction) · per group *and* per forum topic · `/memory` to inspect, `/forget` to wipe |
 | 🛡 | **Moderation** | `/warn` with auto-escalation and a configurable **`/warnmode` (mute/kick/ban)** · timed `/mute 2h` (server-enforced `until_date` — survives restarts) · `/ban` + full message wipe · safe `/unban` · `/purge` bulk delete · `/lockdown` & `/unlock` · `/info`, `/report` — and writing **“@admin”** calls the admins too · **`/promote` `/demote` `/title`** admin management · `/tagall` mentions active members · **`/mp` one-tap mod panel** (ephemeral inline buttons only the acting admin sees) |
@@ -41,13 +41,19 @@ Every setting lives inside Telegram. No web dashboard.**
 | 🧵 | **Forum topics** | `/newtopic` `/closetopic` `/reopentopic` `/renametopic` for supergroups with Topics · discussion groups can **auto-pin the linked channel's posts** |
 | 🔐 | **Content locks** | Rose-style `/lock stickers gifs forwards …` — 12 lockable media types, deleted on sight for non-admins, all toggleable from the inline `/settings` panel |
 | 🗓 | **Scheduled messages** | `/schedule 18:00 <text>` (or `45m`) posts once at the given **chat-local** time — durable through restarts; `/schedules` & `/unschedule` manage them |
+| 🤖 | **Recurring AI tasks** | `/aitask 09:00 <prompt>` posts **freshly generated** text on a schedule (standups, daily tips) — never the same message twice; `/aitasks` & `/unaitask` manage them |
+| 🎨 | **Sticker tools** | `/kang` (reply to a sticker or photo) clones it into the user's **own pack** hosted by the bot; `/mypack` lists their packs |
+| 🔴 | **Video chat awareness** | Announces scheduled / started / ended video chats, auto-pins the “live” notice and reminds the group 5 minutes before a scheduled call *(the Bot API exposes no way to start or stream into one — that is app/MTProto territory)* |
+| 🎁 | **Gifts & Star treasury** | `/gifts` browses Telegram's gift catalogue, owner `/gift <id>` sends one, owner `/balance` shows the Star balance and latest transactions |
 | 🎙 | **Voice** | Send a voice note in DM and the bot **transcribes it (Whisper) and answers**; `/transcribe` by reply converts any voice/audio/video note to text in groups |
+| 🏷 | **Member tags & pins** | `/tag <label>` attaches a Bot API 9.5 member tag · `/unpin` `/unpinall` · `/revokeinvite` · `/boosts` shows who boosts the chat |
+| ⚙️ | **Bot identity from Telegram** | Owner `/setbotname` `/setbotdesc` `/setbotabout` `/setrights` — rename the bot, rewrite its profile texts and pre-tick the admin rights it asks for, all without opening BotFather |
 | 📝 | **User dossiers** | `/unote` attaches private moderation notes to a user; `/info` now shows warns, karma, AFK state, federation bans and those notes in one card |
 | 💾 | **Backup & restore** | Owner `/export` sends the database; **`/import`** (reply to a backup) validates it, swaps it in at boot and restarts — no shell access needed |
 | ⭐ | **Paid media** | `/paidpost 50` (reply to a photo/video) reposts it as **Telegram Stars paid media** — viewers unlock by paying |
 | 🌍 | **Translation** | `/tr` (reply) translates any message with the chat's AI model · **`/bridge de`** auto-translates foreign-language messages for multilingual groups (throttled, best-effort) |
 | 🤝 | **Federations** | **Cross-group ban lists** (Rose-style): `/newfed` → `/joinfed` in every group · `/fban` bans everywhere at once and auto-removes listed users the moment they join |
-| 📊 | **Analytics** | `/stats` — 24h/7d counters, per-day activity chart, most active members · `/recall <words>` searches recent messages (both need the ambient opt-in) |
+| 📊 | **Analytics** | `/stats` — 24h/7d counters, per-day activity chart, most active members · `/recall <words>` **hybrid search** — lexical scoring plus embedding-based semantic re-ranking (so it finds messages sharing no words with your query), then an AI answer grounded in the matches (both need the ambient opt-in) |
 | 💤 | **Everyday basics** | `/afk` with reasons & auto-return · `/ping`, `/uptime`, `/about` · `/admins`, `/invite`, `/echo`, `/del` |
 | 🔎 | **Inline mode** | `@botname question` asks the AI **from any chat** — placeholder posts instantly, the answer streams into it (enable *inline mode* + *inline feedback* in @BotFather) |
 | 🪞 | **Self-knowledge** | The AI carries a live capability card: its version, its commands, and the current settings of the very chat it's in — ask it “what can you do here?” and it answers accurately |
@@ -199,10 +205,15 @@ src/
 │   ├── telegram.ts       # ephemeral replies w/ fallback, forum-safe thread ids
 │   ├── updater.ts        # hourly git update check, /update & AUTO_UPDATE
 │   ├── nsfw.ts           # AI image classification (fail-open, cached)
+│   ├── embeddings.ts     # hybrid semantic re-ranking for /recall
+│   ├── imagegen.ts       # /imagine image generation
+│   ├── transcribe.ts     # voice → text (Whisper)
+│   ├── actions.ts        # AI Actions: whitelist, permission gates, executor
 │   └── jobs.ts           # durable at-least-once job runner + night-mode reconciler
 └── modules/              # one file per capability
     ├── moderation.ts  modpanel.ts  onboarding.ts  antiflood.ts  settings.ts
     ├── filters.ts  commands.ts  nsfw.ts  federation.ts  stats.ts  topics.ts
+    ├── locks.ts  schedule.ts  stickers.ts  videochat.ts  imagine.ts  modpanel.ts
     ├── afk.ts  utility.ts  translate.ts  ai.ts  inline.ts  notes.ts  fun.ts
     └── stars.ts  channels.ts  business.ts  manager.ts
 ```

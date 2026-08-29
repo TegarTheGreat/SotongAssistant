@@ -22,8 +22,9 @@ import { streamCompletion } from "./ai/index.js";
  * a crash mid-run re-delivers it (claim pushes due_at forward 60s), and
  * jobs past the attempt limit are dropped on claim.
  *
- * Kinds: delete_message · kick_unverified · reminder · raid_unlock ·
- * announcement (self-rescheduling when payload.repeatSeconds is set).
+ * Kinds: delete_message · kick_unverified · reminder · raid_unlock · digest ·
+ * say · ai_prompt · announcement (self-rescheduling when payload.repeatSeconds
+ * is set).
  */
 /**
  * Night mode: once a minute, reconcile every configured chat against its
@@ -141,6 +142,42 @@ export function startJobRunner(api: Api): () => void {
             }
             // Keep the schedule alive even when a run is skipped (toggles resume later).
             if (repeat && repeat >= 3600) scheduleJob("digest", payload, repeat);
+            break;
+          }
+
+          case "ai_prompt": {
+            // Recurring AI prompt: the model generates fresh text on a schedule
+            // (standup questions, daily tips…). Skipped when AI is off, but the
+            // schedule survives so toggling AI back on resumes it.
+            const chatId = payload.chatId as number;
+            const repeat = payload.repeatSeconds as number | undefined;
+            const settings = getSettings(chatId);
+            if (settings.ai) {
+              const catalog = await getCatalog();
+              const provider = catalog[settings.aiProvider ?? config.defaultProvider];
+              if (provider) {
+                const out = await streamCompletion(
+                  {
+                    provider,
+                    model: settings.aiModel ?? config.defaultModel,
+                    system:
+                      "You are posting a scheduled message into a Telegram group. Write ONLY the message " +
+                      "itself — no preamble, no quotes. Keep it short and engaging.",
+                    history: [],
+                    userText: payload.prompt as string,
+                    maxTokens: 700,
+                  },
+                  () => undefined,
+                );
+                if (out.trim()) {
+                  await api.sendMessage(chatId, markdownToTelegramHtml(out).slice(0, 3900), {
+                    parse_mode: "HTML",
+                    message_thread_id: payload.threadId as number | undefined,
+                  });
+                }
+              }
+            }
+            if (repeat && repeat >= 3600) scheduleJob("ai_prompt", payload, repeat);
             break;
           }
 

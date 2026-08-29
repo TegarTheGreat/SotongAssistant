@@ -45,6 +45,8 @@ export interface ChatSettings {
   antiNsfw: boolean;
   /** Pin the linked channel's auto-forwarded posts in the discussion group. */
   autoPinChannelPosts: boolean;
+  /** Announce video chats / live streams starting, ending and scheduled. */
+  videoChatNotify: boolean;
   /** IANA timezone for night mode and time displays (e.g. Asia/Jakarta). */
   timezone?: string;
   /** Daily lockdown window in chat-local time, e.g. { start: "23:00", end: "06:00" }. */
@@ -76,6 +78,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   antilinkMode: "invites",
   antiNsfw: false,
   autoPinChannelPosts: false,
+  videoChatNotify: false,
 };
 
 export function getSettings(chatId: number): ChatSettings {

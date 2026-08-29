@@ -113,6 +113,61 @@ stars.command("subscription", async (ctx) => {
   }
 });
 
+// /balance — owner only: the bot's Star balance plus its latest transactions.
+stars.command("balance", async (ctx) => {
+  if (ctx.from?.id !== config.ownerId) {
+    await ctx.reply(tc(ctx, "error.ownerOnly"));
+    return;
+  }
+  try {
+    const bal = await ctx.api.getMyStarBalance();
+    const tx = await ctx.api.getStarTransactions({ limit: 5 }).catch(() => undefined);
+    const rows = (tx?.transactions ?? [])
+      .map((t) => `• ${t.amount > 0 ? "+" : ""}${t.amount} ⭐ — <code>${escapeHtml(t.id.slice(0, 16))}</code>`)
+      .join("\n");
+    await ctx.reply(tc(ctx, "stars.balance", { amount: bal.amount }) + (rows ? `\n\n${rows}` : ""), {
+      parse_mode: "HTML",
+    });
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 150) }));
+  }
+});
+
+// /gifts — the gift catalogue Telegram currently offers, cheapest first.
+stars.command("gifts", async (ctx) => {
+  try {
+    const list = await ctx.api.getAvailableGifts();
+    const rows = [...list.gifts]
+      .sort((a, b) => a.star_count - b.star_count)
+      .slice(0, 12)
+      .map((g) => `${g.sticker.emoji ?? "🎁"} <code>${g.id}</code> — ${g.star_count} ⭐`)
+      .join("\n");
+    await ctx.reply(rows ? `${tc(ctx, "gift.list")}\n${rows}` : tc(ctx, "gift.none"), { parse_mode: "HTML" });
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 150) }));
+  }
+});
+
+// /gift <gift_id> — send a gift to the replied user, paid from the bot's Stars.
+stars.command("gift", async (ctx) => {
+  if (ctx.from?.id !== config.ownerId) {
+    await ctx.reply(tc(ctx, "error.ownerOnly"));
+    return;
+  }
+  const target = ctx.message?.reply_to_message?.from;
+  const giftId = ctx.match.trim();
+  if (!target || target.is_bot || !giftId) {
+    await ctx.reply(tc(ctx, "gift.usage"));
+    return;
+  }
+  try {
+    await ctx.api.sendGift(target.id, giftId, { text: `From ${ctx.me.first_name} 🦑` });
+    await ctx.reply(tc(ctx, "gift.sent", { name: escapeHtml(target.first_name) }), { parse_mode: "HTML" });
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 150) }));
+  }
+});
+
 // /refund (owner, replying to the receipt that contains the charge id)
 stars.command("refund", async (ctx) => {
   if (ctx.from?.id !== config.ownerId) {

@@ -18,6 +18,8 @@ import { business } from "./modules/business.js";
 import { commands } from "./modules/commands.js";
 import { topics } from "./modules/topics.js";
 import { locks } from "./modules/locks.js";
+import { stickers } from "./modules/stickers.js";
+import { videochat } from "./modules/videochat.js";
 import { schedule } from "./modules/schedule.js";
 import { nsfw } from "./modules/nsfw.js";
 import { filters } from "./modules/filters.js";
@@ -50,6 +52,7 @@ bot.use(settings);
 bot.use(moderation);
 bot.use(modpanel);
 bot.use(topics);
+bot.use(videochat);
 bot.use(onboarding);
 bot.use(locks);
 bot.use(nsfw);
@@ -68,6 +71,7 @@ bot.use(translate);
 bot.use(stats);
 bot.use(inline);
 bot.use(imagine);
+bot.use(stickers);
 bot.use(ai);
 
 // Without bot.catch, one throwing handler (e.g. a 403 after a user blocks the
@@ -102,6 +106,8 @@ async function registerCommands() {
     { command: "settings", description: "Group settings" },
     { command: "ping", description: "Bot latency" },
     { command: "about", description: "Version & info" },
+    { command: "kang", description: "(reply) Steal a sticker" },
+    { command: "boosts", description: "Your boosts here" },
     { command: "id", description: "Show chat/user id" },
   ];
   const adminCommands = [
@@ -127,6 +133,9 @@ async function registerCommands() {
     { command: "night", description: "Nightly auto-lockdown window" },
     { command: "settz", description: "Set the chat timezone" },
     { command: "schedule", description: "One-off timed message" },
+    { command: "aitask", description: "Recurring AI post" },
+    { command: "unpin", description: "(reply) Unpin a message" },
+    { command: "tag", description: "(reply) Set a member tag" },
     { command: "unote", description: "(reply) Note about a user" },
     { command: "antilink", description: "Link filter: off|invites|all" },
     { command: "allowlink", description: "Allowlist a domain" },
@@ -167,6 +176,8 @@ async function registerCommands() {
     { command: "export", description: "(owner) Backup the database" },
     { command: "import", description: "(owner) Restore a backup" },
     { command: "update", description: "(owner) Self-update from git" },
+    { command: "balance", description: "(owner) Star balance" },
+    { command: "setbotname", description: "(owner) Rename the bot" },
     { command: "newfed", description: "Create a ban federation" },
     { command: "memory", description: "Show long-term memory" },
     { command: "forget", description: "Wipe chat memory" },

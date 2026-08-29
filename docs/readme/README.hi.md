@@ -36,6 +36,7 @@ Telegram Business और [models.dev](https://models.dev) के किसी �
 | 🔞 | **NSFW फ़िल्टर** | चैट के मल्टीमोडल मॉडल से फ़ोटो व स्टिकर/वीडियो थंबनेल की वैकल्पिक AI जाँच — NSFW हटाकर warn एस्केलेशन में जाता है; fail-open |
 | 👑 | **एडमिन उपकरण** | `/promote` `/demote` `/title` · `/warnmode` (mute/kick/ban) · “@admin” एडमिन बुलाता है · `/tagall` · `/disable` से कमांड बंद · `/antilink off\|invites\|all` + `/allowlink` · फ़ोरम टॉपिक (`/newtopic` आदि) · `{mention}` `{count}` प्लेसहोल्डर वाले welcome/goodbye |
 | 🧰 | **सब कुछ, पूरी तरह इनलाइन** | `/lock` — 12 मीडिया प्रकार · `/schedule` — स्थानीय समय पर संदेश · DM की वॉइस नोट ट्रांसक्राइब (Whisper) होकर जवाब मिलता है, ग्रुप में `/transcribe` · `/unote` — `/info` में डोज़ियर · `/fexport`/`/fimport` + फ़ेडरेशन एडमिन · `/import` — बैकअप बहाली · `/paidpost` — Stars सशुल्क मीडिया · `/settings` पैनल पूरी तरह बटनों से (लॉक सबमेनू समेत) |
+| 🧰 | **पूर्ण क्षमता राउंड** | `/aitask` समयबद्ध AI पोस्ट (हर बार नया टेक्स्ट) · `/kang` स्टिकर अपने पैक में · वीडियो चैट घोषणाएँ + रिमाइंडर · `/gifts` `/gift` `/balance` Stars अर्थव्यवस्था · `/tag` सदस्य टैग · `/unpin` `/unpinall` `/revokeinvite` `/boosts` · Telegram से बॉट पहचान (`/setbotname` आदि) · `/recall` अब हाइब्रिड (शाब्दिक + सिमेंटिक) · मालिक के DM में AI कार्रवाइयाँ |
 | 🌐 | **10 भाषाएँ** | उपयोगकर्ता के Telegram से स्वतः पहचान, `/lang` से प्रति-चैट बदलें |
 
 **सब कुछ टेलीग्राम के अंदर कॉन्फ़िगर होता है**: `/settings` हर ग्रुप का इनलाइन मेनू

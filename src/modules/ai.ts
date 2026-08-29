@@ -17,7 +17,7 @@ import { transcribeTelegramAudio } from "../services/transcribe.js";
 import { streamCompletion, resolveApiKey, AiError } from "../services/ai/index.js";
 import { appendExchange, compactIfNeeded } from "../services/memory.js";
 import { selfKnowledge } from "../services/selfknowledge.js";
-import { extractActions, executeActions, actionInstructions } from "../services/actions.js";
+import { extractActions, executeActions, actionInstructions, ownerActionInstructions } from "../services/actions.js";
 import { bumpAiUsage, getAiUsageToday } from "../db/repo.js";
 import { TelegramStreamer } from "../services/streamer.js";
 import { threadIdOf, replyEphemeral } from "../services/telegram.js";
@@ -132,12 +132,16 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     // executor re-checks every permission server-side regardless.
     const isGroupChat = ctx.chat!.type === "group" || ctx.chat!.type === "supergroup";
     const invokerIsAdmin = isGroupChat && (await senderIsAdmin(ctx));
+    // The owner's private chat gets its own (owner-only) action set.
+    const invokerIsOwner = ctx.chat!.type === "private" && ctx.from?.id === config.ownerId;
     const repliedMsg = ctx.message?.reply_to_message;
     const actionTarget =
       repliedMsg?.from && repliedMsg.from.id !== ctx.me.id && !repliedMsg.from.is_bot ? repliedMsg : undefined;
     const actionPrompt = invokerIsAdmin
       ? `\n\n${actionInstructions(Boolean(actionTarget), actionTarget?.from?.first_name)}`
-      : "";
+      : invokerIsOwner
+        ? `\n\n${ownerActionInstructions()}`
+        : "";
     const request = {
       provider,
       model,
@@ -158,12 +162,13 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
 
     // Run parsed action blocks and return the localized receipt (or undefined).
     const runActions = async (actions: ReturnType<typeof extractActions>["actions"]) => {
-      if (aborted || !actions.length || !isGroupChat) return undefined;
+      if (aborted || !actions.length || !(isGroupChat || invokerIsOwner)) return undefined;
       const receipt = await executeActions(
         {
           ctx,
           chatId,
           invokerIsAdmin,
+          invokerIsOwner,
           targetUserId: actionTarget?.from?.id,
           targetName: actionTarget?.from?.first_name,
           targetMessageId: actionTarget?.message_id,
