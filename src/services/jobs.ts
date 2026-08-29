@@ -144,6 +144,15 @@ export function startJobRunner(api: Api): () => void {
             break;
           }
 
+          case "say": {
+            // One-off /schedule message, delivered into the original topic.
+            await api.sendMessage(payload.chatId as number, `🗓 ${escapeHtml(payload.text as string)}`, {
+              parse_mode: "HTML",
+              message_thread_id: payload.threadId as number | undefined,
+            });
+            break;
+          }
+
           case "announcement": {
             const chatId = payload.chatId as number;
             await api.sendMessage(chatId, `📣 ${escapeHtml(payload.text as string)}`, {

@@ -34,6 +34,7 @@ Toda a configuração vive dentro do Telegram. Sem painel web.**
 | 🌙 | **Modo noturno e fuso** | `/night 23:00-06:00` tranca o grupo diariamente na hora local do chat (`/settz America/Sao_Paulo`), com avisos e restauração exata das permissões |
 | 🔞 | **Filtro NSFW** | Triagem de IA opcional de fotos e miniaturas de figurinhas/vídeos com o modelo multimodal do chat — NSFW é apagado e alimenta a escalada de avisos; fail-open |
 | 👑 | **Ferramentas de admin** | `/promote` `/demote` `/title` · `/warnmode` (mute/kick/ban) · “@admin” chama os admins · `/tagall` · `/disable` desativa comandos · `/antilink off\|invites\|all` + `/allowlink` · tópicos do fórum (`/newtopic` etc.) · welcome e goodbye com marcadores `{mention}` `{count}` |
+| 🧰 | **Tudo incluído, totalmente inline** | `/lock` — 12 tipos de mídia · `/schedule` — mensagens agendadas na hora local · notas de voz no PV são transcritas (Whisper) e respondidas, `/transcribe` em grupos · `/unote` — dossiê em `/info` · `/fexport`/`/fimport` + admins de federação · `/import` — restaurar backups · `/paidpost` — mídia paga com Stars · painel `/settings` totalmente por botões (incluindo o submenu de bloqueios) |
 | 🌐 | **10 idiomas** | Autodetecção pelo Telegram do usuário, substituível por chat com `/lang` |
 
 **Tudo é configurado dentro do Telegram**: `/settings` abre um menu inline por

@@ -1,6 +1,9 @@
 import { Composer, type Context } from "grammy";
-import { getSettings, messageStats, allLoggedMessages } from "../db/repo.js";
-import { escapeHtml } from "../util/format.js";
+import { config } from "../config.js";
+import { getSettings, messageStats, allLoggedMessages, getMemory } from "../db/repo.js";
+import { getCatalog } from "../services/catalog.js";
+import { streamCompletion } from "../services/ai/index.js";
+import { escapeHtml, markdownToTelegramHtml } from "../util/format.js";
 import { tc } from "../i18n/index.js";
 import { threadIdOf } from "../services/telegram.js";
 
@@ -81,4 +84,38 @@ stats.command("recall", async (ctx) => {
     parse_mode: "HTML",
     message_thread_id: threadIdOf(ctx),
   });
+
+  // Semantic layer: let the chat's model synthesize an answer from the raw
+  // matches plus long-term memory. Best-effort — the lexical list above
+  // already answered, so any AI failure stays silent.
+  const settings = getSettings(ctx.chat.id);
+  if (!settings.ai) return;
+  try {
+    const provider = (await getCatalog())[settings.aiProvider ?? config.defaultProvider];
+    if (!provider) return;
+    const memory = getMemory(String(ctx.chat.id)).summary;
+    const evidence = scored.map((m) => `${m.name ?? "?"}: ${m.text}`).join("\n").slice(0, 6000);
+    const answer = await streamCompletion(
+      {
+        provider,
+        model: settings.aiModel ?? config.defaultModel,
+        system:
+          "You answer questions about a group chat's history. Use ONLY the evidence lines and the " +
+          "long-term memory; if they don't contain the answer, say so briefly. Answer in the language " +
+          "of the question, in 1-3 sentences." + (memory ? `\n\nLong-term memory:\n${memory}` : ""),
+        history: [],
+        userText: `Question: ${query}\n\nEvidence:\n${evidence}`,
+        maxTokens: 512,
+      },
+      () => undefined,
+    );
+    if (answer.trim()) {
+      await ctx.reply(`🧠 ${markdownToTelegramHtml(answer).slice(0, 3900)}`, {
+        parse_mode: "HTML",
+        message_thread_id: threadIdOf(ctx),
+      });
+    }
+  } catch {
+    /* lexical results already delivered */
+  }
 });

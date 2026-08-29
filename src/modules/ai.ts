@@ -13,6 +13,7 @@ import {
   deleteJob,
 } from "../db/repo.js";
 import { getCatalog, sortProviders, type CatalogProvider } from "../services/catalog.js";
+import { transcribeTelegramAudio } from "../services/transcribe.js";
 import { streamCompletion, resolveApiKey, AiError } from "../services/ai/index.js";
 import { appendExchange, compactIfNeeded } from "../services/memory.js";
 import { selfKnowledge } from "../services/selfknowledge.js";
@@ -294,6 +295,39 @@ ai.command("digest", async (ctx) => {
   }
   scheduleJob("digest", { chatId: chat.id, repeatSeconds: seconds }, seconds);
   await ctx.reply(tc(ctx, "digest.on", { duration: humanDuration(seconds) }));
+});
+
+// Voice notes in private chats: transcribe (Whisper) and answer like text.
+ai.on(["message:voice", "message:video_note"], async (ctx, next) => {
+  if (ctx.chat.type !== "private") return next();
+  const fileId = ctx.message.voice?.file_id ?? ctx.message.video_note?.file_id;
+  if (!fileId) return next();
+  await ctx.api.sendChatAction(ctx.chat.id, "typing").catch(() => undefined);
+  const text = await transcribeTelegramAudio(ctx.api, fileId);
+  if (!text) {
+    await ctx.reply(tc(ctx, "voice.noProvider"));
+    return;
+  }
+  await ctx.reply(tc(ctx, "voice.transcript", { text: escapeHtml(text.slice(0, 3000)) }), {
+    parse_mode: "HTML",
+  });
+  await runAsk(ctx, text);
+});
+
+// /transcribe — reply to a voice message / audio / video note, get the text.
+ai.command("transcribe", async (ctx) => {
+  const r = ctx.message?.reply_to_message;
+  const fileId = r?.voice?.file_id ?? r?.audio?.file_id ?? r?.video_note?.file_id;
+  if (!fileId) {
+    await ctx.reply(tc(ctx, "voice.usage"));
+    return;
+  }
+  await ctx.api.sendChatAction(ctx.chat.id, "typing", { message_thread_id: threadIdOf(ctx) }).catch(() => undefined);
+  const text = await transcribeTelegramAudio(ctx.api, fileId);
+  await ctx.reply(
+    text ? tc(ctx, "voice.transcript", { text: escapeHtml(text.slice(0, 3500)) }) : tc(ctx, "voice.noProvider"),
+    { parse_mode: "HTML", reply_parameters: { message_id: r!.message_id } },
+  );
 });
 
 // Reply-to-bot, @mention, or any private-chat text triggers the assistant.

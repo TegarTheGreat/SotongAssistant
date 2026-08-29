@@ -7,7 +7,8 @@ import {
   saveFilter, deleteFilter, listFilters, addBlockedWord, removeBlockedWord, listBlockedWords,
   setAfk, getAfk, clearAfk, createFederation, getFederation, joinFederation, leaveFederation,
   fedOfChat, fedChats, addFedBan, getFedBan, removeFedBan, fedBanCount, logMessage, messageStats,
-  allLoggedMessages,
+  allLoggedMessages, addFedAdmin, isFedAdmin, removeFedAdmin, listFedBans, addUserNote,
+  listUserNotes, deleteUserNotes, getKarma,
 } from "../src/db/repo.js";
 import { t, LOCALES } from "../src/i18n/index.js";
 import { encryptSecret, decryptSecret } from "../src/services/security.js";
@@ -93,6 +94,28 @@ addFedBan("cafe0042", 666, "spammer");
 if (getFedBan("cafe0042", 666)?.reason !== "spammer" || fedBanCount("cafe0042") !== 1) throw new Error("fed ban");
 if (!removeFedBan("cafe0042", 666) || getFedBan("cafe0042", 666)) throw new Error("fed unban");
 if (!leaveFederation(-100999) || fedOfChat(-100999)) throw new Error("fed leave");
+
+// fed admins + exportable ban list
+addFedAdmin("cafe0042", 8);
+if (!isFedAdmin("cafe0042", 8) || isFedAdmin("cafe0042", 9)) throw new Error("fed admin");
+if (!removeFedAdmin("cafe0042", 8) || isFedAdmin("cafe0042", 8)) throw new Error("fed admin remove");
+addFedBan("cafe0042", 777, "spam");
+if (listFedBans("cafe0042").find((b) => b.user_id === 777)?.reason !== "spam") throw new Error("fed export list");
+removeFedBan("cafe0042", 777);
+
+// per-user moderation notes
+addUserNote(-100999, 7, "helpful member", "Mod");
+addUserNote(-100999, 7, "second note", undefined);
+if (listUserNotes(-100999, 7).length !== 2 || listUserNotes(-100999, 7)[0]!.note !== "second note")
+  throw new Error("user notes");
+if (deleteUserNotes(-100999, 7) !== 2 || listUserNotes(-100999, 7).length) throw new Error("user notes wipe");
+
+// karma direct read
+if (getKarma(-100999, 7) !== 3 || getKarma(-100999, 999) !== 0) throw new Error("karma read");
+
+// content-lock settings survive the JSON round-trip
+updateSettings(-100999, { locks: ["stickers", "forwards"] });
+if (getSettings(-100999).locks?.join(",") !== "stickers,forwards") throw new Error("locks settings");
 
 // activity stats over the ambient log
 logMessage(-100999, 1, 7, "Alice", "the quick brown fox");

@@ -1,5 +1,7 @@
 import { Composer, type Context } from "grammy";
+import type { InputPaidMedia } from "grammy/types";
 import { config } from "../config.js";
+import { senderIsAdmin } from "../util/admin.js";
 import { escapeHtml } from "../util/format.js";
 import { tc } from "../i18n/index.js";
 
@@ -32,6 +34,46 @@ stars.on("message:successful_payment", async (ctx) => {
     }) + `\n<code>${payment.telegram_payment_charge_id}</code>`,
     { parse_mode: "HTML" },
   );
+});
+
+/**
+ * /paidpost <stars> — reply to a photo or video to repost it as PAID MEDIA:
+ * viewers unlock it by paying the given amount of Telegram Stars.
+ * Works in channels and groups (admins).
+ */
+stars.command("paidpost", async (ctx) => {
+  if (ctx.chat.type === "private") {
+    await ctx.reply(tc(ctx, "paid.usage"));
+    return;
+  }
+  const isChannel = ctx.chat.type === "channel";
+  if (!isChannel && !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const replied = ctx.msg?.reply_to_message;
+  const amount = Number(ctx.match.trim());
+  let media: InputPaidMedia | undefined;
+  if (replied?.photo?.length) {
+    media = { type: "photo", media: replied.photo[replied.photo.length - 1]!.file_id };
+  } else if (replied?.video) {
+    media = { type: "video", media: replied.video.file_id };
+  }
+  if (!media || !Number.isInteger(amount) || amount < 1 || amount > 10_000) {
+    await ctx.reply(tc(ctx, "paid.usage"));
+    return;
+  }
+  try {
+    await ctx.api.sendPaidMedia(ctx.chat.id, amount, [media], {
+      caption: replied?.caption?.slice(0, 1024),
+    });
+    // The originals stay visible to admins — remove them so only the paid
+    // version remains for members.
+    await ctx.api.deleteMessage(ctx.chat.id, replied!.message_id).catch(() => undefined);
+    await ctx.deleteMessage().catch(() => undefined);
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message }));
+  }
 });
 
 /**

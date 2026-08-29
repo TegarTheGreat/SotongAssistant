@@ -12,10 +12,12 @@ import { getVersionInfo } from "./updater.js";
 const COMMAND_SUMMARY = `
 Commands you (the bot) support — point people to these when relevant:
 - AI: /ask, /summarize (needs "Read all messages"), /aimodel (pick any provider/model from models.dev), /aiprompt, /memory, /forget, /digest; inline mode: @botname <question> in any chat
-- Moderation (admins, by reply): /warn /unwarn /warnmode (mute|kick|ban at the limit) /mute /unmute /ban /unban /kick /promote /demote /title /purge /pin /del /lockdown /unlock /info /mp (one-tap mod panel) /report — members can also write "@admin" to call the admins
-- Federations (shared ban lists): /newfed (DM) /joinfed /leavefed /fban /unfban /fedinfo
-- Message hygiene: /filter /unfilter /filters (auto-replies, quoted multi-word triggers, {name}/{chat} placeholders), /block /unblock /blocklist (banned words), /antilink off|invites|all with /allowlink domain allowlist, NSFW photo screening via the "NSFW media filter" toggle, /disable /enable /disabled (per-chat command management)
-- Scheduling: /night HH:MM-HH:MM daily auto-lockdown, /settz <IANA timezone>, /announce, /remind
+- Moderation (admins, by reply): /warn /unwarn /warnmode (mute|kick|ban at the limit) /mute /unmute /ban /unban /kick /promote /demote /title /purge /pin /del /lockdown /unlock /info (shows karma, fed-ban, admin notes) /unote /unotes /delnotes (private notes about a user) /mp (one-tap mod panel) /report — members can also write "@admin" to call the admins
+- Federations (shared ban lists): /newfed (DM) /joinfed /leavefed /fban /unfban /fedinfo /fpromote /fdemote (fed admins) /fexport /fimport (portable JSON ban lists)
+- Message hygiene: /filter /unfilter /filters (auto-replies, quoted multi-word triggers, {name}/{chat} placeholders), /block /unblock /blocklist (banned words), /antilink off|invites|all with /allowlink domain allowlist, /lock /unlock /locks (per-type media locks: stickers gifs photos videos voice audio documents polls games contacts locations forwards), NSFW photo screening via the "NSFW media filter" toggle, /disable /enable /disabled (per-chat command management)
+- Scheduling: /night HH:MM-HH:MM daily auto-lockdown, /settz <IANA timezone>, /schedule HH:MM <text> one-off timed messages (/schedules /unschedule), /announce, /remind
+- Voice: sending you a voice note in DM gets transcribed (Whisper via an OpenAI key) and answered; /transcribe by reply works in groups
+- Payments extras: /paidpost <stars> (reply to a photo/video) reposts it as paid media
 - Group tools: /settings (all toggles live in Telegram), /welcome & /goodbye (placeholders: {name} {first} {last} {fullname} {username} {mention} {id} {chat} {count}), /setrules /rules, /save /notes #name, /lang, /stats, /recall <words>, /afk, /tr (translate by reply), /bridge (auto-translation), /tagall, /admins, /invite, /id, /ping, /uptime, /about
 - Forum topics (admins): /newtopic /closetopic /reopentopic /renametopic; discussion groups can auto-pin the linked channel's posts (toggle in /settings)
 - Fun & payments: /dice /darts /slot /coin /poll /quiz /remind /karma, /donate (Telegram Stars), /subscription (channel Stars subscription)

@@ -34,6 +34,7 @@ Bütün ayarlar Telegram'ın içinde. Web paneli yok.**
 | 🌙 | **Gece modu ve saat dilimi** | `/night 23:00-06:00` grubu sohbetin yerel saatinde (`/settz Europe/Istanbul`) her gün kilitler; duyurular ve izinlerin birebir geri yüklenmesiyle |
 | 🔞 | **NSFW filtresi** | Sohbetin çok modlu modeliyle fotoğraflar ve çıkartma/video küçük resimleri için isteğe bağlı YZ taraması — NSFW silinir ve uyarı eskalasyonuna girer; fail-open |
 | 👑 | **Yönetici araçları** | `/promote` `/demote` `/title` · `/warnmode` (sustur/at/yasakla) · “@admin” yöneticileri çağırır · `/tagall` · `/disable` ile komut kapatma · `/antilink off\|invites\|all` + `/allowlink` · forum konuları (`/newtopic` vb.) · `{mention}` `{count}` yer tutuculu welcome/goodbye |
+| 🧰 | **Her şey dahil, tamamen inline** | `/lock` — 12 medya türü · `/schedule` — yerel saatte zamanlanmış mesaj · DM'deki sesli notlar çevrilir (Whisper) ve yanıtlanır, gruplarda `/transcribe` · `/unote` — `/info` içinde dosya · `/fexport`/`/fimport` + federasyon yöneticileri · `/import` — yedek geri yükleme · `/paidpost` — Stars ücretli medya · `/settings` paneli tamamen düğmeli (kilit alt menüsü dahil) |
 | 🌐 | **10 dil** | Kullanıcının Telegram'ından otomatik algılama, `/lang` ile sohbet başına değiştirilebilir |
 
 **Her şey Telegram içinde yapılandırılır**: `/settings` her grubun satır içi

@@ -34,6 +34,7 @@ Semua pengaturan ada di dalam Telegram. Tanpa dashboard web.**
 | 🌙 | **Mode malam & zona waktu** | `/night 23:00-06:00` mengunci grup terjadwal harian dalam waktu lokal chat (`/settz Asia/Jakarta`), dengan pengumuman tutup/buka dan pemulihan izin persis |
 | 🔞 | **Filter NSFW** | Saringan AI opt-in untuk foto & thumbnail stiker/video memakai model multimodal milik chat — NSFW dihapus dan masuk eskalasi warn; fail-open dan hemat kuota |
 | 👑 | **Perkakas admin** | `/promote` `/demote` `/title` · `/warnmode` (mute/kick/ban) · “@admin” memanggil admin · `/tagall` · `/disable` matikan perintah per chat · `/antilink off\|invites\|all` + `/allowlink` · topik forum (`/newtopic` dll.) · welcome & goodbye dengan placeholder `{mention}` `{count}` |
+| 🧰 | **Serba lengkap & full inline** | `/lock` kunci 12 tipe media · `/schedule` pesan terjadwal waktu lokal · voice note di DM ditranskripsi (Whisper) & dijawab, `/transcribe` di grup · `/unote` dosir pengguna di `/info` · `/fexport`/`/fimport` + admin federasi · `/import` pulihkan backup · `/paidpost` media berbayar Stars · panel `/settings` sepenuhnya tombol inline (termasuk submenu kunci) |
 | 🌐 | **10 bahasa** | Deteksi otomatis dari Telegram user, bisa dioverride per chat via `/lang` |
 
 **Semua konfigurasi di dalam Telegram**: `/settings` membuka menu inline per grup

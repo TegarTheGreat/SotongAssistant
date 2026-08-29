@@ -3,6 +3,7 @@ import { getSettings, updateSettings, type ChatSettings } from "../db/repo.js";
 import { senderIsAdmin } from "../util/admin.js";
 import { isValidTimezone, localHHMM, parseHHMM } from "../util/time.js";
 import { UNMUTED_PERMISSIONS } from "../util/permissions.js";
+import { LOCK_TYPES } from "./locks.js";
 import { escapeHtml } from "../util/format.js";
 import { langOf, t, tc, LANGUAGE_NAMES, type LocaleKey } from "../i18n/index.js";
 
@@ -45,9 +46,30 @@ function settingsKeyboard(lang: string, s: ChatSettings): InlineKeyboard {
   for (const item of TOGGLES) {
     kb.text(`${s[item.key] ? "🟢" : "⚪"} ${t(lang, item.label)}`, `set:${item.key}`).row();
   }
-  kb.text(t(lang, "settings.warnLimit", { n: s.warnLimit }), "set:warnLimit").row();
+  // Everything below is inline too: cycle buttons flip through their values,
+  // submenu buttons open a dedicated keyboard — no typed commands needed.
+  kb.text(t(lang, "settings.warnLimit", { n: s.warnLimit }), "set:warnLimit")
+    .text(t(lang, "settings.warnmodeBtn", { action: s.warnAction }), "set:warnmode")
+    .row();
+  kb.text(t(lang, "settings.antilinkBtn", { mode: s.antilink ? s.antilinkMode : "off" }), "set:antilinkmode")
+    .text(t(lang, "settings.locksBtn", { n: s.locks?.length ?? 0 }), "set:locks")
+    .row();
+  kb.text(t(lang, "settings.nightBtn", { window: s.night ? `${s.night.start}-${s.night.end}` : "off" }), "set:night")
+    .text(t(lang, "settings.tzBtn", { tz: s.timezone ?? "UTC" }), "set:tz")
+    .row();
   kb.text(t(lang, "settings.language", { lang: LANGUAGE_NAMES[s.language ?? ""] ?? "auto" }), "set:language").row();
   kb.text(t(lang, "settings.aimodelBtn"), "set:aimodel");
+  return kb;
+}
+
+function locksKeyboard(lang: string, s: ChatSettings): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  const active = new Set(s.locks ?? []);
+  LOCK_TYPES.forEach((type, i) => {
+    kb.text(`${active.has(type) ? "🔒" : "⚪"} ${type}`, `lk:${type}`);
+    if (i % 2 === 1) kb.row();
+  });
+  kb.row().text(t(lang, "settings.back"), "lk:back");
   return kb;
 }
 
@@ -117,6 +139,44 @@ settings.callbackQuery(/^set:(.+)$/, async (ctx) => {
     await ctx.answerCallbackQuery({ text: t(lang, "settings.warnLimit", { n: next }) });
     return;
   }
+  if (key === "warnmode") {
+    // Cycle through the warn-limit penalties inline.
+    const order = ["mute", "kick", "ban"] as const;
+    const next = order[(order.indexOf(s.warnAction) + 1) % order.length]!;
+    const updated = updateSettings(chatId, { warnAction: next });
+    await ctx.editMessageReplyMarkup({ reply_markup: settingsKeyboard(lang, updated) });
+    await ctx.answerCallbackQuery({ text: t(lang, "warnmode.set", { action: next }) });
+    return;
+  }
+  if (key === "antilinkmode") {
+    // Cycle off → invites → all.
+    const current = s.antilink ? s.antilinkMode : "off";
+    const next = current === "off" ? "invites" : current === "invites" ? "all" : "off";
+    const updated = updateSettings(
+      chatId,
+      next === "off" ? { antilink: false } : { antilink: true, antilinkMode: next },
+    );
+    await ctx.editMessageReplyMarkup({ reply_markup: settingsKeyboard(lang, updated) });
+    await ctx.answerCallbackQuery({ text: t(lang, "antilink.set", { mode: next }) });
+    return;
+  }
+  if (key === "locks") {
+    await ctx.editMessageText(t(lang, "settings.locksTitle"), {
+      parse_mode: "HTML",
+      reply_markup: locksKeyboard(lang, s),
+    });
+    await ctx.answerCallbackQuery();
+    return;
+  }
+  if (key === "night") {
+    // Free-text input (a time window) can't be a button — show how instead.
+    await ctx.answerCallbackQuery({ text: t(lang, "night.usage", { tz: s.timezone ?? "UTC" }), show_alert: true });
+    return;
+  }
+  if (key === "tz") {
+    await ctx.answerCallbackQuery({ text: t(lang, "tz.usage", { now: localHHMM(s.timezone) }), show_alert: true });
+    return;
+  }
   if (key === "language") {
     await ctx.editMessageText(t(lang, "language.pick"), { reply_markup: languageKeyboard() });
     await ctx.answerCallbackQuery();
@@ -133,6 +193,35 @@ settings.callbackQuery(/^set:(.+)$/, async (ctx) => {
   }
   const updated = updateSettings(chatId, { [toggle.key]: !s[toggle.key] } as Partial<ChatSettings>);
   await ctx.editMessageReplyMarkup({ reply_markup: settingsKeyboard(lang, updated) });
+  await ctx.answerCallbackQuery();
+});
+
+// Content-locks submenu: toggle a type, or go back to the main panel.
+settings.callbackQuery(/^lk:([a-z]+)$/, async (ctx) => {
+  if (!(await senderIsAdmin(ctx))) {
+    await ctx.answerCallbackQuery({ text: tc(ctx, "error.adminOnly"), show_alert: true });
+    return;
+  }
+  const type = ctx.match[1]!;
+  const chatId = ctx.chat!.id;
+  const lang = langOf(ctx);
+  if (type === "back") {
+    await ctx.editMessageText(t(lang, "settings.title"), {
+      parse_mode: "HTML",
+      reply_markup: settingsKeyboard(lang, getSettings(chatId)),
+    });
+    await ctx.answerCallbackQuery();
+    return;
+  }
+  if (!LOCK_TYPES.includes(type)) {
+    await ctx.answerCallbackQuery();
+    return;
+  }
+  const current = new Set(getSettings(chatId).locks ?? []);
+  if (current.has(type)) current.delete(type);
+  else current.add(type);
+  const updated = updateSettings(chatId, { locks: current.size ? [...current] : undefined });
+  await ctx.editMessageReplyMarkup({ reply_markup: locksKeyboard(lang, updated) });
   await ctx.answerCallbackQuery();
 });
 

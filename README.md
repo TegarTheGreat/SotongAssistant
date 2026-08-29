@@ -38,6 +38,12 @@ Every setting lives inside Telegram. No web dashboard.**
 | 🔞 | **NSFW filter** | Opt-in AI screening of photos, sticker & video thumbnails using the chat's own multimodal model — confirmed NSFW is deleted and feeds the normal warn escalation; fail-open, cached per file, budget-capped |
 | 🌙 | **Night mode** | `/night 23:00-06:00` locks the group on a daily schedule in **chat-local time** (`/settz Asia/Jakarta`), announces lights-out and reopening, restores the exact permission snapshot — restart-safe |
 | 🧵 | **Forum topics** | `/newtopic` `/closetopic` `/reopentopic` `/renametopic` for supergroups with Topics · discussion groups can **auto-pin the linked channel's posts** |
+| 🔐 | **Content locks** | Rose-style `/lock stickers gifs forwards …` — 12 lockable media types, deleted on sight for non-admins, all toggleable from the inline `/settings` panel |
+| 🗓 | **Scheduled messages** | `/schedule 18:00 <text>` (or `45m`) posts once at the given **chat-local** time — durable through restarts; `/schedules` & `/unschedule` manage them |
+| 🎙 | **Voice** | Send a voice note in DM and the bot **transcribes it (Whisper) and answers**; `/transcribe` by reply converts any voice/audio/video note to text in groups |
+| 📝 | **User dossiers** | `/unote` attaches private moderation notes to a user; `/info` now shows warns, karma, AFK state, federation bans and those notes in one card |
+| 💾 | **Backup & restore** | Owner `/export` sends the database; **`/import`** (reply to a backup) validates it, swaps it in at boot and restarts — no shell access needed |
+| ⭐ | **Paid media** | `/paidpost 50` (reply to a photo/video) reposts it as **Telegram Stars paid media** — viewers unlock by paying |
 | 🌍 | **Translation** | `/tr` (reply) translates any message with the chat's AI model · **`/bridge de`** auto-translates foreign-language messages for multilingual groups (throttled, best-effort) |
 | 🤝 | **Federations** | **Cross-group ban lists** (Rose-style): `/newfed` → `/joinfed` in every group · `/fban` bans everywhere at once and auto-removes listed users the moment they join |
 | 📊 | **Analytics** | `/stats` — 24h/7d counters, per-day activity chart, most active members · `/recall <words>` searches recent messages (both need the ambient opt-in) |
@@ -56,10 +62,14 @@ Every setting lives inside Telegram. No web dashboard.**
 | 🌐 | **Webhook mode** | Set `WEBHOOK_URL` for instant delivery and multi-replica deployments; long polling stays the zero-config default |
 | 🌐 | **10 languages** | Auto-detected from each user's Telegram, overridable per chat via `/lang`: EN · ID · RU · ES · PT · HI · AR · FA · TR · UK |
 
-**Everything is configured inside Telegram**: `/settings` opens an inline menu
-per group (welcome, captcha, AI, ephemeral answers, anti-flood, ambient context,
-warn limit, language). API keys are set by DM-ing the bot — never through a
-config file, never in a group.
+**Everything is configured inside Telegram, fully inline**: `/settings` opens a
+button panel per group — every toggle (welcome, goodbye, captcha, AI, NSFW
+filter, anti-flood, auto-pin, ambient context…), cycle buttons for the warn
+limit & penalty and the link-filter mode, a **content-locks submenu**, night
+mode & timezone at a glance, language and AI-model pickers. Only free-text
+values (welcome text, filters, time windows) use commands, and every one
+replies with its exact usage. API keys are set by DM-ing the bot — never
+through a config file, never in a group.
 
 ## 🚀 Quick start
 
@@ -222,15 +232,23 @@ timeline, framework comparison, platform pitfalls).
 - [x] Per-chat command management (`/disable` `/enable` `/disabled`)
 - [x] Forum-topic management (`/newtopic` `/closetopic` `/reopentopic` `/renametopic`) · auto-pin of linked-channel posts
 
+- [x] AI-powered `/recall`: lexical matches plus a model-synthesized answer over the log & memory
+- [x] Scheduled one-off messages (`/schedule 18:00 <text>`) in chat-local time
+- [x] Locks by media type (`/lock stickers gifs forwards …`, 12 types, inline submenu)
+- [x] Fed admin roles (`/fpromote`) & portable fed ban lists (`/fexport` `/fimport`)
+- [x] Dashboard-free backup/restore: `/import` swaps in an `/export` file at boot
+- [x] Voice: DM voice notes transcribed (Whisper) & answered · `/transcribe` in groups
+- [x] Per-user moderation notes (`/unote`) & a full dossier in `/info`
+- [x] Paid media posts (`/paidpost`, Telegram Stars) · fully inline `/settings` panel
+
 **Next**
 
-- [ ] Semantic (vector) search over long-term memory and the ambient log
-- [ ] Scheduled one-off messages (`/schedule 18:00 <text>`) in chat-local time
-- [ ] Locks by media type (Rose-style `/lock stickers|gifs|forwards`)
-- [ ] Fed admin roles (promote co-owners) & fed ban export/import
-- [ ] Web dashboard-free backup/restore: `/import` to restore an `/export` file
-- [ ] Voice: transcribe voice notes and answer with the chat's AI model
-- [ ] Per-user notes & reputation history in `/info`
+- [ ] True vector embeddings for `/recall` when the provider exposes an embeddings endpoint
+- [ ] Welcome buttons (custom inline URL buttons under the welcome message)
+- [ ] Approvals: exempt trusted users from all filters (Rose-style /approve)
+- [ ] Sticker-pack tools: /kang to clone stickers into the bot's pack
+- [ ] Per-chat AI usage quotas & spending caps
+- [ ] Business: AI auto-labels & folders for customer chats
 
 ## 🤝 Contributing
 

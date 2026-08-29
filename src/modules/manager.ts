@@ -1,7 +1,8 @@
 import path from "node:path";
+import { writeFileSync } from "node:fs";
 import { Composer, InputFile, type Context } from "grammy";
 import { config } from "../config.js";
-import { checkpoint } from "../db/index.js";
+import { checkpoint, restorePath } from "../db/index.js";
 import { listKnownChats, upsertChat, migrateChatId } from "../db/repo.js";
 import { isGitCheckout, checkForUpdates, applyUpdate } from "../services/updater.js";
 import { invalidateAdminCache } from "../util/admin.js";
@@ -56,6 +57,35 @@ manager.command("export", async (ctx) => {
   checkpoint(); // flush the WAL so the file is a complete snapshot
   const file = new InputFile(path.join(config.dataDir, "sotong.db"), "sotong-backup.db");
   await ctx.replyWithDocument(file, { caption: `📦 ${new Date().toISOString().slice(0, 10)}` });
+});
+
+// /import — owner only, DM only: reply to an /export backup file to restore it.
+// The file is staged next to the live DB and swapped in on the next boot
+// (db/index.ts), so the open database file is never clobbered.
+manager.command("import", async (ctx) => {
+  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  const doc = ctx.message?.reply_to_message?.document;
+  if (!doc || (doc.file_size ?? 0) > 19_000_000) {
+    await ctx.reply(tc(ctx, "import.usage"));
+    return;
+  }
+  try {
+    const file = await ctx.api.getFile(doc.file_id);
+    const res = await fetch(`https://api.telegram.org/file/bot${config.botToken}/${file.file_path}`, {
+      signal: AbortSignal.timeout(60_000),
+    });
+    const buf = Buffer.from(await res.arrayBuffer());
+    // A real SQLite database starts with this exact 16-byte header.
+    if (!buf.subarray(0, 15).equals(Buffer.from("SQLite format 3"))) {
+      await ctx.reply(tc(ctx, "import.usage"));
+      return;
+    }
+    writeFileSync(restorePath, buf);
+    await ctx.reply(tc(ctx, "import.done"));
+    process.exit(0); // the supervisor restarts us; boot swaps the file in
+  } catch (err) {
+    await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message.slice(0, 200) }));
+  }
 });
 
 // /broadcast <text> — owner only, DM only: deliver to every managed group/channel.

@@ -1,5 +1,19 @@
 import { Composer, type Context } from "grammy";
-import { addWarn, clearWarns, getWarns, getSettings, updateSettings, recentMemberIds } from "../db/repo.js";
+import {
+  addWarn,
+  clearWarns,
+  getWarns,
+  getSettings,
+  updateSettings,
+  recentMemberIds,
+  getKarma,
+  getAfk,
+  fedOfChat,
+  getFedBan,
+  addUserNote,
+  listUserNotes,
+  deleteUserNotes,
+} from "../db/repo.js";
 import { senderIsAdmin, isProtectedTarget } from "../util/admin.js";
 import { parseDuration, humanDuration, escapeHtml } from "../util/format.js";
 import { MUTED_PERMISSIONS, UNMUTED_PERMISSIONS } from "../util/permissions.js";
@@ -351,6 +365,11 @@ moderation.command("lockdown", async (ctx) => {
 
 moderation.command("unlock", async (ctx) => {
   if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  // /unlock <type…> lifts content locks; bare /unlock ends a /lockdown.
+  if (ctx.match.trim()) {
+    const { unlockTypes } = await import("./locks.js");
+    if (await unlockTypes(ctx, ctx.match)) return;
+  }
   const chatId = ctx.chat!.id;
   const snapshot = getSettings(chatId).lockSnapshot ?? UNMUTED_PERMISSIONS;
   const ok = await withRights(ctx, "can_restrict_members", () =>
@@ -368,13 +387,72 @@ moderation.command("info", async (ctx) => {
   if (!isGroup(ctx)) return;
   const target = targetFromReply(ctx) ?? (ctx.from ? { id: ctx.from.id, name: escapeHtml(ctx.from.first_name) } : undefined);
   if (!target) return;
-  const member = await ctx.api.getChatMember(ctx.chat!.id, target.id).catch(() => undefined);
-  const warns = getWarns(ctx.chat!.id, target.id);
-  await ctx.reply(
-    `${tc(ctx, "mod.infoTitle", { name: target.name })}\n` +
-      tc(ctx, "mod.infoLine", { id: target.id, status: member?.status ?? "?", warns }),
-    { parse_mode: "HTML", message_thread_id: threadIdOf(ctx) },
-  );
+  const chatId = ctx.chat!.id;
+  const member = await ctx.api.getChatMember(chatId, target.id).catch(() => undefined);
+  const warns = getWarns(chatId, target.id);
+  const lines = [
+    tc(ctx, "mod.infoTitle", { name: target.name }),
+    tc(ctx, "mod.infoLine", { id: target.id, status: member?.status ?? "?", warns }),
+    tc(ctx, "mod.infoKarma", { karma: getKarma(chatId, target.id) }),
+  ];
+  if (getAfk(target.id)) lines.push(tc(ctx, "mod.infoAfk"));
+  const fed = fedOfChat(chatId);
+  if (fed && getFedBan(fed.fed_id, target.id)) lines.push(tc(ctx, "mod.infoFedBanned", { fed: escapeHtml(fed.name) }));
+  // Admin-written notes about this user (see /unote) — visible to admins only.
+  if (await senderIsAdmin(ctx)) {
+    const notes = listUserNotes(chatId, target.id);
+    for (const n of notes.slice(0, 3)) lines.push(`📝 ${escapeHtml(n.note)}`);
+    if (notes.length > 3) lines.push(`… +${notes.length - 3}`);
+  }
+  await ctx.reply(lines.join("\n"), { parse_mode: "HTML", message_thread_id: threadIdOf(ctx) });
+});
+
+// ---------- per-user admin notes ----------
+
+// /unote (reply) <text> — attach a private moderation note to a user.
+moderation.command("unote", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const target = targetFromReply(ctx);
+  const note = ctx.match.trim();
+  if (!target || !note) {
+    await ctx.reply(tc(ctx, "unote.usage"));
+    return;
+  }
+  addUserNote(ctx.chat!.id, target.id, note, ctx.from?.first_name);
+  await ctx.reply(tc(ctx, "unote.saved", { name: target.name }), { parse_mode: "HTML" });
+});
+
+// /unotes (reply) — full note history; /delnotes (reply) — wipe it.
+moderation.command("unotes", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const target = targetFromReply(ctx);
+  if (!target) {
+    await ctx.reply(tc(ctx, "error.replyRequired"));
+    return;
+  }
+  const notes = listUserNotes(ctx.chat!.id, target.id);
+  if (!notes.length) {
+    await ctx.reply(tc(ctx, "unote.empty"));
+    return;
+  }
+  const rows = notes
+    .map((n) => `• ${escapeHtml(n.note)}${n.author ? ` — <i>${escapeHtml(n.author)}</i>` : ""}`)
+    .join("\n");
+  await ctx.reply(`${tc(ctx, "unote.title", { name: target.name })}\n${rows}`, { parse_mode: "HTML" });
+});
+
+moderation.command("delnotes", async (ctx) => {
+  if (!isGroup(ctx) || !(await senderIsAdmin(ctx))) return;
+  const target = targetFromReply(ctx);
+  if (!target) {
+    await ctx.reply(tc(ctx, "error.replyRequired"));
+    return;
+  }
+  deleteUserNotes(ctx.chat!.id, target.id);
+  await ctx.reply(tc(ctx, "unote.cleared", { name: target.name }), { parse_mode: "HTML" });
 });
 
 async function notifyAdmins(ctx: Context): Promise<void> {

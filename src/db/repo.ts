@@ -37,6 +37,8 @@ export interface ChatSettings {
   linkAllowlist?: string[];
   /** Commands non-admins may not use here (Rose-style /disable). */
   disabledCommands?: string[];
+  /** Media types non-admins may not send (Rose-style /lock stickers gifs …). */
+  locks?: string[];
   /** AI screening of photos/video thumbnails for NSFW content (opt-in). */
   antiNsfw: boolean;
   /** Pin the linked channel's auto-forwarded posts in the discussion group. */
@@ -419,6 +421,57 @@ export function fedBanCount(fedId: string): number {
   return (db.prepare("SELECT COUNT(*) AS n FROM fed_bans WHERE fed_id = ?").get(fedId) as { n: number }).n;
 }
 
+export function listFedBans(fedId: string) {
+  return db
+    .prepare("SELECT user_id, reason, ts FROM fed_bans WHERE fed_id = ? ORDER BY ts")
+    .all(fedId) as Array<{ user_id: number; reason: string | null; ts: number }>;
+}
+
+// Fed admins may /fban and /unfban alongside the owner.
+export function addFedAdmin(fedId: string, userId: number) {
+  db.prepare("INSERT OR IGNORE INTO fed_admins (fed_id, user_id) VALUES (?, ?)").run(fedId, userId);
+}
+
+export function removeFedAdmin(fedId: string, userId: number): boolean {
+  return db.prepare("DELETE FROM fed_admins WHERE fed_id = ? AND user_id = ?").run(fedId, userId).changes > 0;
+}
+
+export function isFedAdmin(fedId: string, userId: number): boolean {
+  return Boolean(db.prepare("SELECT 1 FROM fed_admins WHERE fed_id = ? AND user_id = ?").get(fedId, userId));
+}
+
+export function fedAdminCount(fedId: string): number {
+  return (db.prepare("SELECT COUNT(*) AS n FROM fed_admins WHERE fed_id = ?").get(fedId) as { n: number }).n;
+}
+
+// ---------- per-user admin notes (shown in /info) ----------
+
+const USER_NOTE_CAP = 20;
+
+export function addUserNote(chatId: number, userId: number, note: string, author: string | undefined) {
+  db.prepare("INSERT INTO user_notes (chat_id, user_id, note, author, ts) VALUES (?, ?, ?, ?, ?)").run(
+    chatId,
+    userId,
+    note.slice(0, 500),
+    author ?? null,
+    now(),
+  );
+  db.prepare(
+    `DELETE FROM user_notes WHERE chat_id = ? AND user_id = ? AND id NOT IN
+       (SELECT id FROM user_notes WHERE chat_id = ? AND user_id = ? ORDER BY ts DESC LIMIT ?)`,
+  ).run(chatId, userId, chatId, userId, USER_NOTE_CAP);
+}
+
+export function listUserNotes(chatId: number, userId: number) {
+  return db
+    .prepare("SELECT id, note, author, ts FROM user_notes WHERE chat_id = ? AND user_id = ? ORDER BY ts DESC, id DESC")
+    .all(chatId, userId) as Array<{ id: number; note: string; author: string | null; ts: number }>;
+}
+
+export function deleteUserNotes(chatId: number, userId: number): number {
+  return db.prepare("DELETE FROM user_notes WHERE chat_id = ? AND user_id = ?").run(chatId, userId).changes;
+}
+
 // ---------- activity stats (from the ambient message log) ----------
 
 export function messageStats(chatId: number) {
@@ -496,6 +549,13 @@ export function addKarma(chatId: number, userId: number, name: string | undefine
     )
     .get(chatId, userId, name ?? null, delta, delta) as { score: number };
   return row.score;
+}
+
+export function getKarma(chatId: number, userId: number): number {
+  const row = db.prepare("SELECT score FROM karma WHERE chat_id = ? AND user_id = ?").get(chatId, userId) as
+    | { score: number }
+    | undefined;
+  return row?.score ?? 0;
 }
 
 export function topKarma(chatId: number, limit = 10) {

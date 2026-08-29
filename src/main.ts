@@ -17,6 +17,8 @@ import { channels } from "./modules/channels.js";
 import { business } from "./modules/business.js";
 import { commands } from "./modules/commands.js";
 import { topics } from "./modules/topics.js";
+import { locks } from "./modules/locks.js";
+import { schedule } from "./modules/schedule.js";
 import { nsfw } from "./modules/nsfw.js";
 import { filters } from "./modules/filters.js";
 import { afk } from "./modules/afk.js";
@@ -48,8 +50,10 @@ bot.use(moderation);
 bot.use(modpanel);
 bot.use(topics);
 bot.use(onboarding);
+bot.use(locks);
 bot.use(nsfw);
 bot.use(filters);
+bot.use(schedule);
 bot.use(notes);
 bot.use(fun);
 bot.use(stars);
@@ -89,6 +93,7 @@ async function registerCommands() {
     { command: "notes", description: "List saved notes" },
     { command: "afk", description: "Mark yourself away" },
     { command: "tr", description: "(reply) Translate a message" },
+    { command: "transcribe", description: "(reply) Voice → text" },
     { command: "report", description: "Call the admins" },
     { command: "admins", description: "List the admins" },
     { command: "settings", description: "Group settings" },
@@ -113,9 +118,13 @@ async function registerCommands() {
     { command: "pin", description: "(reply) Pin message" },
     { command: "del", description: "(reply) Delete a message" },
     { command: "lockdown", description: "Freeze the group" },
-    { command: "unlock", description: "Unfreeze the group" },
+    { command: "unlock", description: "Unfreeze / unlock types" },
+    { command: "lock", description: "Lock media types" },
+    { command: "locks", description: "List content locks" },
     { command: "night", description: "Nightly auto-lockdown window" },
     { command: "settz", description: "Set the chat timezone" },
+    { command: "schedule", description: "One-off timed message" },
+    { command: "unote", description: "(reply) Note about a user" },
     { command: "antilink", description: "Link filter: off|invites|all" },
     { command: "allowlink", description: "Allowlist a domain" },
     { command: "filter", description: "Auto-reply: /filter hi Hello!" },
@@ -151,6 +160,7 @@ async function registerCommands() {
     { command: "status", description: "(owner) List managed chats" },
     { command: "broadcast", description: "(owner) Message all chats" },
     { command: "export", description: "(owner) Backup the database" },
+    { command: "import", description: "(owner) Restore a backup" },
     { command: "update", description: "(owner) Self-update from git" },
     { command: "newfed", description: "Create a ban federation" },
     { command: "memory", description: "Show long-term memory" },

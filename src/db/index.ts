@@ -1,13 +1,34 @@
 import Database from "better-sqlite3";
 import path from "node:path";
+import { existsSync, renameSync, rmSync } from "node:fs";
 import { config } from "../config.js";
 
 /**
  * SQLite connection + schema. All queries live in ./repo.ts — this file only
  * owns the connection, pragmas, and idempotent migrations.
  */
-export const db = new Database(path.join(config.dataDir, "sotong.db"));
+const DB_PATH = path.join(config.dataDir, "sotong.db");
+const RESTORE_PATH = `${DB_PATH}.restore`;
+
+// /import writes the uploaded backup next to the live DB and exits; the swap
+// happens HERE, before the database is opened, so the live file is never
+// overwritten while a connection holds it.
+if (existsSync(RESTORE_PATH)) {
+  try {
+    if (existsSync(DB_PATH)) renameSync(DB_PATH, `${DB_PATH}.bak`);
+    for (const suffix of ["-wal", "-shm"]) rmSync(`${DB_PATH}${suffix}`, { force: true });
+    renameSync(RESTORE_PATH, DB_PATH);
+    console.log("📥 Restored database from uploaded backup (previous file kept as sotong.db.bak).");
+  } catch (err) {
+    console.error("Restore failed, keeping the existing database:", (err as Error).message);
+  }
+}
+
+export const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
+
+/** Where /import stages an uploaded backup for the boot-time swap above. */
+export const restorePath = RESTORE_PATH;
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS chats (
@@ -108,6 +129,20 @@ CREATE TABLE IF NOT EXISTS karma (
   score INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (chat_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS fed_admins (
+  fed_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  PRIMARY KEY (fed_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS user_notes (
+  chat_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  note TEXT NOT NULL,
+  author TEXT,
+  ts INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS user_notes_user ON user_notes (chat_id, user_id);
 CREATE TABLE IF NOT EXISTS business_connections (
   connection_id TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL,
