@@ -1,8 +1,22 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { config } from "./../config.js";
 import { validateInitData } from "./webapp.js";
-import { listKnownChats, messageStats, getSettings, countRows } from "../db/repo.js";
+import {
+  listKnownChats,
+  messageStats,
+  getSettings,
+  countRows,
+  dailyMessageCounts,
+  topPosters,
+  aiSpendByChat,
+  aiSpendForChat,
+  overdueJobCount,
+} from "../db/repo.js";
 import { getVersionInfo } from "./updater.js";
+import { isOwner } from "./owners.js";
+import { alertStatus } from "./alerts.js";
+import { formatUsd, formatTokens } from "./spend.js";
+import { embeddingCachePersisted } from "./embeddings.js";
 import { escapeHtml } from "../util/format.js";
 
 /**
@@ -13,6 +27,7 @@ import { escapeHtml } from "../util/format.js";
  *   GET  /metrics    — Prometheus exposition (optionally token-gated)
  *   GET  /dashboard  — Mini App page
  *   POST /dashboard/data — stats JSON, authenticated with Telegram initData
+ *                          (send {chatId} to drill down into a single chat)
  *
  * Security: the page itself is a shell with no data in it. Numbers only come
  * from the POST endpoint, which requires a valid, fresh Mini App signature AND
@@ -52,38 +67,106 @@ const DASHBOARD_HTML = `<!doctype html>
   body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; padding: 16px;
          background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #111); }
   h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 22px 0 6px; font-weight: 600; }
   .sub { color: var(--tg-theme-hint-color, #777); font-size: 13px; margin-bottom: 16px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
   .card { background: var(--tg-theme-secondary-bg-color, #f3f3f3); border-radius: 12px; padding: 12px; }
   .n { font-size: 22px; font-weight: 600; }
   .l { font-size: 12px; color: var(--tg-theme-hint-color, #777); }
-  table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
   th, td { text-align: left; padding: 7px 4px; border-bottom: 1px solid var(--tg-theme-hint-color, #ddd); }
   th { font-size: 12px; color: var(--tg-theme-hint-color, #777); font-weight: 500; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.link { cursor: pointer; }
+  tr.link:active { background: var(--tg-theme-secondary-bg-color, #f3f3f3); }
+  .spark { width: 100%; height: 56px; display: block; margin-top: 8px; }
+  .spark path { fill: none; stroke: var(--tg-theme-link-color, #2481cc); stroke-width: 2;
+                stroke-linejoin: round; stroke-linecap: round; }
+  .spark .area { fill: var(--tg-theme-link-color, #2481cc); opacity: .12; stroke: none; }
+  .back { display: inline-block; margin-bottom: 10px; color: var(--tg-theme-link-color, #2481cc);
+          cursor: pointer; font-size: 14px; }
+  .warn { color: #c77700; font-size: 13px; margin-top: 10px; }
   #err { color: #c00; }
 </style></head><body>
 <h1>🦑 SotongAssistant</h1>
 <div class="sub" id="ver">loading…</div>
-<div class="grid" id="cards"></div>
-<table id="chats"><thead><tr><th>Chat</th><th class="num">24h</th><th class="num">7d</th></tr></thead><tbody></tbody></table>
+<div id="view"></div>
 <p id="err"></p>
 <script>
   const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
-  fetch("/dashboard/data", {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ initData: tg?.initData || "" }),
-  }).then(r => r.json()).then(d => {
-    if (!d.ok) { document.getElementById("err").textContent = d.error || "Unauthorized"; return; }
-    document.getElementById("ver").textContent =
-      "v" + d.version + " · uptime " + d.uptime + " · " + d.chats + " chats";
-    document.getElementById("cards").innerHTML = d.cards
-      .map(c => '<div class="card"><div class="n">' + c.v + '</div><div class="l">' + c.k + "</div></div>")
-      .join("");
-    document.querySelector("#chats tbody").innerHTML = d.rows
-      .map(r => "<tr><td>" + r.title + '</td><td class="num">' + r.h24 + '</td><td class="num">' + r.d7 + "</td></tr>")
-      .join("");
-  }).catch(e => { document.getElementById("err").textContent = String(e); });
+  const view = document.getElementById("view");
+  const esc = (s) => String(s ?? "");
+
+  // Inline sparkline: one path for the line, one filled area underneath.
+  function spark(series) {
+    if (!series || series.length < 2) return "";
+    const w = 300, h = 56, pad = 3;
+    const max = Math.max(1, ...series.map(p => p.n));
+    const x = (i) => pad + (i * (w - 2 * pad)) / (series.length - 1);
+    const y = (n) => h - pad - (n / max) * (h - 2 * pad);
+    const line = series.map((p, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p.n).toFixed(1)).join(" ");
+    const area = line + " L" + x(series.length - 1).toFixed(1) + " " + (h - pad) + " L" + pad + " " + (h - pad) + " Z";
+    return '<svg class="spark" viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none">' +
+           '<path class="area" d="' + area + '"/><path d="' + line + '"/></svg>' +
+           '<div class="l">' + series[0].day + " → " + series[series.length - 1].day +
+           " · peak " + max + "/day</div>";
+  }
+
+  function cards(list) {
+    return '<div class="grid">' + list
+      .map(c => '<div class="card"><div class="n">' + esc(c.v) + '</div><div class="l">' + esc(c.k) + "</div></div>")
+      .join("") + "</div>";
+  }
+
+  function renderOverview(d) {
+    view.innerHTML =
+      cards(d.cards) +
+      "<h2>Messages · last 14 days</h2>" + spark(d.series) +
+      (d.alerts && (d.alerts.errors || d.alerts.backlog)
+        ? '<div class="warn">⚠️ Active alert: ' +
+          [d.alerts.errors ? "error rate" : "", d.alerts.backlog ? "job backlog" : ""].filter(Boolean).join(" · ") +
+          "</div>"
+        : "") +
+      "<h2>Chats</h2>" +
+      '<table><thead><tr><th>Chat</th><th class="num">24h</th><th class="num">7d</th><th class="num">AI $</th></tr></thead><tbody>' +
+      d.rows.map(r =>
+        '<tr class="link" data-id="' + r.id + '"><td>' + esc(r.title) + '</td><td class="num">' + r.h24 +
+        '</td><td class="num">' + r.d7 + '</td><td class="num">' + esc(r.cost) + "</td></tr>").join("") +
+      "</tbody></table>";
+    view.querySelectorAll("tr.link").forEach(tr =>
+      tr.addEventListener("click", () => load(Number(tr.dataset.id))));
+  }
+
+  function renderChat(d) {
+    view.innerHTML =
+      '<span class="back">← All chats</span>' +
+      "<h2>" + esc(d.title) + "</h2>" +
+      cards(d.cards) +
+      "<h2>Messages · last 14 days</h2>" + spark(d.series) +
+      "<h2>Top posters · 7 days</h2>" +
+      '<table><thead><tr><th>Member</th><th class="num">Messages</th></tr></thead><tbody>' +
+      (d.posters.length
+        ? d.posters.map(p => "<tr><td>" + esc(p.name) + '</td><td class="num">' + p.n + "</td></tr>").join("")
+        : '<tr><td colspan="2" class="l">No logged messages yet.</td></tr>') +
+      "</tbody></table>" +
+      '<div class="l" style="margin-top:12px">' + esc(d.settings) + "</div>";
+    view.querySelector(".back").addEventListener("click", () => load());
+  }
+
+  function load(chatId) {
+    document.getElementById("err").textContent = "";
+    fetch("/dashboard/data", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ initData: tg?.initData || "", chatId }),
+    }).then(r => r.json()).then(d => {
+      if (!d.ok) { document.getElementById("err").textContent = d.error || "Unauthorized"; return; }
+      document.getElementById("ver").textContent =
+        "v" + d.version + " · uptime " + d.uptime + " · " + d.chats + " chats";
+      if (d.chat) renderChat(d); else renderOverview(d);
+      window.scrollTo(0, 0);
+    }).catch(e => { document.getElementById("err").textContent = String(e); });
+  }
+  load();
 </script></body></html>`;
 
 function humanUptime(ms: number): string {
@@ -132,6 +215,17 @@ export async function handleDashboardRequest(req: IncomingMessage, res: ServerRe
       "# HELP sotong_chats Known chats by kind.",
       "# TYPE sotong_chats gauge",
       `sotong_chats ${listKnownChats().length}`,
+      "# HELP sotong_job_backlog Jobs already past their due time.",
+      "# TYPE sotong_job_backlog gauge",
+      `sotong_job_backlog ${overdueJobCount()}`,
+      "# HELP sotong_ai_cost_usd_30d Estimated AI spend over the last 30 days.",
+      "# TYPE sotong_ai_cost_usd_30d gauge",
+      `sotong_ai_cost_usd_30d ${aiSpendByChat(30)
+        .reduce((sum, r) => sum + (r.cost_usd ?? 0), 0)
+        .toFixed(6)}`,
+      "# HELP sotong_embedding_cache_rows Vectors kept in the persistent embedding cache.",
+      "# TYPE sotong_embedding_cache_rows gauge",
+      `sotong_embedding_cache_rows ${embeddingCachePersisted()}`,
     ];
     res.writeHead(200, { "content-type": "text/plain; version=0.0.4" });
     res.end(lines.join("\n") + "\n");
@@ -147,36 +241,93 @@ export async function handleDashboardRequest(req: IncomingMessage, res: ServerRe
   if (url === "/dashboard/data" && req.method === "POST") {
     res.setHeader("content-type", "application/json");
     try {
-      const body = JSON.parse(await readBody(req)) as { initData?: string };
+      const body = JSON.parse(await readBody(req)) as { initData?: string; chatId?: number };
       const userId = validateInitData(body.initData ?? "", config.botToken);
       // Owner-only: the dashboard aggregates every managed chat.
-      if (!userId || userId !== config.ownerId) {
+      if (!isOwner(userId)) {
         res.writeHead(200);
         res.end(JSON.stringify({ ok: false, error: "Owner only — open this from the bot's menu." }));
         return true;
       }
       const v = await getVersionInfo();
       const chats = listKnownChats().filter((c) => c.type !== "private");
-      const rows = chats.slice(0, 25).map((c) => {
+      const base = {
+        ok: true as const,
+        version: v.version,
+        uptime: humanUptime(Date.now() - bootedAt),
+        chats: chats.length,
+      };
+
+      // ---- drill-down: one chat ----
+      // Restricted to chats the bot actually manages, so a crafted id cannot
+      // fish for rows belonging to anything else.
+      const target = body.chatId === undefined ? undefined : chats.find((c) => c.chat_id === body.chatId);
+      if (body.chatId !== undefined && !target) {
+        res.writeHead(200);
+        res.end(JSON.stringify({ ok: false, error: "Unknown chat." }));
+        return true;
+      }
+      if (target) {
+        const st = messageStats(target.chat_id);
+        const spend = aiSpendForChat(target.chat_id, 30);
+        const s = getSettings(target.chat_id);
+        res.writeHead(200);
+        res.end(
+          JSON.stringify({
+            ...base,
+            chat: true,
+            title: escapeHtml(target.title ?? String(target.chat_id)),
+            series: dailyMessageCounts(14, target.chat_id),
+            posters: topPosters(target.chat_id, 7, 10).map((p) => ({
+              name: escapeHtml(p.name),
+              n: p.n,
+            })),
+            cards: [
+              { k: "Messages 24h", v: st.total24h },
+              { k: "Messages 7d", v: st.total7d },
+              { k: "AI calls 30d", v: spend.calls },
+              { k: "Tokens 30d", v: formatTokens(spend.inTokens + spend.outTokens) },
+              { k: "AI cost 30d", v: `$${formatUsd(spend.costUsd)}` },
+            ],
+            settings:
+              `AI ${s.ai ? "on" : "off"} · captcha ${s.captcha ? "on" : "off"} · ` +
+              `links ${s.antilink ? s.antilinkMode : "off"} · warns ${s.warnLimit} (${s.warnAction})` +
+              (s.language ? ` · lang ${s.language}` : ""),
+          }),
+        );
+        return true;
+      }
+
+      // ---- overview ----
+      const spendByChat = new Map(aiSpendByChat(30).map((r) => [r.chat_id, r]));
+      const rows = chats.slice(0, 50).map((c) => {
         const st = messageStats(c.chat_id);
-        return { title: escapeHtml(c.title ?? String(c.chat_id)), h24: st.total24h, d7: st.total7d };
+        return {
+          id: c.chat_id,
+          title: escapeHtml(c.title ?? String(c.chat_id)),
+          h24: st.total24h,
+          d7: st.total7d,
+          cost: formatUsd(spendByChat.get(c.chat_id)?.cost_usd ?? 0),
+        };
       });
       const aiOn = chats.filter((c) => getSettings(c.chat_id).ai).length;
+      const totalCost = [...spendByChat.values()].reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
       res.writeHead(200);
       res.end(
         JSON.stringify({
-          ok: true,
-          version: v.version,
-          uptime: humanUptime(Date.now() - bootedAt),
-          chats: chats.length,
+          ...base,
+          series: dailyMessageCounts(14),
           rows,
+          alerts: alertStatus(),
           cards: [
             { k: "AI answers", v: metrics.aiAnswers },
+            { k: "AI cost 30d", v: `$${formatUsd(totalCost)}` },
             { k: "Moderation", v: metrics.moderationActions },
             { k: "Jobs run", v: metrics.jobsRun },
-            { k: "Updates", v: metrics.updates },
+            { k: "Errors", v: metrics.errors },
             { k: "Chats with AI", v: aiOn },
             { k: "Notes stored", v: countRows("notes") },
+            { k: "Cached vectors", v: embeddingCachePersisted() },
           ],
         }),
       );

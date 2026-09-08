@@ -16,6 +16,7 @@ import { localMinutes, parseHHMM, inWindow } from "../util/time.js";
 import { escapeHtml, markdownToTelegramHtml } from "../util/format.js";
 import { t } from "../i18n/index.js";
 import { metrics } from "./dashboard.js";
+import { checkAlerts } from "./alerts.js";
 import { getCatalog } from "./catalog.js";
 import { streamCompletion } from "./ai/index.js";
 
@@ -66,11 +67,14 @@ async function reconcileNightMode(api: Api): Promise<void> {
 }
 
 export function startJobRunner(api: Api): () => void {
-  let lastNightCheck = 0;
+  let lastMinuteTasks = 0;
   const timer = setInterval(async () => {
-    if (Date.now() - lastNightCheck >= 60_000) {
-      lastNightCheck = Date.now();
+    if (Date.now() - lastMinuteTasks >= 60_000) {
+      lastMinuteTasks = Date.now();
       await reconcileNightMode(api).catch(() => undefined);
+      // Alerting runs before the queue is drained, so a stuck queue is judged
+      // on the backlog the previous ticks actually left behind.
+      await checkAlerts(api).catch(() => undefined);
     }
     for (const job of claimDueJobs()) {
       const payload = JSON.parse(job.payload) as Record<string, unknown>;

@@ -39,6 +39,7 @@ Toda a configuração vive dentro do Telegram. Sem painel web.**
 | 🧰 | **Rodada completa de capacidades** | `/aitask` publica com IA no horário (texto sempre novo) · `/kang` clona figurinhas para o seu pacote · avisos de bate-papo por vídeo com lembrete · `/gifts` `/gift` `/balance` economia de Stars · `/tag` etiquetas de membro · `/unpin` `/unpinall` `/revokeinvite` `/boosts` · identidade do bot pelo Telegram (`/setbotname`…) · `/recall` agora híbrido (léxico + semântico) · ações de IA do dono no PV |
 | 💼 | **Triagem automática do Business** | Cada conversa de cliente recebe resposta da IA **e uma etiqueta automática** (intenção, urgência, resumo de uma linha) sem chamada extra · `/leads [etiqueta]` é a caixa priorizada no PV do dono · as ações do dono agora configuram qualquer grupo remotamente e mostram quais provedores têm chave (só nomes) |
 | 🧭 | **Assistente, painel e ops** | `/setup` com presets de um toque (Comunidade / Rígido / Avisos) · painel de estatísticas somente leitura (só dono, autenticado com `initData`) + `/healthz` + `/metrics` Prometheus · `/autobackup` envia o banco ao PV periodicamente · `/react` `/clearreactions` `/autoreact` · moderação de posts sugeridos · controle do tópico General |
+| 💸 | **Custo, alertas e equipe** | Cada resposta de IA registra tokens e custo estimado por chat (`/spend`, painel, `/metrics`) · os proprietários recebem DM quando a taxa de erros ou a fila de tarefas ultrapassa o limite, e outra ao normalizar · `OWNER_ID` aceita lista e `/addowner` adiciona coproprietários — as chaves de API continuam com o proprietário principal · o painel ganhou sparklines de 14 dias e detalhe por chat |
 | 🌐 | **10 idiomas** | Autodetecção pelo Telegram do usuário, substituível por chat com `/lang` |
 
 **Tudo é configurado dentro do Telegram**: `/settings` abre um menu inline por
@@ -70,7 +71,7 @@ Depois, no Telegram:
 | Variável | Obrig. | Significado |
 |---|---|---|
 | `BOT_TOKEN` | ✅ | Token do @BotFather |
-| `OWNER_ID` | ✅ | Seu user id do Telegram (veja `/id`) |
+| `OWNER_ID` | ✅ | Seu user id do Telegram (veja `/id`) — aceita lista; o primeiro é o proprietário principal |
 | `SECRET_KEY` | – | Chave de criptografia das API keys salvas |
 | `DATA_DIR` | – | Diretório do SQLite e cache (padrão `./data`) |
 | `DEFAULT_AI_PROVIDER` / `DEFAULT_AI_MODEL` | – | Modelo padrão (`anthropic` / `claude-opus-5`) |

@@ -57,7 +57,10 @@ Every setting lives inside Telegram. No web dashboard.**
 | 💤 | **Everyday basics** | `/afk` with reasons & auto-return · `/ping`, `/uptime`, `/about` · `/admins`, `/invite`, `/echo`, `/del` |
 | 🔎 | **Inline mode** | `@botname question` asks the AI **from any chat** — placeholder posts instantly, the answer streams into it (enable *inline mode* + *inline feedback* in @BotFather) |
 | 🧭 | **`/setup` wizard** | A freshly promoted bot offers a one-tap setup: **Community**, **Strict** or **Announcements** preset configures welcome, captcha, AI, link policy, anti-flood/raid and warn behaviour in a single click, then hands over to `/settings` |
-| 📈 | **Dashboard & metrics** | A read-only stats page on the bot's own HTTP server (owner-only, authenticated with Mini App `initData` — opening the URL alone reveals nothing) · **`/healthz`** liveness probe · **Prometheus `/metrics`** with update, AI, moderation, job and error counters, optionally token-gated |
+| 📈 | **Dashboard & metrics** | A read-only stats page on the bot's own HTTP server (owner-only, authenticated with Mini App `initData` — opening the URL alone reveals nothing): **14-day sparklines**, a **per-chat drill-down** with top posters, settings and AI cost · **`/healthz`** liveness probe · **Prometheus `/metrics`** with update, AI, moderation, job, error, backlog and spend gauges, optionally token-gated |
+| 💸 | **AI spend accounting** | Every answer books its tokens against the chat — reported by the provider where possible, estimated otherwise — priced from the models.dev catalogue. `/spend` ranks chats in the owner's DM and reports the group's own usage to its admins |
+| 🚨 | **Alerting** | The bot DMs every owner when the error rate or the job backlog crosses its threshold, and once more when it clears (edge-triggered, so an outage costs a handful of messages, not a flood) |
+| 👑 | **Owner team** | `OWNER_ID` takes a list and `/addowner` grants more at runtime. Co-owners run the day-to-day owner commands; managing owners and storing API keys stay with the **primary** owner |
 | 🗄 | **Automatic backups** | `/autobackup 1d` mails the checkpointed database to the owner's DM on a schedule, re-arming itself across restarts |
 | 😀 | **Reaction tools** | `/react` & `/unreact` by reply · **`/clearreactions`** wipes a brigaded message clean · **`/autoreact 🔥`** reacts to every media post |
 | 📝 | **Suggested posts** | Subscriber submissions to a channel surface with one-tap **approve / decline** buttons for admins |
@@ -112,7 +115,8 @@ Then, in Telegram:
 | Env var | Required | Meaning |
 |---|---|---|
 | `BOT_TOKEN` | ✅ | Token from @BotFather |
-| `OWNER_ID` | ✅ | Your Telegram user id (see `/id`) — may set API keys & use `/status`, `/refund` |
+| `OWNER_ID` | ✅ | Your Telegram user id (see `/id`). Comma-separated list allowed — the **first** id is the primary owner (API keys + owner management), the rest are co-owners |
+| `ALERT_ERRORS_PER_5M` / `ALERT_JOB_BACKLOG` | – | Alert thresholds (default `25` / `50`; `0` disables that check) |
 | `SECRET_KEY` | – | Encryption key for stored provider keys (defaults to a key derived from `BOT_TOKEN`) |
 | `DATA_DIR` | – | SQLite + cache directory (default `./data`) |
 | `DEFAULT_AI_PROVIDER` / `DEFAULT_AI_MODEL` | – | Fallback AI model (default `anthropic` / `claude-opus-5`) |
@@ -179,8 +183,10 @@ pm2 start "npx tsx src/main.ts" --name sotong --kill-timeout 10000
 ## 🔐 Security
 
 - Provider API keys are **encrypted at rest** (AES-256-GCM; key derived from
-  `SECRET_KEY` or the bot token) and can only be set by the owner, only in DM —
-  the message containing the key is deleted right away.
+  `SECRET_KEY` or the bot token) and can only be set by the **primary** owner,
+  only in DM — the message containing the key is deleted right away. Co-owners
+  never reach `/setkey`; a database backup they pull carries the keys still
+  encrypted, and the decryption key is never in the file.
 - Every user-provided string is HTML-escaped before rendering; the AI system
   prompt instructs the model to treat user text as content, never instructions.
 - Moderation commands verify the sender's admin status server-side (cached
@@ -279,14 +285,17 @@ timeline, framework comparison, platform pitfalls).
 - [x] **`/setup` wizard** — one-tap presets for a freshly added group
 - [x] **General-topic control** — `/closegeneral` `/reopengeneral` `/hidegeneral` `/unhidegeneral`
 
+- [x] **Persistent embedding cache** — vectors live in SQLite, so a restart no longer re-embeds the history
+- [x] **Dashboard charts** — 14-day sparklines plus a per-chat drill-down (top posters, settings, spend)
+- [x] **Alerting** — every owner is DMed when the error rate or job backlog crosses its threshold, and once when it clears
+- [x] **Multi-owner** — `/owners` `/addowner` `/delowner`, with API keys reserved for the primary owner
+- [x] **AI spend accounting** — tokens & estimated cost per chat (`/spend`, dashboard, `/metrics`)
+
 **Next**
 
-- [ ] Persist the embedding cache to SQLite so it survives restarts
-- [ ] Dashboard charts (per-day sparklines) and a per-chat drill-down view
-- [ ] Alerting: notify the owner when error rate or job backlog crosses a threshold
 - [ ] Checklists (`sendChecklist`) once Telegram allows them outside Business accounts
-- [ ] Multi-owner support: a small admin team for owner-level commands
-- [ ] Per-chat AI spend accounting in Stars/tokens, surfaced in the dashboard
+- [ ] Budget *enforcement*: pause AI in a chat once it passes a monthly cost cap
+- [ ] Per-model breakdown in `/spend` (today it aggregates whatever each chat used)
 
 ## 🤝 Contributing
 

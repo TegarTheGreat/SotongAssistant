@@ -20,6 +20,13 @@ import { approveUser, isApproved, unapproveUser, bumpAiUsage, getAiUsageToday } 
 import { upsertBusinessConnection, upsertLead, listLeads, listProvidersWithKeys } from "../src/db/repo.js";
 import { inWindow, parseHHMM, isValidTimezone, localMinutes } from "../src/util/time.js";
 import { validateInitData } from "../src/services/webapp.js";
+import {
+  getCachedEmbeddings, putCachedEmbeddings, embeddingCacheRows,
+  addCoOwner, removeCoOwner, isCoOwner, listCoOwners,
+  dailyMessageCounts, topPosters, recordAiSpend, aiSpendForChat, aiSpendByChat, overdueJobCount,
+} from "../src/db/repo.js";
+import { isOwner, isPrimaryOwner, ownerIds } from "../src/services/owners.js";
+import { formatUsd, formatTokens, estimateTokens } from "../src/services/spend.js";
 import { createHmac } from "node:crypto";
 
 // settings
@@ -270,6 +277,78 @@ if (!deleteJob(listJobsByKind("backup")[0]!.id)) throw new Error("backup cancel"
   if (validateInitData(params.toString(), token) !== 42) throw new Error("valid initData rejected");
   params.set("hash", hash.slice(0, -1) + (hash.endsWith("0") ? "1" : "0"));
   if (validateInitData(params.toString(), token) !== undefined) throw new Error("tampered initData accepted");
+}
+
+// ---- persistent embedding cache (L2) ----
+{
+  const vec = Array.from({ length: 8 }, (_, i) => i / 8);
+  putCachedEmbeddings([{ hash: "h1", vec }], "test-model");
+  const got = getCachedEmbeddings(["h1", "missing"], "test-model");
+  if (got.size !== 1) throw new Error("embedding cache lookup");
+  const round = got.get("h1")!;
+  // Float32 round-trip: compare with a tolerance, not for exact equality.
+  if (round.length !== vec.length || round.some((v, i) => Math.abs(v - vec[i]!) > 1e-6)) {
+    throw new Error("embedding cache round-trip");
+  }
+  if (getCachedEmbeddings(["h1"], "other-model").size !== 0) throw new Error("cache must be per-model");
+  if (embeddingCacheRows() < 1) throw new Error("embedding cache row count");
+  // The cap evicts the least recently used rows.
+  putCachedEmbeddings([{ hash: "h2", vec }, { hash: "h3", vec }], "test-model", 2);
+  if (embeddingCacheRows() !== 2) throw new Error("embedding cache eviction");
+}
+
+// ---- co-owners ----
+{
+  if (isOwner(555)) throw new Error("stranger must not be an owner");
+  addCoOwner(555, "Ops", 1);
+  if (!isCoOwner(555) || !isOwner(555)) throw new Error("co-owner should have owner access");
+  // A co-owner is never the primary owner: no key access, no owner management.
+  if (isPrimaryOwner(555)) throw new Error("co-owner must not be primary");
+  if (!ownerIds().includes(555)) throw new Error("alert fan-out must include co-owners");
+  if (listCoOwners().length !== 1) throw new Error("co-owner list");
+  if (!removeCoOwner(555) || isOwner(555)) throw new Error("co-owner removal");
+  if (removeCoOwner(555)) throw new Error("removing twice should report nothing removed");
+}
+
+// ---- daily series + top posters ----
+{
+  logMessage(-100777, 1, 7, "Ana", "hello there");
+  logMessage(-100777, 2, 7, "Ana", "second one");
+  logMessage(-100777, 3, 8, "Budi", "hi");
+  const series = dailyMessageCounts(14, -100777);
+  if (series.length !== 14) throw new Error("series must have one point per day");
+  if (series[13]!.n !== 3) throw new Error("today's bucket");
+  if (series.some((p) => !/^\d{4}-\d{2}-\d{2}$/.test(p.day))) throw new Error("series day format");
+  // Gaps are filled with zeros so the sparkline keeps a fixed x-scale.
+  if (series[0]!.n !== 0) throw new Error("series gap fill");
+  const posters = topPosters(-100777, 7, 10);
+  if (posters[0]?.name !== "Ana" || posters[0]?.n !== 2) throw new Error("top posters ordering");
+}
+
+// ---- AI spend accounting ----
+{
+  recordAiSpend(-100777, 1000, 500, 0.0125);
+  recordAiSpend(-100777, 200, 100, 0.0025);
+  const s = aiSpendForChat(-100777, 30);
+  if (s.inTokens !== 1200 || s.outTokens !== 600) throw new Error("spend token totals");
+  if (Math.abs(s.costUsd - 0.015) > 1e-9) throw new Error("spend cost total");
+  const byChat = aiSpendByChat(30).find((r) => r.chat_id === -100777);
+  if (!byChat || Math.abs((byChat.cost_usd ?? 0) - 0.015) > 1e-9) throw new Error("spend rollup");
+  // A chat that never used AI reports zeros rather than undefined (SUM over no
+  // rows is NULL in SQLite — the repo must not leak that through).
+  const none = aiSpendForChat(-100555001, 30);
+  if (none.calls !== 0 || none.costUsd !== 0) throw new Error("spend for unused chat");
+  if (formatUsd(0.0001) !== "0.0001" || formatUsd(1.5) !== "1.50") throw new Error("usd formatting");
+  if (formatTokens(1500) !== "1.5k" || formatTokens(2_000_000) !== "2.0M") throw new Error("token formatting");
+  if (estimateTokens("abcd") !== 1) throw new Error("token estimate");
+}
+
+// ---- job backlog gauge (alerting input) ----
+{
+  const before = overdueJobCount();
+  scheduleJob("reminder", { chatId: 1, text: "x" }, -3600);
+  if (overdueJobCount() !== before + 1) throw new Error("overdue job count");
+  for (const j of listJobsByKind("reminder")) deleteJob(j.id);
 }
 
 console.log("ALL SMOKE TESTS OK");

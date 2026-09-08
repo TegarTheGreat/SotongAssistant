@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { getCatalog } from "./catalog.js";
 import { resolveApiKey } from "./ai/index.js";
+import { getCachedEmbeddings, putCachedEmbeddings, embeddingCacheRows } from "../db/repo.js";
 
 /**
  * Semantic retrieval for /recall.
@@ -17,6 +18,10 @@ import { resolveApiKey } from "./ai/index.js";
  * Vectors are also CACHED by text hash, so repeated /recall calls only pay for
  * messages the cache has not seen — a second search over the same history
  * embeds just the query.
+ *
+ * The cache is two-tier: a small in-process LRU (L1) in front of a SQLite table
+ * (L2). L2 makes the savings survive restarts and redeploys, which is where the
+ * cost actually was — a cold process used to re-embed an entire history.
  */
 
 const EMBED_MODEL = "text-embedding-3-small";
@@ -29,6 +34,7 @@ function cacheKey(text: string): string {
   return createHash("sha1").update(text).digest("base64");
 }
 
+/** L1 lookup only — SQLite is consulted in one batched query, see below. */
 function cacheGet(text: string): number[] | undefined {
   const k = cacheKey(text);
   const hit = vectorCache.get(k);
@@ -52,9 +58,43 @@ function cacheSet(text: string, vec: number[]): void {
   vectorCache.set(cacheKey(text), vec);
 }
 
-/** Test/introspection helper: how many vectors are currently cached. */
+/**
+ * Pull whatever L2 has for these texts into L1, in ONE query, and report which
+ * texts are still unknown. A failing cache read is never fatal: the texts are
+ * simply reported as misses and get embedded again.
+ */
+function warmFromDisk(texts: string[]): Set<string> {
+  // A Set both de-duplicates repeated texts and is what callers iterate.
+  const missing = new Set<string>();
+  for (const t of texts) if (!cacheGet(t)) missing.add(t);
+  if (!missing.size) return missing;
+  try {
+    const byHash = getCachedEmbeddings([...missing].map(cacheKey), EMBED_MODEL);
+    for (const t of [...missing]) {
+      const vec = byHash.get(cacheKey(t));
+      if (vec) {
+        cacheSet(t, vec);
+        missing.delete(t);
+      }
+    }
+  } catch (err) {
+    console.warn("embedding cache read failed:", (err as Error).message);
+  }
+  return missing;
+}
+
+/** Test/introspection helper: how many vectors are cached in memory. */
 export function embeddingCacheSize(): number {
   return vectorCache.size;
+}
+
+/** How many vectors survive on disk (survives restarts). */
+export function embeddingCachePersisted(): number {
+  try {
+    return embeddingCacheRows();
+  } catch {
+    return 0;
+  }
 }
 
 function cosine(a: number[], b: number[]): number {
@@ -111,18 +151,28 @@ export async function semanticRerank<T>(
   const pool = candidates.slice(0, MAX_CANDIDATES);
   if (pool.length < 2) return undefined;
 
-  // Only texts the cache has never seen go to the API; the query is always
-  // fresh (it is new by definition, and caching queries would bloat the map).
+  // Only texts NEITHER tier has seen go to the API; the query is always fresh
+  // (it is new by definition, and caching queries would bloat the cache).
   const texts = pool.map(textOf);
-  const misses = [...new Set(texts.filter((t) => !cacheGet(t)))];
+  const misses = [...warmFromDisk(texts)];
   const fetched = await embedBatch([query, ...misses]);
   if (!fetched) return undefined;
   const queryVec = fetched[0];
   if (!queryVec) return undefined;
+  const fresh: Array<{ hash: string; vec: number[] }> = [];
   misses.forEach((text, i) => {
     const vec = fetched[i + 1];
-    if (vec) cacheSet(text, vec);
+    if (vec) {
+      cacheSet(text, vec);
+      fresh.push({ hash: cacheKey(text), vec });
+    }
   });
+  // Persist misses so the next process start does not pay for them again.
+  try {
+    putCachedEmbeddings(fresh, EMBED_MODEL);
+  } catch (err) {
+    console.warn("embedding cache write failed:", (err as Error).message);
+  }
 
   return pool
     .map((item, i) => {

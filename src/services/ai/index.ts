@@ -15,6 +15,17 @@ export interface AiRequest {
   images?: Array<{ mediaType: string; dataBase64: string }>;
   /** Abort generation early (e.g. Telegram's native "stop generating" button). */
   signal?: AbortSignal;
+  /**
+   * Reports token usage once generation ends. Providers that do not return
+   * usage never invoke it — callers that need a number should fall back to an
+   * estimate rather than assume zero.
+   */
+  onUsage?: (usage: TokenUsage) => void;
+}
+
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
 }
 
 /** Error carrying a machine-readable code so callers can localize the message. */

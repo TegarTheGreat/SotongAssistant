@@ -10,9 +10,22 @@ function required(name: string): string {
   return v;
 }
 
+/**
+ * OWNER_ID accepts a comma-separated list. The FIRST id is the primary owner:
+ * only they can grant or revoke co-ownership and store API keys, so a co-owner
+ * can never escalate into the credentials.
+ */
+const ownerIds = (process.env.OWNER_ID ?? "")
+  .split(",")
+  .map((s) => Number(s.trim()))
+  .filter((n) => Number.isFinite(n) && n !== 0);
+
 export const config = {
   botToken: required("BOT_TOKEN"),
-  ownerId: Number(process.env.OWNER_ID ?? 0),
+  /** Primary owner — the only account that may manage owners and API keys. */
+  ownerId: ownerIds[0] ?? 0,
+  /** Owners configured through the environment (primary first). */
+  ownerIds,
   dataDir: process.env.DATA_DIR ?? path.resolve("data"),
   /** Default AI model when a chat has not picked its own. */
   defaultProvider: process.env.DEFAULT_AI_PROVIDER ?? "anthropic",
@@ -34,6 +47,12 @@ export const config = {
   metricsToken: process.env.METRICS_TOKEN,
   /** Apply git updates automatically (hourly check); otherwise just notify the owner. */
   autoUpdate: process.env.AUTO_UPDATE === "true",
+  /**
+   * Operational alerting thresholds. Errors are counted over a 5-minute window;
+   * backlog is the number of jobs already past their due time.
+   */
+  alertErrorsPer5m: Number(process.env.ALERT_ERRORS_PER_5M ?? 25),
+  alertJobBacklog: Number(process.env.ALERT_JOB_BACKLOG ?? 50),
 };
 
 mkdirSync(config.dataDir, { recursive: true });

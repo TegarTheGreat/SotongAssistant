@@ -573,8 +573,10 @@ export function bumpAiUsage(chatId: number): number {
        ON CONFLICT(chat_id, day) DO UPDATE SET count = count + 1 RETURNING count`,
     )
     .get(chatId, day) as { count: number };
-  // Drop old rows opportunistically so the table never grows unbounded.
-  db.prepare("DELETE FROM ai_usage WHERE day < ?").run(new Date(Date.now() - 3 * 86400_000).toISOString().slice(0, 10));
+  // Drop old rows opportunistically so the table never grows unbounded. The
+  // window is 60 days because these rows also carry the spend history the
+  // dashboard reports over — the daily quota itself only ever reads today.
+  db.prepare("DELETE FROM ai_usage WHERE day < ?").run(new Date(Date.now() - 60 * 86400_000).toISOString().slice(0, 10));
   return row.count;
 }
 
@@ -689,4 +691,195 @@ export function getBusinessConnection(id: string) {
   return db
     .prepare("SELECT connection_id, user_id, enabled, can_reply FROM business_connections WHERE connection_id = ?")
     .get(id) as { connection_id: string; user_id: number; enabled: number; can_reply: number } | undefined;
+}
+
+// ---------- embedding cache (L2 for /recall vectors) ----------
+
+/**
+ * Vectors are stored as a raw Float32Array buffer rather than JSON: a 1536-dim
+ * embedding is 6 KB of BLOB instead of ~30 KB of text, and decoding is a view
+ * over the buffer instead of a parse.
+ */
+export function getCachedEmbeddings(
+  hashes: string[],
+  model: string,
+): Map<string, number[]> {
+  const out = new Map<string, number[]>();
+  if (!hashes.length) return out;
+  const rows = db
+    .prepare(
+      `SELECT hash, vec FROM embedding_cache
+       WHERE model = ? AND hash IN (${hashes.map(() => "?").join(",")})`,
+    )
+    .all(model, ...hashes) as Array<{ hash: string; vec: Buffer }>;
+  for (const r of rows) {
+    // Copy into a fresh buffer before viewing it as Float32: node Buffers come
+    // from a shared pool whose byteOffset is not guaranteed to be 4-byte
+    // aligned, and an unaligned typed-array view throws.
+    const bytes = new Uint8Array(r.vec.byteLength);
+    bytes.set(r.vec);
+    out.set(r.hash, Array.from(new Float32Array(bytes.buffer)));
+  }
+  if (rows.length) {
+    db.prepare(
+      `UPDATE embedding_cache SET used_at = ?
+       WHERE model = ? AND hash IN (${rows.map(() => "?").join(",")})`,
+    ).run(now(), model, ...rows.map((r) => r.hash));
+  }
+  return out;
+}
+
+/** Persist freshly embedded vectors, then prune the least recently used. */
+export function putCachedEmbeddings(
+  entries: Array<{ hash: string; vec: number[] }>,
+  model: string,
+  cap = 20_000,
+): void {
+  if (!entries.length) return;
+  const stmt = db.prepare(
+    `INSERT INTO embedding_cache (hash, model, dims, vec, used_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(hash, model) DO UPDATE SET used_at = excluded.used_at`,
+  );
+  const ts = now();
+  db.transaction(() => {
+    for (const e of entries) {
+      const buf = Buffer.from(new Float32Array(e.vec).buffer);
+      stmt.run(e.hash, model, e.vec.length, buf, ts);
+    }
+    const total = (db.prepare("SELECT COUNT(*) AS n FROM embedding_cache").get() as { n: number }).n;
+    if (total > cap) {
+      db.prepare(
+        `DELETE FROM embedding_cache WHERE rowid IN (
+           SELECT rowid FROM embedding_cache ORDER BY used_at ASC LIMIT ?
+         )`,
+      ).run(total - cap);
+    }
+  })();
+}
+
+/** How many vectors the persistent cache holds (dashboard/tests). */
+export function embeddingCacheRows(): number {
+  return (db.prepare("SELECT COUNT(*) AS n FROM embedding_cache").get() as { n: number }).n;
+}
+
+// ---------- co-owners (owner-level command team) ----------
+
+export function listCoOwners(): Array<{ user_id: number; name: string | null }> {
+  return db.prepare("SELECT user_id, name FROM owners ORDER BY ts").all() as Array<{
+    user_id: number;
+    name: string | null;
+  }>;
+}
+
+export function addCoOwner(userId: number, name: string | undefined, addedBy: number): void {
+  db.prepare(
+    `INSERT INTO owners (user_id, name, added_by, ts) VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET name = excluded.name`,
+  ).run(userId, name ?? null, addedBy, now());
+}
+
+export function removeCoOwner(userId: number): boolean {
+  return db.prepare("DELETE FROM owners WHERE user_id = ?").run(userId).changes > 0;
+}
+
+export function isCoOwner(userId: number): boolean {
+  return Boolean(db.prepare("SELECT 1 FROM owners WHERE user_id = ?").get(userId));
+}
+
+// ---------- daily activity series (dashboard sparklines) ----------
+
+/** Message counts per UTC day, oldest first. Omit chatId for every chat. */
+export function dailyMessageCounts(days: number, chatId?: number): Array<{ day: string; n: number }> {
+  const since = now() - days * 86_400;
+  const rows = db
+    .prepare(
+      `SELECT strftime('%Y-%m-%d', ts, 'unixepoch') AS day, COUNT(*) AS n
+       FROM message_log WHERE ts >= ?${chatId === undefined ? "" : " AND chat_id = ?"}
+       GROUP BY day ORDER BY day`,
+    )
+    .all(...(chatId === undefined ? [since] : [since, chatId])) as Array<{ day: string; n: number }>;
+  // Fill gaps so the sparkline keeps a constant x-scale.
+  const byDay = new Map(rows.map((r) => [r.day, r.n]));
+  const out: Array<{ day: string; n: number }> = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+    out.push({ day, n: byDay.get(day) ?? 0 });
+  }
+  return out;
+}
+
+/** Most active posters in a chat over the last `days` days. */
+export function topPosters(chatId: number, days = 7, limit = 10) {
+  return db
+    .prepare(
+      `SELECT name, COUNT(*) AS n FROM message_log
+       WHERE chat_id = ? AND ts >= ? AND name IS NOT NULL
+       GROUP BY user_id ORDER BY n DESC LIMIT ?`,
+    )
+    .all(chatId, now() - days * 86_400, limit) as Array<{ name: string; n: number }>;
+}
+
+// ---------- AI spend accounting ----------
+
+/** Record tokens and estimated cost for one AI call. */
+export function recordAiSpend(chatId: number, inTokens: number, outTokens: number, costUsd: number): void {
+  const day = new Date().toISOString().slice(0, 10);
+  db.prepare(
+    `INSERT INTO ai_usage (chat_id, day, count, in_tokens, out_tokens, cost_usd) VALUES (?, ?, 0, ?, ?, ?)
+     ON CONFLICT(chat_id, day) DO UPDATE SET
+       in_tokens = in_tokens + excluded.in_tokens,
+       out_tokens = out_tokens + excluded.out_tokens,
+       cost_usd = cost_usd + excluded.cost_usd`,
+  ).run(chatId, day, inTokens, outTokens, costUsd);
+}
+
+/** Spend rolled up per chat over the last `days` days, biggest spender first. */
+export function aiSpendByChat(days = 30): Array<{
+  chat_id: number;
+  in_tokens: number;
+  out_tokens: number;
+  cost_usd: number;
+  calls: number;
+}> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  return db
+    .prepare(
+      `SELECT chat_id, SUM(in_tokens) AS in_tokens, SUM(out_tokens) AS out_tokens,
+              SUM(cost_usd) AS cost_usd, SUM(count) AS calls
+       FROM ai_usage WHERE day >= ? GROUP BY chat_id ORDER BY cost_usd DESC`,
+    )
+    .all(since) as Array<{
+    chat_id: number;
+    in_tokens: number;
+    out_tokens: number;
+    cost_usd: number;
+    calls: number;
+  }>;
+}
+
+/** Spend for one chat over the last `days` days. */
+export function aiSpendForChat(chatId: number, days = 30) {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  const row = db
+    .prepare(
+      `SELECT SUM(in_tokens) AS in_tokens, SUM(out_tokens) AS out_tokens,
+              SUM(cost_usd) AS cost_usd, SUM(count) AS calls
+       FROM ai_usage WHERE chat_id = ? AND day >= ?`,
+    )
+    .get(chatId, since) as
+    | { in_tokens: number | null; out_tokens: number | null; cost_usd: number | null; calls: number | null }
+    | undefined;
+  return {
+    inTokens: row?.in_tokens ?? 0,
+    outTokens: row?.out_tokens ?? 0,
+    costUsd: row?.cost_usd ?? 0,
+    calls: row?.calls ?? 0,
+  };
+}
+
+/** Jobs whose due time has passed — a proxy for runner backlog (alerting). */
+export function overdueJobCount(graceSeconds = 120): number {
+  return (
+    db.prepare("SELECT COUNT(*) AS n FROM jobs WHERE due_at <= ?").get(now() - graceSeconds) as { n: number }
+  ).n;
 }

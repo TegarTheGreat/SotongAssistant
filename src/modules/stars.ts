@@ -4,6 +4,7 @@ import { config } from "../config.js";
 import { senderIsAdmin } from "../util/admin.js";
 import { escapeHtml } from "../util/format.js";
 import { tc } from "../i18n/index.js";
+import { isOwner } from "../services/owners.js";
 
 /**
  * Telegram Stars support: /donate sends an XTR invoice (empty provider token,
@@ -90,7 +91,7 @@ stars.command("subscription", async (ctx) => {
     chatId = ctx.chat.id;
     amount = Number(parts[0]);
   } else if (ctx.chat.type === "private") {
-    if (ctx.from?.id !== config.ownerId) {
+    if (!isOwner(ctx.from?.id)) {
       await ctx.reply(tc(ctx, "error.ownerOnly"));
       return;
     }
@@ -115,7 +116,7 @@ stars.command("subscription", async (ctx) => {
 
 // /balance — owner only: the bot's Star balance plus its latest transactions.
 stars.command("balance", async (ctx) => {
-  if (ctx.from?.id !== config.ownerId) {
+  if (!isOwner(ctx.from?.id)) {
     await ctx.reply(tc(ctx, "error.ownerOnly"));
     return;
   }
@@ -150,7 +151,7 @@ stars.command("gifts", async (ctx) => {
 
 // /gift <gift_id> — send a gift to the replied user, paid from the bot's Stars.
 stars.command("gift", async (ctx) => {
-  if (ctx.from?.id !== config.ownerId) {
+  if (!isOwner(ctx.from?.id)) {
     await ctx.reply(tc(ctx, "error.ownerOnly"));
     return;
   }
@@ -170,7 +171,8 @@ stars.command("gift", async (ctx) => {
 
 // /refund (owner, replying to the receipt that contains the charge id)
 stars.command("refund", async (ctx) => {
-  if (ctx.from?.id !== config.ownerId) {
+  const invoker = ctx.from?.id;
+  if (!isOwner(invoker)) {
     await ctx.reply(tc(ctx, "error.ownerOnly"));
     return;
   }
@@ -185,7 +187,7 @@ stars.command("refund", async (ctx) => {
     return;
   }
   try {
-    await ctx.api.refundStarPayment(userId ?? ctx.from.id, chargeId);
+    await ctx.api.refundStarPayment(userId ?? invoker!, chargeId);
     await ctx.reply("✅ Refunded.");
   } catch (err) {
     await ctx.reply(tc(ctx, "error.generic", { reason: (err as Error).message }));

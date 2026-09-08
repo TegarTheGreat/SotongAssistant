@@ -3,7 +3,19 @@ import { writeFileSync } from "node:fs";
 import { Composer, InputFile, type Context } from "grammy";
 import { config } from "../config.js";
 import { checkpoint, restorePath } from "../db/index.js";
-import { listKnownChats, upsertChat, migrateChatId, scheduleJob, listJobsByKind, deleteJob } from "../db/repo.js";
+import {
+  listKnownChats,
+  upsertChat,
+  migrateChatId,
+  scheduleJob,
+  listJobsByKind,
+  deleteJob,
+  listCoOwners,
+  addCoOwner,
+  removeCoOwner,
+  aiSpendByChat,
+  aiSpendForChat,
+} from "../db/repo.js";
 import {
   isGitCheckout,
   checkForUpdates,
@@ -12,6 +24,10 @@ import {
 import { invalidateAdminCache } from "../util/admin.js";
 import { escapeHtml, parseDuration, humanDuration } from "../util/format.js";
 import { tc } from "../i18n/index.js";
+import { isOwner, isPrimaryOwner } from "../services/owners.js";
+import { formatUsd, formatTokens } from "../services/spend.js";
+import { alertStatus } from "../services/alerts.js";
+import { senderIsAdmin } from "../util/admin.js";
 
 /**
  * "Bot manager": the bot's awareness of every chat it lives in, its admin
@@ -52,7 +68,7 @@ manager.on("message:migrate_to_chat_id", (ctx) => {
 });
 
 manager.command("status", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   const chats = listKnownChats();
   if (!chats.length) {
     await ctx.reply(tc(ctx, "status.empty"));
@@ -62,7 +78,15 @@ manager.command("status", async (ctx) => {
     const admin = c.rights ? " · admin" : "";
     return `• <b>${escapeHtml(c.title ?? String(c.chat_id))}</b> (${c.type}) — ${c.status}${admin}`;
   });
-  await ctx.reply(`${tc(ctx, "status.title")}\n${lines.join("\n")}`, {
+  // Surface any firing alert here too — the owner reads /status far more often
+  // than they read their own DM history.
+  const alerts = alertStatus();
+  const banner = alerts.errors || alerts.backlog
+    ? `\n\n⚠️ ${[alerts.errors ? "error rate" : "", alerts.backlog ? "job backlog" : ""]
+        .filter(Boolean)
+        .join(" · ")}`
+    : "";
+  await ctx.reply(`${tc(ctx, "status.title")}\n${lines.join("\n")}${banner}`, {
     parse_mode: "HTML",
   });
 });
@@ -70,7 +94,7 @@ manager.command("status", async (ctx) => {
 // /export — owner only, DM only: send the SQLite database as a backup file.
 // Contains encrypted provider keys, settings, notes, memories.
 manager.command("export", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   checkpoint(); // flush the WAL so the file is a complete snapshot
   const file = new InputFile(
     path.join(config.dataDir, "sotong.db"),
@@ -85,7 +109,7 @@ manager.command("export", async (ctx) => {
 // The file is staged next to the live DB and swapped in on the next boot
 // (db/index.ts), so the open database file is never clobbered.
 manager.command("import", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   const doc = ctx.message?.reply_to_message?.document;
   if (!doc || (doc.file_size ?? 0) > 19_000_000) {
     await ctx.reply(tc(ctx, "import.usage"));
@@ -119,7 +143,7 @@ manager.command("import", async (ctx) => {
 
 // /broadcast <text> — owner only, DM only: deliver to every managed group/channel.
 manager.command("broadcast", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   const text = ctx.match.trim();
   if (!text) {
     await ctx.reply(tc(ctx, "broadcast.usage"));
@@ -149,7 +173,7 @@ manager.command("broadcast", async (ctx) => {
 // /update — owner only, DM only: git pull + npm ci, then exit(0) so the
 // process supervisor (systemd/pm2/Docker restart policy) boots the new code.
 manager.command("update", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   if (!isGitCheckout()) {
     await ctx.reply(tc(ctx, "update.notGit"));
     return;
@@ -180,7 +204,7 @@ manager.command("update", async (ctx) => {
  *   for when the bot is added to a group).
  */
 manager.command("setbotname", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   const name = ctx.match.trim().slice(0, 64);
   if (!name) {
     await ctx.reply(tc(ctx, "botcfg.usage"));
@@ -199,7 +223,7 @@ manager.command("setbotname", async (ctx) => {
 });
 
 manager.command("setbotdesc", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   const text = ctx.match.trim().slice(0, 512);
   if (!text) {
     await ctx.reply(tc(ctx, "botcfg.usage"));
@@ -218,7 +242,7 @@ manager.command("setbotdesc", async (ctx) => {
 });
 
 manager.command("setbotabout", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   const text = ctx.match.trim().slice(0, 120);
   if (!text) {
     await ctx.reply(tc(ctx, "botcfg.usage"));
@@ -239,7 +263,7 @@ manager.command("setbotabout", async (ctx) => {
 // /setrights — ask Telegram to pre-tick the moderation rights when someone
 // adds the bot to a group, so admins stop forgetting them.
 manager.command("setrights", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   try {
     await ctx.api.setMyDefaultAdministratorRights({
       rights: {
@@ -275,7 +299,7 @@ manager.command("setrights", async (ctx) => {
  * itself, so it survives restarts.
  */
 manager.command("autobackup", async (ctx) => {
-  if (ctx.chat.type !== "private" || ctx.from?.id !== config.ownerId) return;
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
   const arg = ctx.match.trim().toLowerCase();
   const existing = listJobsByKind("backup");
   if (arg === "off") {
@@ -293,6 +317,100 @@ manager.command("autobackup", async (ctx) => {
   for (const j of existing) deleteJob(j.id); // one schedule at a time
   scheduleJob("backup", { repeatSeconds: seconds }, seconds);
   await ctx.reply(tc(ctx, "backup.set", { duration: humanDuration(seconds) }));
+});
+
+/**
+ * /spend — where the AI budget goes. In a group it reports that chat (admins
+ * only, since it is the group's own usage); in the owner's DM it ranks every
+ * chat. Costs are estimates from the models.dev price list — see spend.ts.
+ */
+manager.command("spend", async (ctx) => {
+  const days = 30;
+  if (ctx.chat.type !== "private") {
+    if (!(await senderIsAdmin(ctx))) {
+      await ctx.reply(tc(ctx, "error.adminOnly"));
+      return;
+    }
+    const s = aiSpendForChat(ctx.chat.id, days);
+    await ctx.reply(
+      tc(ctx, "spend.chat", {
+        days,
+        calls: s.calls,
+        tokens: formatTokens(s.inTokens + s.outTokens),
+        cost: formatUsd(s.costUsd),
+      }),
+      { parse_mode: "HTML" },
+    );
+    return;
+  }
+  if (!isOwner(ctx.from?.id)) return;
+  const titles = new Map(listKnownChats().map((c) => [c.chat_id, c.title ?? String(c.chat_id)]));
+  const rows = aiSpendByChat(days).filter((r) => r.calls || r.cost_usd);
+  if (!rows.length) {
+    await ctx.reply(tc(ctx, "spend.none"));
+    return;
+  }
+  const body = rows.slice(0, 20).map((r) =>
+    tc(ctx, "spend.row", {
+      title: escapeHtml(titles.get(r.chat_id) ?? String(r.chat_id)),
+      calls: r.calls ?? 0,
+      tokens: formatTokens((r.in_tokens ?? 0) + (r.out_tokens ?? 0)),
+      cost: formatUsd(r.cost_usd ?? 0),
+    }),
+  );
+  await ctx.reply([tc(ctx, "spend.title", { days }), ...body].join("\n"), { parse_mode: "HTML" });
+});
+
+/**
+ * Owner team. Co-owners run every owner command EXCEPT owner management and
+ * /setkey, so granting one never exposes the provider credentials — and only
+ * the primary owner (first id in OWNER_ID) can grant or revoke.
+ */
+manager.command("owners", async (ctx) => {
+  if (ctx.chat.type !== "private" || !isOwner(ctx.from?.id)) return;
+  const env = config.ownerIds.map(
+    (id, i) => `• <code>${id}</code>${i === 0 ? " — " + tc(ctx, "owners.primary") : " — env"}`,
+  );
+  const granted = listCoOwners().map(
+    (o) => `• <code>${o.user_id}</code>${o.name ? ` — ${escapeHtml(o.name)}` : ""}`,
+  );
+  await ctx.reply([tc(ctx, "owners.title"), ...env, ...granted].join("\n"), { parse_mode: "HTML" });
+});
+
+manager.command("addowner", async (ctx) => {
+  if (ctx.chat.type !== "private" || !isPrimaryOwner(ctx.from?.id)) {
+    if (ctx.chat.type === "private") await ctx.reply(tc(ctx, "owners.primaryOnly"));
+    return;
+  }
+  const parts = ctx.match.trim().split(/\s+/).filter(Boolean);
+  const userId = Number(parts[0]);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    await ctx.reply(tc(ctx, "owners.addUsage"));
+    return;
+  }
+  addCoOwner(userId, parts.slice(1).join(" ") || undefined, ctx.from!.id);
+  await ctx.reply(tc(ctx, "owners.added", { id: userId }), { parse_mode: "HTML" });
+});
+
+manager.command("delowner", async (ctx) => {
+  if (ctx.chat.type !== "private" || !isPrimaryOwner(ctx.from?.id)) {
+    if (ctx.chat.type === "private") await ctx.reply(tc(ctx, "owners.primaryOnly"));
+    return;
+  }
+  const userId = Number(ctx.match.trim());
+  if (!Number.isInteger(userId)) {
+    await ctx.reply(tc(ctx, "owners.delUsage"));
+    return;
+  }
+  // Env-configured owners are deployment config, not data — say so plainly
+  // instead of pretending a delete happened.
+  if (config.ownerIds.includes(userId)) {
+    await ctx.reply(tc(ctx, "owners.envOwner"));
+    return;
+  }
+  await ctx.reply(removeCoOwner(userId) ? tc(ctx, "owners.removed", { id: userId }) : tc(ctx, "owners.notFound"), {
+    parse_mode: "HTML",
+  });
 });
 
 manager.command("id", async (ctx) => {

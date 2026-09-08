@@ -25,6 +25,9 @@ import { threadIdOf, replyEphemeral } from "../services/telegram.js";
 import { escapeHtml, markdownToTelegramHtml, parseDuration, humanDuration } from "../util/format.js";
 import { senderIsAdmin } from "../util/admin.js";
 import { tc, langOf, t } from "../i18n/index.js";
+import { isOwner, isPrimaryOwner } from "../services/owners.js";
+import { trackAiSpend } from "../services/spend.js";
+import type { TokenUsage } from "../services/ai/index.js";
 
 export const ai = new Composer<Context>();
 
@@ -134,7 +137,7 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     const isGroupChat = ctx.chat!.type === "group" || ctx.chat!.type === "supergroup";
     const invokerIsAdmin = isGroupChat && (await senderIsAdmin(ctx));
     // The owner's private chat gets its own (owner-only) action set.
-    const invokerIsOwner = ctx.chat!.type === "private" && ctx.from?.id === config.ownerId;
+    const invokerIsOwner = ctx.chat!.type === "private" && isOwner(ctx.from?.id);
     const repliedMsg = ctx.message?.reply_to_message;
     const actionTarget =
       repliedMsg?.from && repliedMsg.from.id !== ctx.me.id && !repliedMsg.from.is_bot ? repliedMsg : undefined;
@@ -154,7 +157,12 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
       userText: question,
       userName: ctx.from?.first_name,
       signal: controller.signal,
+      onUsage: (u: TokenUsage) => (reportedUsage = u),
     };
+
+    // Providers that report usage fill this in; the rest fall back to an
+    // estimate when the answer is booked below.
+    let reportedUsage: TokenUsage | undefined;
 
     // Track the partial answer so a user-initiated stop still delivers it.
     let partial = "";
@@ -232,6 +240,15 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
       // the read-only pre-check above), so outages never exhaust the quota.
       metrics.aiAnswers++;
       if (settings.aiDailyLimit) bumpAiUsage(chatId);
+      // Book the spend without blocking the reply path.
+      void trackAiSpend({
+        chatId,
+        providerId,
+        modelId: model,
+        usage: reportedUsage,
+        promptText: question,
+        answerText: full,
+      });
       appendExchange(memKey, ctx.from?.first_name, question, full);
       compactIfNeeded(memKey, provider, model);
     }
@@ -579,7 +596,8 @@ ai.command("setkey", async (ctx) => {
     await ctx.reply(tc(ctx, "error.dmOnly"));
     return;
   }
-  if (ctx.from?.id !== config.ownerId) {
+  // Primary owner only — a co-owner runs owner commands but never touches keys.
+  if (!isPrimaryOwner(ctx.from?.id)) {
     await ctx.reply(tc(ctx, "error.ownerOnly"));
     return;
   }

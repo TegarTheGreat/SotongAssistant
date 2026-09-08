@@ -64,6 +64,10 @@ export async function streamAnthropic(
     if (final.stop_reason === "refusal") {
       throw new AiError("refused", "the model declined this request");
     }
+    req.onUsage?.({
+      inputTokens: final.usage.input_tokens,
+      outputTokens: final.usage.output_tokens,
+    });
     return full;
   } catch (err) {
     if (err instanceof AiError) throw err;

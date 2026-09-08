@@ -39,6 +39,7 @@ Bütün ayarlar Telegram'ın içinde. Web paneli yok.**
 | 🧰 | **Tam yetenek turu** | `/aitask` zamanlanmış YZ paylaşımı (her seferinde yeni metin) · `/kang` çıkartmayı kendi paketinize klonlar · görüntülü sohbet duyuruları + hatırlatma · `/gifts` `/gift` `/balance` Stars ekonomisi · `/tag` üye etiketleri · `/unpin` `/unpinall` `/revokeinvite` `/boosts` · bot kimliğini Telegram'dan ayarlama (`/setbotname` vb.) · `/recall` artık hibrit (sözcüksel + anlamsal) · sahibin DM'inde YZ eylemleri |
 | 💼 | **Business otomatik triyaj** | Her müşteri sohbeti YZ yanıtı **ve otomatik etiket** alır (niyet, aciliyet, tek satır özet) — ek YZ çağrısı yok · `/leads [etiket]` sahibin DM'inde önceliklendirilmiş gelen kutusu · sahip eylemleri artık herhangi bir grubu uzaktan yapılandırır ve hangi sağlayıcıda anahtar olduğunu gösterir (yalnız adlar) |
 | 🧭 | **Sihirbaz, panel ve ops** | Yeni grup için `/setup` tek dokunuş hazır ayarlar (Topluluk / Sıkı / Duyuru) · salt-okunur istatistik paneli (yalnız sahip, `initData` ile doğrulanır) + `/healthz` + Prometheus `/metrics` · `/autobackup` veritabanını düzenli olarak DM'e yollar · `/react` `/clearreactions` `/autoreact` · önerilen gönderi moderasyonu · General konusu kontrolü |
+| 💸 | **Maliyet, uyarı ve sahip ekibi** | Her AI yanıtı sohbet başına token ve tahmini maliyeti kaydeder (`/spend`, panel, `/metrics`) · hata oranı veya iş kuyruğu eşiği aştığında her sahibe DM gider, düzeldiğinde bir kez daha · `OWNER_ID` liste kabul eder ve `/addowner` ortak sahip ekler — API anahtarları birincil sahipte kalır · panele 14 günlük sparkline ve sohbet başına detay eklendi |
 | 🌐 | **10 dil** | Kullanıcının Telegram'ından otomatik algılama, `/lang` ile sohbet başına değiştirilebilir |
 
 **Her şey Telegram içinde yapılandırılır**: `/settings` her grubun satır içi
@@ -69,7 +70,7 @@ Sonra Telegram'da:
 | Değişken | Zorunlu | Anlamı |
 |---|---|---|
 | `BOT_TOKEN` | ✅ | @BotFather token'ı |
-| `OWNER_ID` | ✅ | Telegram user id'in (bkz. `/id`) |
+| `OWNER_ID` | ✅ | Telegram user id'in (bkz. `/id`) — liste olabilir; ilki birincil sahiptir |
 | `SECRET_KEY` | – | Saklanan API anahtarlarının şifreleme anahtarı |
 | `DATA_DIR` | – | SQLite ve önbellek dizini (varsayılan `./data`) |
 | `DEFAULT_AI_PROVIDER` / `DEFAULT_AI_MODEL` | – | Varsayılan model (`anthropic` / `claude-opus-5`) |

@@ -167,6 +167,21 @@ CREATE TABLE IF NOT EXISTS business_leads (
   PRIMARY KEY (connection_id, chat_id)
 );
 CREATE INDEX IF NOT EXISTS business_leads_ts ON business_leads (connection_id, updated_at);
+CREATE TABLE IF NOT EXISTS embedding_cache (
+  hash TEXT NOT NULL,                       -- sha1(text) in base64
+  model TEXT NOT NULL,                      -- embedding model the vector came from
+  dims INTEGER NOT NULL,
+  vec BLOB NOT NULL,                        -- Float32Array buffer
+  used_at INTEGER NOT NULL,                 -- last read/write, drives LRU pruning
+  PRIMARY KEY (hash, model)
+);
+CREATE INDEX IF NOT EXISTS embedding_cache_lru ON embedding_cache (used_at);
+CREATE TABLE IF NOT EXISTS owners (
+  user_id INTEGER PRIMARY KEY,              -- co-owner granted owner-level commands
+  name TEXT,
+  added_by INTEGER NOT NULL,
+  ts INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS business_connections (
   connection_id TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL,
@@ -180,6 +195,10 @@ CREATE TABLE IF NOT EXISTS business_connections (
 for (const stmt of [
   "ALTER TABLE ai_memory ADD COLUMN summary TEXT",
   "ALTER TABLE jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0",
+  // Per-chat AI spend accounting, added alongside the plain answer counter.
+  "ALTER TABLE ai_usage ADD COLUMN in_tokens INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE ai_usage ADD COLUMN out_tokens INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE ai_usage ADD COLUMN cost_usd REAL NOT NULL DEFAULT 0",
 ]) {
   try {
     db.exec(stmt);

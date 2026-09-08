@@ -177,6 +177,7 @@ async function registerCommands() {
     { command: "fedinfo", description: "Federation status" },
     { command: "aimodel", description: "Pick AI provider & model" },
     { command: "aiprompt", description: "Set AI personality" },
+    { command: "spend", description: "(admin) This chat's AI cost" },
     { command: "lang", description: "Change language" },
   ];
   const privateCommands = [
@@ -193,6 +194,8 @@ async function registerCommands() {
     { command: "balance", description: "(owner) Star balance" },
     { command: "leads", description: "(business) Customer inbox" },
     { command: "autobackup", description: "(owner) Scheduled backups" },
+    { command: "spend", description: "(owner) AI cost per chat" },
+    { command: "owners", description: "(owner) The owner team" },
     { command: "setbotname", description: "(owner) Rename the bot" },
     { command: "newfed", description: "Create a ban federation" },
     { command: "memory", description: "Show long-term memory" },
