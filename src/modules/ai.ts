@@ -18,7 +18,7 @@ import { streamCompletion, resolveApiKey, AiError } from "../services/ai/index.j
 import { appendExchange, compactIfNeeded } from "../services/memory.js";
 import { selfKnowledge } from "../services/selfknowledge.js";
 import { extractActions, executeActions, actionInstructions, ownerActionInstructions } from "../services/actions.js";
-import { bumpAiUsage, getAiUsageToday } from "../db/repo.js";
+import { bumpAiUsage, getAiUsageToday, aiCostThisMonth } from "../db/repo.js";
 import { metrics } from "../services/dashboard.js";
 import { TelegramStreamer } from "../services/streamer.js";
 import { threadIdOf, replyEphemeral } from "../services/telegram.js";
@@ -26,7 +26,7 @@ import { escapeHtml, markdownToTelegramHtml, parseDuration, humanDuration } from
 import { senderIsAdmin } from "../util/admin.js";
 import { tc, langOf, t } from "../i18n/index.js";
 import { isOwner, isPrimaryOwner } from "../services/owners.js";
-import { trackAiSpend } from "../services/spend.js";
+import { trackAiSpend, formatUsd } from "../services/spend.js";
 import type { TokenUsage } from "../services/ai/index.js";
 
 export const ai = new Composer<Context>();
@@ -107,6 +107,22 @@ async function runAsk(ctx: Context, question: string): Promise<void> {
     userLastAsk.set(userKey, Date.now());
     await ctx.reply(tc(ctx, "ai.quotaReached", { limit: settings.aiDailyLimit }));
     return;
+  }
+  // Monthly budget cap (/aibudget). Checked the same way — before generating,
+  // against costs already booked — so an over-budget chat stops spending
+  // instead of overshooting by one more answer. Resets on the 1st (UTC).
+  if (settings.aiBudgetUsd) {
+    const spent = aiCostThisMonth(chatId);
+    if (spent >= settings.aiBudgetUsd) {
+      userLastAsk.set(userKey, Date.now());
+      await ctx.reply(
+        tc(ctx, "ai.budgetReached", {
+          spent: formatUsd(spent),
+          cap: formatUsd(settings.aiBudgetUsd),
+        }),
+      );
+      return;
+    }
   }
   userLastAsk.set(userKey, Date.now());
   activeGenerations.add(chatId);
@@ -414,6 +430,41 @@ ai.command("transcribe", async (ctx) => {
   await ctx.reply(
     text ? tc(ctx, "voice.transcript", { text: escapeHtml(text.slice(0, 3500)) }) : tc(ctx, "voice.noProvider"),
     { parse_mode: "HTML", reply_parameters: { message_id: r!.message_id } },
+  );
+});
+
+/**
+ * /aibudget <usd|off> — monthly cost ceiling for this chat. Complements
+ * /aiquota: a call cap bounds volume, a budget bounds money, and an expensive
+ * model can exhaust the second long before the first.
+ */
+ai.command("aibudget", async (ctx) => {
+  if (ctx.chat.type === "private" || !(await senderIsAdmin(ctx))) {
+    await ctx.reply(tc(ctx, "error.adminOnly"));
+    return;
+  }
+  const arg = ctx.match.trim().toLowerCase().replace(/^\$/, "");
+  if (arg === "off") {
+    updateSettings(ctx.chat.id, { aiBudgetUsd: undefined });
+    await ctx.reply(tc(ctx, "aibudget.off"));
+    return;
+  }
+  const usd = Number(arg);
+  if (!arg || !Number.isFinite(usd) || usd <= 0 || usd > 10_000) {
+    const current = getSettings(ctx.chat.id).aiBudgetUsd;
+    await ctx.reply(
+      tc(ctx, "aibudget.usage", {
+        current: current ? `$${formatUsd(current)}` : tc(ctx, "aibudget.offState"),
+        spent: formatUsd(aiCostThisMonth(ctx.chat.id)),
+      }),
+      { parse_mode: "HTML" },
+    );
+    return;
+  }
+  updateSettings(ctx.chat.id, { aiBudgetUsd: usd });
+  await ctx.reply(
+    tc(ctx, "aibudget.set", { cap: formatUsd(usd), spent: formatUsd(aiCostThisMonth(ctx.chat.id)) }),
+    { parse_mode: "HTML" },
   );
 });
 

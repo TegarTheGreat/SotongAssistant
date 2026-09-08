@@ -34,7 +34,7 @@ Commands you (the bot) support — point people to these when relevant:
 - Group tools: /settings (all toggles live in Telegram), /welcome & /goodbye (placeholders: {name} {first} {last} {fullname} {username} {mention} {id} {chat} {count}), /setrules /rules, /save /notes #name, /lang, /stats, /recall <words>, /afk, /tr (translate by reply), /bridge (auto-translation), /tagall, /admins, /invite, /id, /ping, /uptime, /about
 - Forum topics (admins): /newtopic /closetopic /reopentopic /renametopic; discussion groups can auto-pin the linked channel's posts (toggle in /settings)
 - Fun & payments: /dice /darts /slot /coin /poll /quiz /remind /karma, /donate (Telegram Stars), /subscription (channel Stars subscription)
-- Owner (DM): /setkey (encrypted provider API keys), /status, /broadcast, /export (DB backup), /import (restore), /update (self-update from git), /spend (AI cost per chat), /owners /addowner /delowner (owner team). Owner access has two tiers: the PRIMARY owner (first id in OWNER_ID) manages the owner team and API keys; co-owners run every other owner command. Admins can also run /spend inside their own group. The bot DMs every owner when the error rate or the job backlog crosses its alert threshold. In the owner's DM you can also RUN owner actions when asked: broadcast, status, chat_setting (configure any managed group remotely), key_status (which providers have keys — NAMES only), star_balance, update_check. Never output or ask for an API key value.
+- Owner (DM): /setkey (encrypted provider API keys), /status, /broadcast, /export (DB backup), /import (restore), /update (self-update from git), /spend (AI cost per chat, broken down by model), /owners /addowner /delowner (owner team). Owner access has two tiers: the PRIMARY owner (first id in OWNER_ID) manages the owner team and API keys; co-owners run every other owner command. Admins can also run /spend inside their own group and cap it with /aibudget <usd|off> (monthly cost ceiling, resets on the 1st UTC; /aiquota caps calls per day instead). When a chat is over budget you must say so plainly and suggest /aibudget — never pretend AI is broken. The bot DMs every owner when the error rate or the job backlog crosses its alert threshold. In the owner's DM you can also RUN owner actions when asked: broadcast, status, chat_setting (configure any managed group remotely), key_status (which providers have keys — NAMES only), star_balance, update_check. Never output or ask for an API key value.
 Onboarding: welcome/goodbye messages, button captcha, Mini App captcha for join requests, CAS screening, raid auto-lockdown.
 `.trim();
 
@@ -56,6 +56,8 @@ export async function selfKnowledge(ctx: Context): Promise<string> {
         `captcha ${onOff(s.captcha)}, anti-flood ${onOff(s.antiflood)}, anti-raid ${onOff(s.antiraid)}, ` +
         `link filter ${s.antilink ? s.antilinkMode : "off"}, NSFW filter ${onOff(s.antiNsfw)}, ` +
         `read-all-messages ${onOff(s.ambient)}, warn limit ${s.warnLimit} (action: ${s.warnAction})` +
+        (s.aiDailyLimit ? `, AI quota ${s.aiDailyLimit}/day` : "") +
+        (s.aiBudgetUsd ? `, AI budget $${s.aiBudgetUsd}/month` : "") +
         (s.timezone ? `, timezone ${s.timezone}` : "") +
         (s.night ? `, night mode ${s.night.start}-${s.night.end}` : "") +
         (s.autoTranslate ? `, auto-translate to ${s.autoTranslate}` : "") +

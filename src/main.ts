@@ -178,6 +178,7 @@ async function registerCommands() {
     { command: "aimodel", description: "Pick AI provider & model" },
     { command: "aiprompt", description: "Set AI personality" },
     { command: "spend", description: "(admin) This chat's AI cost" },
+    { command: "aibudget", description: "(admin) Monthly AI cost cap" },
     { command: "lang", description: "Change language" },
   ];
   const privateCommands = [

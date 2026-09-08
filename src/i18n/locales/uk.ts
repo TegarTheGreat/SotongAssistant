@@ -375,4 +375,12 @@ export const uk = {
   "spend.row": "• {title}: {calls} запитів · {tokens} токенів · ${cost}",
   "spend.none": "Витрат на AI ще не зафіксовано.",
   "spend.chat": "💸 Цей чат, останні {days} днів: {calls} запитів · {tokens} токенів · ${cost}",
+  "ai.budgetReached": "💸 Цей чат вичерпав місячний бюджет на AI (${spent} з ${cap}). Скидається 1-го числа — адмін може підняти ліміт через /aibudget.",
+  "aibudget.off": "✅ Місячний бюджет на AI знято — витрати знову без обмежень.",
+  "aibudget.offState": "вимкнено",
+  "aibudget.usage": "Використання: /aibudget &lt;usd|off&gt; — місячний ліміт витрат на AI для цього чату.\nЗараз: {current} · витрачено цього місяця: ${spent}",
+  "aibudget.set": "✅ Місячний бюджет на AI: <b>${cap}</b> (витрачено цього місяця: ${spent}). Після досягнення ліміту AI тут призупиниться і відновиться 1-го числа.",
+  "spend.byModel": "<b>За моделями</b>",
+  "spend.model": "• {model}: {calls} запитів · {tokens} токенів · ${cost}",
+  "spend.budgetLine": "Бюджет цього місяця: ${used} з ${cap}",
 } satisfies Partial<Record<keyof typeof en, string>>;

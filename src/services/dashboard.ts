@@ -10,6 +10,8 @@ import {
   topPosters,
   aiSpendByChat,
   aiSpendForChat,
+  aiSpendByModel,
+  aiCostThisMonth,
   overdueJobCount,
 } from "../db/repo.js";
 import { getVersionInfo } from "./updater.js";
@@ -143,6 +145,14 @@ const DASHBOARD_HTML = `<!doctype html>
       "<h2>" + esc(d.title) + "</h2>" +
       cards(d.cards) +
       "<h2>Messages · last 14 days</h2>" + spark(d.series) +
+      (d.models.length
+        ? "<h2>AI models · 30 days</h2>" +
+          '<table><thead><tr><th>Model</th><th class="num">Calls</th><th class="num">$</th></tr></thead><tbody>' +
+          d.models.map(m =>
+            "<tr><td>" + esc(m.name) + '</td><td class="num">' + m.calls +
+            '</td><td class="num">' + esc(m.cost) + "</td></tr>").join("") +
+          "</tbody></table>"
+        : "") +
       "<h2>Top posters · 7 days</h2>" +
       '<table><thead><tr><th>Member</th><th class="num">Messages</th></tr></thead><tbody>' +
       (d.posters.length
@@ -289,9 +299,20 @@ export async function handleDashboardRequest(req: IncomingMessage, res: ServerRe
               { k: "Tokens 30d", v: formatTokens(spend.inTokens + spend.outTokens) },
               { k: "AI cost 30d", v: `$${formatUsd(spend.costUsd)}` },
             ],
+            models: aiSpendByModel(30, target.chat_id)
+              .slice(0, 5)
+              .map((m) => ({
+                name: escapeHtml(`${m.provider}/${m.model}`),
+                calls: m.calls,
+                cost: formatUsd(m.cost_usd),
+              })),
             settings:
               `AI ${s.ai ? "on" : "off"} · captcha ${s.captcha ? "on" : "off"} · ` +
               `links ${s.antilink ? s.antilinkMode : "off"} · warns ${s.warnLimit} (${s.warnAction})` +
+              (s.aiDailyLimit ? ` · quota ${s.aiDailyLimit}/day` : "") +
+              (s.aiBudgetUsd
+                ? ` · budget $${formatUsd(aiCostThisMonth(target.chat_id))}/$${formatUsd(s.aiBudgetUsd)} this month`
+                : "") +
               (s.language ? ` · lang ${s.language}` : ""),
           }),
         );

@@ -1,5 +1,6 @@
 import { Composer, InputFile, type Context } from "grammy";
-import { getSettings, getAiUsageToday, bumpAiUsage } from "../db/repo.js";
+import { getSettings, getAiUsageToday, bumpAiUsage, aiCostThisMonth } from "../db/repo.js";
+import { formatUsd } from "../services/spend.js";
 import { generateImage } from "../services/imagegen.js";
 import { tc } from "../i18n/index.js";
 import { threadIdOf } from "../services/telegram.js";
@@ -33,6 +34,19 @@ imagine.command("imagine", async (ctx) => {
   if (isGroup && settings.aiDailyLimit && getAiUsageToday(chat.id) >= settings.aiDailyLimit) {
     await ctx.reply(tc(ctx, "ai.quotaReached", { limit: settings.aiDailyLimit }));
     return;
+  }
+  // …and against the monthly budget, for the same reason: the priciest call we
+  // make must not be the one that keeps spending after the cap is reached.
+  // Image cost is not booked (models.dev prices tokens, not images), so this is
+  // a stop, not an accrual — text usage is what moves the chat over the line.
+  if (isGroup && settings.aiBudgetUsd) {
+    const spent = aiCostThisMonth(chat.id);
+    if (spent >= settings.aiBudgetUsd) {
+      await ctx.reply(
+        tc(ctx, "ai.budgetReached", { spent: formatUsd(spent), cap: formatUsd(settings.aiBudgetUsd) }),
+      );
+      return;
+    }
   }
   userLast.set(uid, Date.now());
   if (userLast.size > 5000) userLast.clear();

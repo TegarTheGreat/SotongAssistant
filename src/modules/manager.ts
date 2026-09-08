@@ -15,6 +15,9 @@ import {
   removeCoOwner,
   aiSpendByChat,
   aiSpendForChat,
+  aiSpendByModel,
+  aiCostThisMonth,
+  getSettings,
 } from "../db/repo.js";
 import {
   isGitCheckout,
@@ -332,13 +335,31 @@ manager.command("spend", async (ctx) => {
       return;
     }
     const s = aiSpendForChat(ctx.chat.id, days);
+    const models = aiSpendByModel(days, ctx.chat.id).slice(0, 5).map((m) =>
+      tc(ctx, "spend.model", {
+        model: escapeHtml(`${m.provider}/${m.model}`),
+        calls: m.calls,
+        tokens: formatTokens(m.in_tokens + m.out_tokens),
+        cost: formatUsd(m.cost_usd),
+      }),
+    );
+    const budget = getSettings(ctx.chat.id).aiBudgetUsd;
+    const budgetLine = budget
+      ? "\n" +
+        tc(ctx, "spend.budgetLine", {
+          used: formatUsd(aiCostThisMonth(ctx.chat.id)),
+          cap: formatUsd(budget),
+        })
+      : "";
     await ctx.reply(
       tc(ctx, "spend.chat", {
         days,
         calls: s.calls,
         tokens: formatTokens(s.inTokens + s.outTokens),
         cost: formatUsd(s.costUsd),
-      }),
+      }) +
+        budgetLine +
+        (models.length ? `\n\n${tc(ctx, "spend.byModel")}\n${models.join("\n")}` : ""),
       { parse_mode: "HTML" },
     );
     return;
@@ -358,7 +379,22 @@ manager.command("spend", async (ctx) => {
       cost: formatUsd(r.cost_usd ?? 0),
     }),
   );
-  await ctx.reply([tc(ctx, "spend.title", { days }), ...body].join("\n"), { parse_mode: "HTML" });
+  const byModel = aiSpendByModel(days).slice(0, 8).map((m) =>
+    tc(ctx, "spend.model", {
+      model: escapeHtml(`${m.provider}/${m.model}`),
+      calls: m.calls,
+      tokens: formatTokens(m.in_tokens + m.out_tokens),
+      cost: formatUsd(m.cost_usd),
+    }),
+  );
+  await ctx.reply(
+    [
+      tc(ctx, "spend.title", { days }),
+      ...body,
+      ...(byModel.length ? ["", tc(ctx, "spend.byModel"), ...byModel] : []),
+    ].join("\n"),
+    { parse_mode: "HTML" },
+  );
 });
 
 /**

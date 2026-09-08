@@ -375,4 +375,12 @@ export const pt = {
   "spend.row": "• {title}: {calls} chamadas · {tokens} tokens · ${cost}",
   "spend.none": "Ainda não há gasto de IA registrado.",
   "spend.chat": "💸 Este chat, últimos {days} dias: {calls} chamadas · {tokens} tokens · ${cost}",
+  "ai.budgetReached": "💸 Este chat atingiu seu orçamento mensal de IA (${spent} de ${cap}). Reinicia no dia 1 — um admin pode aumentar com /aibudget.",
+  "aibudget.off": "✅ Orçamento mensal de IA removido — gasto sem limite novamente.",
+  "aibudget.offState": "desligado",
+  "aibudget.usage": "Uso: /aibudget &lt;usd|off&gt; — teto mensal de custo de IA para este chat.\nAgora: {current} · gasto neste mês: ${spent}",
+  "aibudget.set": "✅ Orçamento mensal de IA: <b>${cap}</b> (gasto neste mês: ${spent}). A IA pausa aqui ao atingir o teto e volta no dia 1.",
+  "spend.byModel": "<b>Por modelo</b>",
+  "spend.model": "• {model}: {calls} chamadas · {tokens} tokens · ${cost}",
+  "spend.budgetLine": "Orçamento deste mês: ${used} de ${cap}",
 } satisfies Partial<Record<keyof typeof en, string>>;

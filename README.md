@@ -58,7 +58,7 @@ Every setting lives inside Telegram. No web dashboard.**
 | 🔎 | **Inline mode** | `@botname question` asks the AI **from any chat** — placeholder posts instantly, the answer streams into it (enable *inline mode* + *inline feedback* in @BotFather) |
 | 🧭 | **`/setup` wizard** | A freshly promoted bot offers a one-tap setup: **Community**, **Strict** or **Announcements** preset configures welcome, captcha, AI, link policy, anti-flood/raid and warn behaviour in a single click, then hands over to `/settings` |
 | 📈 | **Dashboard & metrics** | A read-only stats page on the bot's own HTTP server (owner-only, authenticated with Mini App `initData` — opening the URL alone reveals nothing): **14-day sparklines**, a **per-chat drill-down** with top posters, settings and AI cost · **`/healthz`** liveness probe · **Prometheus `/metrics`** with update, AI, moderation, job, error, backlog and spend gauges, optionally token-gated |
-| 💸 | **AI spend accounting** | Every answer books its tokens against the chat — reported by the provider where possible, estimated otherwise — priced from the models.dev catalogue. `/spend` ranks chats in the owner's DM and reports the group's own usage to its admins |
+| 💸 | **AI spend & budgets** | Every answer books its tokens against the chat — reported by the provider where possible, estimated otherwise — priced from the models.dev catalogue and **split by model**. `/spend` ranks chats in the owner's DM and reports the group's own usage to its admins; **`/aibudget 5`** sets a monthly cost ceiling that pauses AI in that chat until the 1st (`/aiquota` caps calls per day instead) |
 | 🚨 | **Alerting** | The bot DMs every owner when the error rate or the job backlog crosses its threshold, and once more when it clears (edge-triggered, so an outage costs a handful of messages, not a flood) |
 | 👑 | **Owner team** | `OWNER_ID` takes a list and `/addowner` grants more at runtime. Co-owners run the day-to-day owner commands; managing owners and storing API keys stay with the **primary** owner |
 | 🗄 | **Automatic backups** | `/autobackup 1d` mails the checkpointed database to the owner's DM on a schedule, re-arming itself across restarts |
@@ -291,11 +291,14 @@ timeline, framework comparison, platform pitfalls).
 - [x] **Multi-owner** — `/owners` `/addowner` `/delowner`, with API keys reserved for the primary owner
 - [x] **AI spend accounting** — tokens & estimated cost per chat (`/spend`, dashboard, `/metrics`)
 
+- [x] **Budget enforcement** — `/aibudget 5` pauses AI in a chat once its monthly cost cap is reached
+- [x] **Per-model breakdown** — `/spend` and the dashboard split cost by provider/model
+
 **Next**
 
 - [ ] Checklists (`sendChecklist`) once Telegram allows them outside Business accounts
-- [ ] Budget *enforcement*: pause AI in a chat once it passes a monthly cost cap
-- [ ] Per-model breakdown in `/spend` (today it aggregates whatever each chat used)
+- [ ] Budget alerts at 80% of the cap, so a chat is warned before AI stops
+- [ ] Org-wide budget across all chats, not just per chat
 
 ## 🤝 Contributing
 

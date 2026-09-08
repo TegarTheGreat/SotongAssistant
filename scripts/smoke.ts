@@ -24,6 +24,7 @@ import {
   getCachedEmbeddings, putCachedEmbeddings, embeddingCacheRows,
   addCoOwner, removeCoOwner, isCoOwner, listCoOwners,
   dailyMessageCounts, topPosters, recordAiSpend, aiSpendForChat, aiSpendByChat, overdueJobCount,
+  aiSpendByModel, aiCostThisMonth,
 } from "../src/db/repo.js";
 import { isOwner, isPrimaryOwner, ownerIds } from "../src/services/owners.js";
 import { formatUsd, formatTokens, estimateTokens } from "../src/services/spend.js";
@@ -341,6 +342,34 @@ if (!deleteJob(listJobsByKind("backup")[0]!.id)) throw new Error("backup cancel"
   if (formatUsd(0.0001) !== "0.0001" || formatUsd(1.5) !== "1.50") throw new Error("usd formatting");
   if (formatTokens(1500) !== "1.5k" || formatTokens(2_000_000) !== "2.0M") throw new Error("token formatting");
   if (estimateTokens("abcd") !== 1) throw new Error("token estimate");
+}
+
+// ---- per-model spend breakdown + monthly budget ----
+{
+  recordAiSpend(-100666, 1000, 200, 0.01, "anthropic", "claude-opus-5");
+  recordAiSpend(-100666, 500, 100, 0.002, "anthropic", "claude-opus-5");
+  recordAiSpend(-100666, 300, 50, 0.0001, "openai", "gpt-5-mini");
+  const models = aiSpendByModel(30, -100666);
+  if (models.length !== 2) throw new Error("model breakdown grouping");
+  // Ordered by cost, so the expensive model is what an admin sees first.
+  if (models[0]!.model !== "claude-opus-5" || models[0]!.calls !== 2) throw new Error("model rollup");
+  if (Math.abs(models[0]!.cost_usd - 0.012) > 1e-9) throw new Error("model cost rollup");
+  if (models[0]!.in_tokens !== 1500) throw new Error("model token rollup");
+  // The per-model rows must agree with the flat rollup they were written beside.
+  const flat = aiSpendForChat(-100666, 30);
+  const summed = models.reduce((a, m) => a + m.cost_usd, 0);
+  if (Math.abs(flat.costUsd - summed) > 1e-9) throw new Error("model rows must agree with ai_usage");
+  // Month-to-date drives the budget check.
+  if (Math.abs(aiCostThisMonth(-100666) - flat.costUsd) > 1e-9) throw new Error("month-to-date cost");
+  if (aiCostThisMonth(-100555002) !== 0) throw new Error("month-to-date for unused chat");
+  // A call with no provider/model still books the flat total (estimate path).
+  recordAiSpend(-100667, 10, 10, 0.001);
+  if (aiSpendByModel(30, -100667).length !== 0) throw new Error("unattributed call must not invent a model");
+  if (aiCostThisMonth(-100667) !== 0.001) throw new Error("unattributed call still counts toward budget");
+  updateSettings(-100666, { aiBudgetUsd: 5 });
+  if (getSettings(-100666).aiBudgetUsd !== 5) throw new Error("budget setting round-trip");
+  updateSettings(-100666, { aiBudgetUsd: undefined });
+  if (getSettings(-100666).aiBudgetUsd !== undefined) throw new Error("budget clear");
 }
 
 // ---- job backlog gauge (alerting input) ----

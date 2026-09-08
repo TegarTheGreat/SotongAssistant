@@ -388,4 +388,12 @@ export const en = {
   "spend.row": "• {title}: {calls} calls · {tokens} tokens · ${cost}",
   "spend.none": "No AI spend recorded yet.",
   "spend.chat": "💸 This chat, last {days} days: {calls} calls · {tokens} tokens · ${cost}",
+  "ai.budgetReached": "💸 This chat has reached its monthly AI budget (${spent} of ${cap}). It resets on the 1st — an admin can raise it with /aibudget.",
+  "aibudget.off": "✅ Monthly AI budget removed — spending is uncapped again.",
+  "aibudget.offState": "off",
+  "aibudget.usage": "Usage: /aibudget &lt;usd|off&gt; — monthly AI cost cap for this chat.\nCurrently: {current} · spent this month: ${spent}",
+  "aibudget.set": "✅ Monthly AI budget: <b>${cap}</b> (spent so far this month: ${spent}). AI pauses here when the cap is reached and resumes on the 1st.",
+  "spend.byModel": "<b>By model</b>",
+  "spend.model": "• {model}: {calls} calls · {tokens} tokens · ${cost}",
+  "spend.budgetLine": "Budget this month: ${used} of ${cap}",
 } as const;

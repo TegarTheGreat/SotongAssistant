@@ -44,7 +44,7 @@ export async function trackAiSpend(opts: {
     const cost =
       ((model?.cost?.input ?? 0) * inTokens + (model?.cost?.output ?? 0) * outTokens) / 1_000_000;
 
-    recordAiSpend(opts.chatId, inTokens, outTokens, cost);
+    recordAiSpend(opts.chatId, inTokens, outTokens, cost, opts.providerId, opts.modelId);
   } catch (err) {
     console.warn("spend accounting failed:", (err as Error).message);
   }

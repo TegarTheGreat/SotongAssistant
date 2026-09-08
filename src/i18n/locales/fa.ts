@@ -375,4 +375,12 @@ export const fa = {
   "spend.row": "• {title}: {calls} فراخوانی · {tokens} توکن · ${cost}",
   "spend.none": "هنوز هزینهٔ هوش مصنوعی ثبت نشده است.",
   "spend.chat": "💸 این گفتگو، {days} روز گذشته: {calls} فراخوانی · {tokens} توکن · ${cost}",
+  "ai.budgetReached": "💸 این گفتگو به بودجهٔ ماهانهٔ هوش مصنوعی رسیده است (${spent} از ${cap}). اول ماه صفر می‌شود — ادمین می‌تواند با /aibudget افزایشش دهد.",
+  "aibudget.off": "✅ بودجهٔ ماهانه برداشته شد — هزینه دوباره بی‌سقف است.",
+  "aibudget.offState": "خاموش",
+  "aibudget.usage": "کاربرد: /aibudget &lt;usd|off&gt; — سقف هزینهٔ ماهانهٔ هوش مصنوعی این گفتگو.\nاکنون: {current} · خرج‌شده این ماه: ${spent}",
+  "aibudget.set": "✅ بودجهٔ ماهانه: <b>${cap}</b> (خرج‌شده این ماه: ${spent}). با رسیدن به سقف، هوش مصنوعی اینجا متوقف و اول ماه از سر گرفته می‌شود.",
+  "spend.byModel": "<b>بر پایهٔ مدل</b>",
+  "spend.model": "• {model}: {calls} فراخوانی · {tokens} توکن · ${cost}",
+  "spend.budgetLine": "بودجهٔ این ماه: ${used} از ${cap}",
 } satisfies Partial<Record<keyof typeof en, string>>;

@@ -40,6 +40,7 @@ Semua pengaturan ada di dalam Telegram. Tanpa dashboard web.**
 | 💼 | **Business auto-triase** | Tiap chat pelanggan dapat balasan AI **plus label otomatis** (intent, urgensi, ringkasan sebaris) tanpa panggilan AI tambahan · `/leads [label]` = kotak masuk terurut di DM pemilik · aksi owner kini bisa mengatur setting grup mana pun dari jarak jauh dan melihat provider mana yang punya API key (nama saja) |
 | 🧭 | **Wizard, dashboard & ops** | `/setup` preset sekali ketuk (Komunitas / Ketat / Pengumuman) untuk grup baru · dashboard stats read-only (khusus pemilik, auth `initData`) + `/healthz` + `/metrics` Prometheus · `/autobackup` kirim database berkala ke DM · `/react` `/clearreactions` `/autoreact` · moderasi suggested post channel · kontrol topik General |
 | 💸 | **Biaya, alert & tim owner** | Tiap jawaban AI mencatat token & perkiraan biaya per chat (`/spend`, dashboard, `/metrics`) · owner di-DM saat laju error atau antrean job melewati ambang, dan saat pulih · `OWNER_ID` menerima daftar dan `/addowner` menambah co-owner — kunci API tetap milik owner utama · dashboard kini punya sparkline 14 hari dan rincian per chat |
+| 💸 | **Budget AI & rincian model** | `/aibudget 5` menetapkan plafon biaya bulanan — AI berhenti di chat itu sampai tanggal 1 (`/aiquota` membatasi jumlah panggilan per hari) · `/spend` dan dashboard kini memecah biaya per provider/model |
 | 🌐 | **10 bahasa** | Deteksi otomatis dari Telegram user, bisa dioverride per chat via `/lang` |
 
 **Semua konfigurasi di dalam Telegram**: `/settings` membuka menu inline per grup

@@ -374,4 +374,12 @@ export const ar = {
   "spend.row": "• {title}: {calls} طلبًا · {tokens} توكن · ${cost}",
   "spend.none": "لا توجد تكلفة ذكاء اصطناعي مسجّلة بعد.",
   "spend.chat": "💸 هذه المحادثة، آخر {days} يومًا: {calls} طلبًا · {tokens} توكن · ${cost}",
+  "ai.budgetReached": "💸 بلغت هذه المحادثة ميزانيتها الشهرية للذكاء الاصطناعي (${spent} من ${cap}). تُصفَّر في الأول من الشهر — ويمكن لمشرف رفعها عبر /aibudget.",
+  "aibudget.off": "✅ أُزيلت الميزانية الشهرية — الإنفاق بلا حد من جديد.",
+  "aibudget.offState": "معطّلة",
+  "aibudget.usage": "الاستخدام: /aibudget &lt;usd|off&gt; — سقف تكلفة الذكاء الاصطناعي الشهري لهذه المحادثة.\nالآن: {current} · المنفَق هذا الشهر: ${spent}",
+  "aibudget.set": "✅ الميزانية الشهرية: <b>${cap}</b> (المنفَق هذا الشهر: ${spent}). يتوقف الذكاء الاصطناعي هنا عند بلوغ السقف ويعود في الأول من الشهر.",
+  "spend.byModel": "<b>حسب النموذج</b>",
+  "spend.model": "• {model}: {calls} طلبًا · {tokens} توكن · ${cost}",
+  "spend.budgetLine": "ميزانية هذا الشهر: ${used} من ${cap}",
 } satisfies Partial<Record<keyof typeof en, string>>;

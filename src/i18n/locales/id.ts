@@ -376,4 +376,12 @@ export const id = {
   "spend.row": "• {title}: {calls} panggilan · {tokens} token · ${cost}",
   "spend.none": "Belum ada biaya AI yang tercatat.",
   "spend.chat": "💸 Chat ini, {days} hari terakhir: {calls} panggilan · {tokens} token · ${cost}",
+  "ai.budgetReached": "💸 Chat ini sudah mencapai budget AI bulanannya (${spent} dari ${cap}). Reset tanggal 1 — admin bisa menaikkannya lewat /aibudget.",
+  "aibudget.off": "✅ Budget AI bulanan dilepas — pengeluaran tanpa batas lagi.",
+  "aibudget.offState": "mati",
+  "aibudget.usage": "Cara pakai: /aibudget &lt;usd|off&gt; — batas biaya AI bulanan untuk chat ini.\nSaat ini: {current} · terpakai bulan ini: ${spent}",
+  "aibudget.set": "✅ Budget AI bulanan: <b>${cap}</b> (terpakai bulan ini: ${spent}). AI berhenti di sini saat batas tercapai dan lanjut lagi tanggal 1.",
+  "spend.byModel": "<b>Per model</b>",
+  "spend.model": "• {model}: {calls} panggilan · {tokens} token · ${cost}",
+  "spend.budgetLine": "Budget bulan ini: ${used} dari ${cap}",
 } satisfies Partial<Record<keyof typeof en, string>>;

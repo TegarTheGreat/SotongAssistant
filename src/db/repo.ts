@@ -41,6 +41,8 @@ export interface ChatSettings {
   locks?: string[];
   /** Max AI answers per UTC day for this chat (undefined = unlimited). */
   aiDailyLimit?: number;
+  /** Monthly AI cost cap in USD for this chat (undefined = uncapped). */
+  aiBudgetUsd?: number;
   /** AI screening of photos/video thumbnails for NSFW content (opt-in). */
   antiNsfw: boolean;
   /** Pin the linked channel's auto-forwarded posts in the discussion group. */
@@ -821,16 +823,80 @@ export function topPosters(chatId: number, days = 7, limit = 10) {
 
 // ---------- AI spend accounting ----------
 
-/** Record tokens and estimated cost for one AI call. */
-export function recordAiSpend(chatId: number, inTokens: number, outTokens: number, costUsd: number): void {
+/**
+ * Record tokens and estimated cost for one AI call.
+ *
+ * Written to two tables in one transaction: `ai_usage` is the per-day rollup
+ * every quota and budget check reads, and `ai_spend_model` keeps the same
+ * numbers split by provider/model so /spend can say WHICH model costs money.
+ * They are derived from the same call, so a partial write would make the two
+ * disagree — hence the transaction.
+ */
+export function recordAiSpend(
+  chatId: number,
+  inTokens: number,
+  outTokens: number,
+  costUsd: number,
+  provider?: string,
+  model?: string,
+): void {
   const day = new Date().toISOString().slice(0, 10);
-  db.prepare(
-    `INSERT INTO ai_usage (chat_id, day, count, in_tokens, out_tokens, cost_usd) VALUES (?, ?, 0, ?, ?, ?)
-     ON CONFLICT(chat_id, day) DO UPDATE SET
-       in_tokens = in_tokens + excluded.in_tokens,
-       out_tokens = out_tokens + excluded.out_tokens,
-       cost_usd = cost_usd + excluded.cost_usd`,
-  ).run(chatId, day, inTokens, outTokens, costUsd);
+  db.transaction(() => {
+    db.prepare(
+      `INSERT INTO ai_usage (chat_id, day, count, in_tokens, out_tokens, cost_usd) VALUES (?, ?, 0, ?, ?, ?)
+       ON CONFLICT(chat_id, day) DO UPDATE SET
+         in_tokens = in_tokens + excluded.in_tokens,
+         out_tokens = out_tokens + excluded.out_tokens,
+         cost_usd = cost_usd + excluded.cost_usd`,
+    ).run(chatId, day, inTokens, outTokens, costUsd);
+    if (provider && model) {
+      db.prepare(
+        `INSERT INTO ai_spend_model (chat_id, day, provider, model, calls, in_tokens, out_tokens, cost_usd)
+         VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+         ON CONFLICT(chat_id, day, provider, model) DO UPDATE SET
+           calls = calls + 1,
+           in_tokens = in_tokens + excluded.in_tokens,
+           out_tokens = out_tokens + excluded.out_tokens,
+           cost_usd = cost_usd + excluded.cost_usd`,
+      ).run(chatId, day, provider, model, inTokens, outTokens, costUsd);
+    }
+    // Same 60-day window as ai_usage so the two never drift apart.
+    db.prepare("DELETE FROM ai_spend_model WHERE day < ?").run(
+      new Date(Date.now() - 60 * 86400_000).toISOString().slice(0, 10),
+    );
+  })();
+}
+
+/** Spend split by provider/model. Omit chatId to rank models across all chats. */
+export function aiSpendByModel(days = 30, chatId?: number) {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  return db
+    .prepare(
+      `SELECT provider, model, SUM(calls) AS calls, SUM(in_tokens) AS in_tokens,
+              SUM(out_tokens) AS out_tokens, SUM(cost_usd) AS cost_usd
+       FROM ai_spend_model WHERE day >= ?${chatId === undefined ? "" : " AND chat_id = ?"}
+       GROUP BY provider, model ORDER BY cost_usd DESC, calls DESC`,
+    )
+    .all(...(chatId === undefined ? [since] : [since, chatId])) as Array<{
+    provider: string;
+    model: string;
+    calls: number;
+    in_tokens: number;
+    out_tokens: number;
+    cost_usd: number;
+  }>;
+}
+
+/**
+ * Month-to-date cost for a chat, in UTC calendar months — the unit a budget is
+ * naturally expressed in, and the one that resets on a predictable date.
+ */
+export function aiCostThisMonth(chatId: number): number {
+  const firstOfMonth = new Date().toISOString().slice(0, 8) + "01";
+  const row = db
+    .prepare("SELECT SUM(cost_usd) AS cost FROM ai_usage WHERE chat_id = ? AND day >= ?")
+    .get(chatId, firstOfMonth) as { cost: number | null } | undefined;
+  return row?.cost ?? 0;
 }
 
 /** Spend rolled up per chat over the last `days` days, biggest spender first. */

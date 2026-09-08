@@ -375,4 +375,12 @@ export const tr = {
   "spend.row": "• {title}: {calls} çağrı · {tokens} token · ${cost}",
   "spend.none": "Henüz kayıtlı AI harcaması yok.",
   "spend.chat": "💸 Bu sohbet, son {days} gün: {calls} çağrı · {tokens} token · ${cost}",
+  "ai.budgetReached": "💸 Bu sohbet aylık AI bütçesine ulaştı (${cap} bütçenin ${spent} kadarı). Ayın 1'inde sıfırlanır — bir yönetici /aibudget ile yükseltebilir.",
+  "aibudget.off": "✅ Aylık AI bütçesi kaldırıldı — harcama yeniden sınırsız.",
+  "aibudget.offState": "kapalı",
+  "aibudget.usage": "Kullanım: /aibudget &lt;usd|off&gt; — bu sohbet için aylık AI maliyet tavanı.\nŞu an: {current} · bu ay harcanan: ${spent}",
+  "aibudget.set": "✅ Aylık AI bütçesi: <b>${cap}</b> (bu ay harcanan: ${spent}). Tavana ulaşınca AI burada durur, ayın 1'inde devam eder.",
+  "spend.byModel": "<b>Modele göre</b>",
+  "spend.model": "• {model}: {calls} çağrı · {tokens} token · ${cost}",
+  "spend.budgetLine": "Bu ayki bütçe: ${cap} bütçenin ${used} kadarı",
 } satisfies Partial<Record<keyof typeof en, string>>;

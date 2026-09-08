@@ -167,6 +167,18 @@ CREATE TABLE IF NOT EXISTS business_leads (
   PRIMARY KEY (connection_id, chat_id)
 );
 CREATE INDEX IF NOT EXISTS business_leads_ts ON business_leads (connection_id, updated_at);
+CREATE TABLE IF NOT EXISTS ai_spend_model (
+  chat_id INTEGER NOT NULL,
+  day TEXT NOT NULL,                        -- UTC YYYY-MM-DD
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  calls INTEGER NOT NULL DEFAULT 0,
+  in_tokens INTEGER NOT NULL DEFAULT 0,
+  out_tokens INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  PRIMARY KEY (chat_id, day, provider, model)
+);
+CREATE INDEX IF NOT EXISTS ai_spend_model_day ON ai_spend_model (day);
 CREATE TABLE IF NOT EXISTS embedding_cache (
   hash TEXT NOT NULL,                       -- sha1(text) in base64
   model TEXT NOT NULL,                      -- embedding model the vector came from
